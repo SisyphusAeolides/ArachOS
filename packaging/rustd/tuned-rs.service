@@ -1,0 +1,15 @@
+[Unit]
+Description=RustD TuneD-compatible system tuning daemon
+After=rustd-sysctl.service network.target dbus.service polkit.service
+Requires=dbus.service
+Conflicts=cpupower.service auto-cpufreq.service tlp.service
+
+[Service]
+Type=dbus
+BusName=com.redhat.tuned
+ExecStart=/usr/sbin/tuned
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
