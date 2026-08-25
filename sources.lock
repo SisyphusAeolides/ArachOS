@@ -1,6 +1,6 @@
 schema=rustd-fedora-sources-v1
-rustd https://github.com/SisyphusAeolides/rustd.git 6ddb6cb78916a831d3b3e5bcdd99718424c3c7b6
-rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 5df3abef403bf70de6fd8196251482979b61be61
+rustd https://github.com/SisyphusAeolides/rustd.git 4526c55ad9138158ffabd3b60e08df511c1cf534
+rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 240c47dc48cf4a262d551a5c6f607d97f06fc294
 tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git fc6d7e3127089af2908d4de7b2fe950b74f916cd
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 17389ca8f9b4a13400925204e31f277a7a74fb44
 blerust https://github.com/SisyphusAeolides/blerust.git 9e56036dd50eafa2caa2d4db1dc8f757a79c08b2

@@ -1,7 +1,7 @@
 # RustD Fedora
 
-RustD Fedora is a Fedora live workstation and Anaconda installer image built
-around RustD as PID 1 and RustD-Resolved as the native resolver. The image is
+RustD Fedora is a Fedora Everything-source live image with Anaconda installer
+support, built around RustD as PID 1 and RustD-Resolved as the native resolver. The image is
 intended to be installed on a disposable test machine or a snapshot-backed
 virtual machine until the installed-system certification gates are green.
 
