@@ -27,18 +27,18 @@ rm -f /run/anaconda/installation-error-msg /run/user/0/anaconda.pid
 # probing physical partitions can block the transaction.
 export GRUB_DISABLE_OS_PROBER=true
 
-rendered_ks="$WORK/RustD-Fedora.ks"
+rendered_ks="$WORK/ArachOS.ks"
 sed "s#^url --url=.*#&\nrepo --name=rustd-local --baseurl=file://$RPM_REPO#" \
-  "$ROOT/kickstart/RustD-Fedora.ks" > "$rendered_ks"
+  "$ROOT/kickstart/ArachOS.ks" > "$rendered_ks"
 
 livemedia-creator \
   --make-iso \
   --ks "$rendered_ks" \
   --anaconda-arg=--noninteractive \
   --releasever "$FEDORA_RELEASE" \
-  --project "RustD Fedora" \
-  --volid RUSTD_FEDORA \
-  --image-name RustD-Fedora-live-"$FEDORA_ARCH" \
+  --project "ArachOS" \
+  --volid ARACHOS \
+  --image-name ArachOS-live-"$FEDORA_ARCH" \
   --resultdir "$ISO_OUTPUT" \
   --tmp "$WORK" \
   --logfile "$WORK/livemedia-creator.log" \
@@ -46,7 +46,7 @@ livemedia-creator \
 
 iso=$(find "$ISO_OUTPUT" -maxdepth 2 -type f -name '*.iso' -print -quit)
 [[ -n $iso ]] || fail 'livemedia-creator did not produce an ISO'
-final_iso="$ISO_OUTPUT/RustD-Fedora-live-$FEDORA_ARCH.iso"
+final_iso="$ISO_OUTPUT/ArachOS-live-$FEDORA_ARCH.iso"
 if [[ $iso != "$final_iso" ]]; then
     cp "$iso" "$final_iso"
     iso="$final_iso"

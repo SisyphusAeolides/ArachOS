@@ -70,7 +70,7 @@ find "$TOPDIR/RPMS" -type f -name '*.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 find "$TOPDIR/SRPMS" -type f -name '*.src.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 
 {
-  printf 'schema=rustd-fedora-rpm-set-v1\n'
+  printf 'schema=arachos-rpm-set-v1\n'
   for name in rustd rustd-resolved tuned-rs libinput-rs blerust ccze-rs; do
     printf '%s=%s\n' "$name" "$(awk -v key="$name" '$1 == key {print $3}' "$ROOT/sources.lock")"
   done

@@ -1,7 +1,7 @@
 Name:           tuned-rs
 Version:        0.2.10
 Release:        1%{?dist}
-Summary:        Rust TuneD implementation for RustD Fedora
+Summary:        Rust TuneD implementation for ArachOS
 License:        GPL-2.0-or-later AND MIT AND Apache-2.0
 URL:            https://github.com/SisyphusAeolides/tuned-rs
 Source0:        tuned-rs-%{version}.tar.gz

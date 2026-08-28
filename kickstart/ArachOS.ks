@@ -63,7 +63,7 @@ ccze-rs
 -blesh
 %end
 
-%post --erroronfail --log=/root/rustd-fedora-post.log
+%post --erroronfail --log=/root/arachos-post.log
 set -Eeuo pipefail
 
 test -x /usr/lib/rustd/rustd
@@ -133,7 +133,7 @@ rpm -qa --qf '%{NAME}\n' | awk '
 '
 %end
 
-%post --nochroot --erroronfail --log=/mnt/sysimage/root/rustd-fedora-live-post.log
+%post --nochroot --erroronfail --log=/mnt/sysimage/root/arachos-live-post.log
 set -Eeuo pipefail
 test -e /mnt/sysimage/usr/lib/rustd/rustd
 %end

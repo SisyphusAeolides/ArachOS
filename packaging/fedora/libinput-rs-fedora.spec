@@ -1,7 +1,7 @@
 Name:           libinput-rs
 Version:        0.3.15
 Release:        1%{?dist}
-Summary:        Rust libinput implementation for RustD Fedora
+Summary:        Rust libinput implementation for ArachOS
 License:        MIT AND Unicode-3.0
 URL:            https://github.com/SisyphusAeolides/libinput-rs
 Source0:        libinput-rs-%{version}.tar.gz
@@ -31,7 +31,7 @@ Requires:       python3-pyyaml
 Requires:       rustd-compat-libs
 
 %description
-Rust libinput ABI, tools, udev helpers, and quirks installed for RustD Fedora.
+Rust libinput ABI, tools, udev helpers, and quirks installed for ArachOS.
 The resume service is placed in RustD's native unit root.
 
 %prep

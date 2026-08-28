@@ -1,4 +1,4 @@
-schema=rustd-fedora-sources-v1
+schema=arachos-sources-v1
 rustd https://github.com/SisyphusAeolides/rustd.git 4526c55ad9138158ffabd3b60e08df511c1cf534
 rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 240c47dc48cf4a262d551a5c6f607d97f06fc294
 tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git fc6d7e3127089af2908d4de7b2fe950b74f916cd

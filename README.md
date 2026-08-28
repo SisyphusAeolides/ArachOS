@@ -6,7 +6,7 @@ intended to be installed on a disposable test machine or a snapshot-backed
 virtual machine until the installed-system certification gates are green.
 
 The image replaces the Fedora service-manager and resolver packages with the
-RustD Fedora RPM set. Fedora compatibility entry points remain available for
+ArachOS RPM set. Fedora compatibility entry points remain available for
 package scripts, but the running manager, initramfs manager, udev path, resolver
 daemon, NSS module, and service units are RustD-owned.
 
@@ -53,7 +53,7 @@ Build the live ISO and Anaconda installer as root on a Fedora host with
 sudo make build-live
 ```
 
-The result is written to `build/iso/RustD-Fedora-live-x86_64.iso`. The build
+The result is written to `build/iso/ArachOS-live-x86_64.iso`. The build
 also emits a checksum and a package/source manifest beside the ISO.
 
 ## Image contract
@@ -70,7 +70,7 @@ post-install validation requires:
 - no installed RPM whose name is `systemd` or begins with `systemd-`;
 - tuned-rs and the libinput resume unit to be installed under
   `/usr/lib/rustd/system`, never under the outgoing manager's unit root;
-- SELinux to remain enforcing with the RustD Fedora policy loaded.
+- SELinux to remain enforcing with the ArachOS SELinux policy loaded.
 
 The image build does not claim that a successful ISO assembly is equivalent to
 the RustD installed-system release certificate. Run the exact RustD and
@@ -80,7 +80,7 @@ making the image a machine's only boot path.
 ## Repository layout
 
 ```text
-kickstart/RustD-Fedora.ks       Anaconda live/install kickstart
+kickstart/ArachOS.ks              Anaconda live/install kickstart
 packaging/fedora/*.spec         Companion Fedora RPM specs
 packaging/rustd/*.service       RustD-native companion service units
 scripts/build-rpms.sh           Pinned source and RPM assembly
@@ -93,6 +93,6 @@ Makefile                        Reproducible entry points
 
 ## Safety
 
-Keep a known-good recovery path. RustD is a PID 1 replacement and RustD Fedora
+Keep a known-good recovery path. RustD is a PID 1 replacement and ArachOS
 performs a deliberately exclusive package cutover. Test in a VM or on a
 machine with recoverable snapshots, and retain the Fedora rescue media.
