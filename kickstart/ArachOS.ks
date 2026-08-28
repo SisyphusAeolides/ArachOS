@@ -32,6 +32,7 @@ grub2-efi-x64-cdboot
 grub2-efi-x64-modules
 grub2-pc
 grub2-pc-modules
+plymouth
 shim-x64
 kernel
 kernel-modules
@@ -40,6 +41,7 @@ NetworkManager
 openssh-server
 polkit
 rustd
+rustd-cutover-tools
 rustd-compat-libs
 rustd-fedora-compat
 rustd-resolved
@@ -71,7 +73,11 @@ test -x /usr/lib/rustd/rustd-resolved
 test -x /usr/bin/rustctl
 test -f /usr/lib/rustd/system/rustd-resolved.service
 test -f /usr/lib/rustd/system/tuned-rs.service
+test -f /usr/lib/rustd/system/tuned-rs-ppd.service
 test -f /usr/lib/rustd/system/libinput-rs-elan-resume.service
+test -f /usr/lib64/libnss_rustd_dns.so.2 || test -f /usr/lib/libnss_rustd_dns.so.2
+
+/usr/sbin/rustd-fedora-cutover
 
 if grep -q '^hosts:' /etc/nsswitch.conf; then
     sed -i -E 's/^hosts:.*/hosts: files rustd_dns [!UNAVAIL=return] dns/' /etc/nsswitch.conf
@@ -98,7 +104,8 @@ for path in \
     /usr/bin/mount \
     /usr/bin/umount \
     /usr/bin/chroot \
-    /usr/sbin/udevadm \
+    /usr/bin/udevadm \
+    /usr/sbin/init \
     /usr/lib/rustd/rustd \
     /usr/lib/rustd/rustd-udevd \
     /usr/bin/plymouth \

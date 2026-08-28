@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/ArachOS.png" alt="ArachOS operating system logo" width="320">
+</p>
+
 # ArachOS
 
 ArachOS is a Fedora Everything-source live image with Anaconda installer
@@ -33,9 +37,9 @@ the tools below:
 ```sh
 sudo dnf install \
   anaconda lorax livemedia-creator createrepo_c rpm-build rpmdevtools \
-  cargo rust gcc gcc-c++ gcc-gfortran make meson ninja-build patch \
-  openssl-devel liburing-devel libevdev-devel mtdev-devel \
-  dbus-devel pam-devel polkit-devel python3
+  cargo rust rustfmt clippy gcc gcc-c++ gcc-gfortran make meson ninja-build patch \
+  openssl-devel liburing-devel libevdev-devel mtdev-devel json-c-devel \
+  dbus-devel pam-devel polkit-devel selinux-policy-devel python3
 ```
 
 Build the RPM set first:
@@ -80,6 +84,7 @@ making the image a machine's only boot path.
 ## Repository layout
 
 ```text
+docs/ArachOS.png                Project branding
 kickstart/ArachOS.ks              Anaconda live/install kickstart
 packaging/fedora/*.spec         Companion Fedora RPM specs
 packaging/rustd/*.service       RustD-native companion service units

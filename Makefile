@@ -33,7 +33,7 @@ build-rpms: verify-sources
 validate-rpms:
 	RPM_REPO="$(BUILD_DIR)/repo" bash scripts/validate-rpms.sh
 
-build-live: build-rpms
+build-live: build-rpms validate-rpms
 	RPM_REPO="$(BUILD_DIR)/repo" ISO_OUTPUT="$(BUILD_DIR)/iso" \
 		RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
 		bash scripts/build-live.sh

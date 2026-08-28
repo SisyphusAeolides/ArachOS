@@ -28,7 +28,7 @@ rm -f /run/anaconda/installation-error-msg /run/user/0/anaconda.pid
 export GRUB_DISABLE_OS_PROBER=true
 
 rendered_ks="$WORK/ArachOS.ks"
-sed "s#^url --url=.*#&\nrepo --name=rustd-local --baseurl=file://$RPM_REPO#" \
+sed "s#^url --url=.*#&\nrepo --name=rustd-local --baseurl=file://$RPM_REPO/#" \
   "$ROOT/kickstart/ArachOS.ks" > "$rendered_ks"
 
 livemedia-creator \
