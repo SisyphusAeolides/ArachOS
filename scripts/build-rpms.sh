@@ -18,22 +18,13 @@ mkdir -p "$RPM_OUTPUT" "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 rustd_output=$RPM_OUTPUT/rustd-core
 mkdir -p "$rustd_output"
 RUSTD_RESOLVED_SOURCE_ROOT="$RESOLVED_ROOT" \
+RUSTD_RPM_DIST="${ARACHOS_RPM_DIST:-.fc45}" \
+RUSTD_SELINUX_POLICY_VERSION="${SELINUX_POLICY_VERSION:-45.14}" \
 RUSTD_FEDORA_RPM_OUTPUT="$rustd_output" \
 RUSTD_FEDORA_RPM_TOPDIR="$TOPDIR/core" \
   bash "$SOURCE_ROOT/scripts/build-fedora-rpms.sh"
 find "$rustd_output" -maxdepth 1 -type f -name '*.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 rm -rf "$rustd_output"
-
-# Fedora 45 Everything ships selinux-policy-targeted 45.14. Rebuild the policy
-# RPM against that floor so Anaconda can resolve dependencies in the target repo.
-SELINUX_POLICY_VERSION=${SELINUX_POLICY_VERSION:-45.14}
-ARACHOS_RPM_DIST=${ARACHOS_RPM_DIST:-.fc45}
-rpmbuild -ba --define "_topdir $TOPDIR/core" \
-  --define "_selinux_policy_version $SELINUX_POLICY_VERSION" \
-  --define "dist $ARACHOS_RPM_DIST" \
-  "$TOPDIR/core/SPECS/rustd-selinux.spec"
-find "$TOPDIR/core/RPMS" -type f -name 'rustd-selinux-*.rpm' ! -name '*.src.rpm' \
-  -exec cp -a {} "$RPM_OUTPUT/" \;
 
 make_source() {
   local name=$1 repo=$2 sha=$3 version=$4 dest=$5

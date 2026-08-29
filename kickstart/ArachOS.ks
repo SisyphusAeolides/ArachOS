@@ -88,8 +88,37 @@ fi
 install -d -m 0755 /etc/rustd/system /run/rustd/resolve
 ln -sfn /run/rustd/resolve/stub-resolv.conf /etc/resolv.conf
 
+# The live image intentionally has no desktop stack.  Launch Anaconda's text
+# installer on the live console instead of depending on a missing display
+# manager or on the systemd-only anaconda.target units shipped by Fedora.
+install -d -m 0755 /etc/rustd/system
+printf '%s\n' \
+    '[Unit]' \
+    'Description=ArachOS live Anaconda installer' \
+    'After=basic.target NetworkManager.service' \
+    'Wants=NetworkManager.service' \
+    'Conflicts=shutdown.target' \
+    '' \
+    '[Service]' \
+    'Type=simple' \
+    'ExecStart=/usr/bin/anaconda --liveinst --text --noselinux --noeject' \
+    'WorkingDirectory=/root' \
+    'Environment=HOME=/root LANG=en_US.UTF-8 PATH=/usr/bin:/bin:/sbin:/usr/sbin' \
+    'StandardInput=tty-force' \
+    'StandardOutput=tty' \
+    'StandardError=tty' \
+    'TTYPath=/dev/tty1' \
+    'TTYReset=yes' \
+    'TTYVHangup=yes' \
+    'TTYVTDisallocate=yes' \
+    'TimeoutStartSec=0' \
+    '' \
+    '[Install]' \
+    'WantedBy=multi-user.target' \
+    > /etc/rustd/system/anaconda-live.service
+
 /usr/bin/rustctl --root=/ enable rustd-resolved.service tuned-rs.service \
-    tuned-rs-ppd.service libinput-rs-elan-resume.service
+    tuned-rs-ppd.service libinput-rs-elan-resume.service anaconda-live.service
 
 # Anaconda runs this section before the installed target has booted, so the
 # rustd-selinux RPM's deferred relabel marker cannot be allowed to be the only
@@ -130,6 +159,18 @@ for kernel_image in /usr/lib/modules/*/vmlinuz; do
     install -m 0755 "$kernel_image" "/boot/vmlinuz-$kernel_version"
 done
 compgen -G '/boot/vmlinuz-*' >/dev/null
+
+# If the Chaos kernel is present, make it the persistent boot-loader default.
+# The conditional keeps the image build usable with the Fedora-only fallback
+# repository while ensuring a Chaos-enabled image never silently boots a
+# stock kernel first.
+if command -v grubby >/dev/null 2>&1; then
+    chaos_kernel=$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*chaos*' -print | sort -V | tail -n 1)
+    if [[ -n "$chaos_kernel" ]]; then
+        grubby --set-default "$chaos_kernel"
+        test "$(grubby --default-kernel)" = "$chaos_kernel"
+    fi
+fi
 
 rpm -qa --qf '%{NAME}\n' | awk '
     $0 == "systemd" ||
