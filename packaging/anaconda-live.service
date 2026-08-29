@@ -1,6 +1,6 @@
 [Unit]
 Description=ArachOS live Anaconda installer
-After=basic.target NetworkManager.service
+After=basic.target
 Wants=NetworkManager.service
 Conflicts=shutdown.target
 
@@ -19,4 +19,4 @@ TTYVTDisallocate=yes
 TimeoutStartSec=0
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

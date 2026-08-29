@@ -18,6 +18,21 @@ rm -rf "$ISO_OUTPUT" "$WORK"
 mkdir -p "$WORK" "$RPM_REPO"
 createrepo_c --update "$RPM_REPO"
 
+# Keep the host Lorax templates as the baseline, but carry the live-media
+# boot-menu policy in this repository.  The Fedora templates default to the
+# media-check entry and a Plymouth splash; that is the wrong default for an
+# installer image whose first userspace is a text Anaconda session.
+lorax_base=$(find /usr/share/lorax/templates.d -mindepth 1 -maxdepth 1 \
+    -type d -print | sort -V | head -n 1)
+[[ -n "$lorax_base" && -d "$lorax_base" ]] || fail 'Lorax generic templates are missing'
+lorax_templates="$WORK/lorax-templates"
+mkdir -p "$lorax_templates"
+cp -a "$lorax_base"/. "$lorax_templates"/
+cp "$ROOT/packaging/lorax/live/config_files/x86/grub2-bios.cfg" \
+    "$lorax_templates/live/config_files/x86/grub2-bios.cfg"
+cp "$ROOT/packaging/lorax/live/config_files/x86/grub2-efi.cfg" \
+    "$lorax_templates/live/config_files/x86/grub2-efi.cfg"
+
 # Clear stale Anaconda state from an interrupted build before starting a new
 # installation attempt. These exact runtime markers are recreated by Anaconda.
 rm -f /run/anaconda/installation-error-msg /run/user/0/anaconda.pid
@@ -34,6 +49,7 @@ sed "s#^url --url=.*#&\nrepo --name=rustd-local --baseurl=file://$RPM_REPO/#" \
 livemedia-creator \
   --make-iso \
   --ks "$rendered_ks" \
+  --lorax-templates "$lorax_templates" \
   --anaconda-arg=--noninteractive \
   --releasever "$FEDORA_RELEASE" \
   --project "ArachOS" \

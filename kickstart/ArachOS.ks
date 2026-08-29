@@ -22,6 +22,7 @@ anaconda
 anaconda-live
 authselect
 dbus
+dbus-x11
 dnf
 dracut
 dracut-config-generic
@@ -88,20 +89,37 @@ fi
 install -d -m 0755 /etc/rustd/system /run/rustd/resolve
 ln -sfn /run/rustd/resolve/stub-resolv.conf /etc/resolv.conf
 
-# The live image intentionally has no desktop stack.  Launch Anaconda's text
-# installer on the live console instead of depending on a missing display
-# manager or on the systemd-only anaconda.target units shipped by Fedora.
+# The image is built without systemd, so its package scriptlets do not run
+# systemd-machine-id-setup.  D-Bus (and Anaconda's terminal UI) still require
+# a stable machine identity before the live target starts.
+test -x /usr/bin/dbus-uuidgen
+/usr/bin/dbus-uuidgen --ensure=/etc/machine-id
+test -s /etc/machine-id
+
+# The live image intentionally has no desktop stack.  Make the installer the
+# boot target and launch Anaconda on the live console.  Using a standalone
+# default target avoids pulling in graphical.target, its display-manager
+# fallback, getty.target, or kmscon on tty1 before Anaconda owns the console.
 install -d -m 0755 /etc/rustd/system
 printf '%s\n' \
     '[Unit]' \
+    'Description=ArachOS live installer boot' \
+    'Requires=basic.target' \
+    'Wants=NetworkManager.service anaconda-live.service' \
+    'After=basic.target' \
+    'AllowIsolate=yes' \
+    > /etc/rustd/system/default.target
+
+printf '%s\n' \
+    '[Unit]' \
     'Description=ArachOS live Anaconda installer' \
-    'After=basic.target NetworkManager.service' \
+    'After=basic.target' \
     'Wants=NetworkManager.service' \
     'Conflicts=shutdown.target' \
     '' \
     '[Service]' \
     'Type=simple' \
-    'ExecStart=/usr/bin/anaconda --liveinst --text --noselinux --noeject' \
+    'ExecStart=/usr/bin/dbus-run-session -- /usr/bin/anaconda --liveinst --text --noselinux --noeject' \
     'WorkingDirectory=/root' \
     'Environment=HOME=/root LANG=en_US.UTF-8 PATH=/usr/bin:/bin:/sbin:/usr/sbin' \
     'StandardInput=tty-force' \
@@ -114,11 +132,38 @@ printf '%s\n' \
     'TimeoutStartSec=0' \
     '' \
     '[Install]' \
-    'WantedBy=multi-user.target' \
+    'WantedBy=default.target' \
     > /etc/rustd/system/anaconda-live.service
 
-/usr/bin/rustctl --root=/ enable rustd-resolved.service tuned-rs.service \
-    tuned-rs-ppd.service libinput-rs-elan-resume.service anaconda-live.service
+# Anaconda's hardware-target logger uses the systemd journal ABI.  RustD's
+# native journal intentionally lives under /run/rustd/journal.  Dracut can
+# leave stale initrd journal sockets in /run/systemd/journal; remove only those
+# socket nodes so RustD can install its compatibility links after relabeling.
+install -d -m 0755 /usr/libexec
+printf '%s\n' \
+    '#!/bin/sh' \
+    'set -eu' \
+    'if test -d /run/systemd/journal && test ! -L /run/systemd/journal; then' \
+    '    test ! -S /run/systemd/journal/socket || rm -f /run/systemd/journal/socket' \
+    '    test ! -S /run/systemd/journal/stdout || rm -f /run/systemd/journal/stdout' \
+    'fi' \
+    > /usr/libexec/arachos-journal-compat
+chmod 0755 /usr/libexec/arachos-journal-compat
+install -d -m 0755 /etc/rustd/system/rustd-journald.service.d
+printf '%s\n' \
+    '[Service]' \
+    'ExecStartPre=/usr/libexec/arachos-journal-compat' \
+    > /etc/rustd/system/rustd-journald.service.d/10-arachos-journal-compat.conf
+
+# Do not let the optional KMS console or a getty claim tty1 before Anaconda.
+# The links are package-provided enablement state in the image root, not host
+# files; remove only these exact live-image links when they are present.
+rm -f /etc/rustd/system/getty.target.wants/kmsconvt@.service \
+    /etc/rustd/system/getty.target.wants/getty@tty1.service
+
+/usr/bin/rustctl --root=/ enable rustd-journald.service rustd-resolved.service \
+    tuned-rs.service tuned-rs-ppd.service libinput-rs-elan-resume.service \
+    anaconda-live.service
 
 # Anaconda runs this section before the installed target has booted, so the
 # rustd-selinux RPM's deferred relabel marker cannot be allowed to be the only
