@@ -10,6 +10,7 @@ services --enabled=sshd.service,NetworkManager.service
 bootloader --timeout=5
 part / --size=8192 --fstype=ext4
 firstboot --disable
+shutdown
 
 url --url=https://download.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/
 
