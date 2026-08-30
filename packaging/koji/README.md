@@ -7,8 +7,9 @@ public Fedora Koji service is never a valid target for this project.
 ## Required Koji setup
 
 Create a Koji profile using koji.conf.example, then configure a target such
-as rlc-10.2-build whose build tag contains the CIQ RLC 10.2 repositories and
-whose image builder has the livemedia channel and the LiveMedia build group.
+as rlc-10.2-build whose build tag contains the CIQ RLC 10.2 repositories,
+the matching EL10 LiveMedia repository providing `dracut-live`, and whose
+image builder has the livemedia channel and the LiveMedia build group.
 The custom package builds must be tagged into that target before the LiveMedia
 task starts.
 

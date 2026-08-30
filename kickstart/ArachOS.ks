@@ -29,6 +29,7 @@ dbus-tools
 dnf
 dracut
 dracut-config-generic
+dracut-live
 dracut-squash
 grubby
 squashfs-tools
