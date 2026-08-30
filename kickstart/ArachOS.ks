@@ -22,14 +22,16 @@ url --url=file:///run/arachos/rlc-10.2-install-tree
 # group definition changes.
 arachos-release
 anaconda
-anaconda-live
 authselect
 dbus
-dbus-x11
+dbus-daemon
+dbus-tools
 dnf
 dracut
 dracut-config-generic
-dracut-live
+dracut-squash
+grubby
+squashfs-tools
 firewalld
 grub2-efi-x64
 grub2-efi-x64-cdboot
