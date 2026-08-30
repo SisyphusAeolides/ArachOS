@@ -25,14 +25,24 @@ BuildRequires:  pkgconfig(libevdev)
 BuildRequires:  pkgconfig(mtdev)
 BuildRequires:  liburing-devel
 BuildRequires:  python3
-Requires:       python3-libevdev
-Requires:       python3-pyudev
-Requires:       python3-pyyaml
 Requires:       rustd-compat-libs
 
 %description
 Rust libinput ABI, tools, udev helpers, and quirks installed for ArachOS.
 The resume service is placed in RustD's native unit root.
+
+%package python-tools
+Summary:        Optional Python analysis tools for libinput-rs
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       python3
+Requires:       python3-libevdev
+Requires:       python3-pyudev
+Requires:       python3-pyyaml
+
+%description python-tools
+Optional Python-based libinput analysis and replay helpers.  They are kept in
+a separate package because python3-libevdev is not part of the CIQ RLC 10.2
+installation tree; the core ABI and native tools do not need this dependency.
 
 %prep
 %autosetup -n libinput-rs-%{version}
@@ -58,7 +68,15 @@ test ! -e %{buildroot}%{_prefix}/lib/systemd
 %{_bindir}/libinput
 %{_bindir}/libinput-rs
 %{_bindir}/libinput-rs-chwd
-%{_libexecdir}/libinput/
+%{_libexecdir}/libinput/libinput-tool
+%{_libexecdir}/libinput/libinput-analyze
+%{_libexecdir}/libinput/libinput-debug-events
+%{_libexecdir}/libinput/libinput-debug-tablet
+%{_libexecdir}/libinput/libinput-debug-tablet-pad
+%{_libexecdir}/libinput/libinput-list-devices
+%{_libexecdir}/libinput/libinput-measure
+%{_libexecdir}/libinput/libinput-quirks
+%{_libexecdir}/libinput/libinput-record
 %{_prefix}/lib/udev/libinput-device-group
 %{_prefix}/lib/udev/libinput-fuzz-extract
 %{_prefix}/lib/udev/libinput-fuzz-to-zero
@@ -75,3 +93,16 @@ test ! -e %{buildroot}%{_prefix}/lib/systemd
 %{_mandir}/man1/*.1.*
 %{_mandir}/man8/*.8.*
 %{_datadir}/zsh/site-functions/_libinput
+
+%files python-tools
+%{_libexecdir}/libinput/libinput-analyze-buttons
+%{_libexecdir}/libinput/libinput-analyze-per-slot-delta
+%{_libexecdir}/libinput/libinput-analyze-recording
+%{_libexecdir}/libinput/libinput-analyze-touch-down-state
+%{_libexecdir}/libinput/libinput-list-kernel-devices
+%{_libexecdir}/libinput/libinput-measure-fuzz
+%{_libexecdir}/libinput/libinput-measure-touch-size
+%{_libexecdir}/libinput/libinput-measure-touchpad-pressure
+%{_libexecdir}/libinput/libinput-measure-touchpad-size
+%{_libexecdir}/libinput/libinput-measure-touchpad-tap
+%{_libexecdir}/libinput/libinput-replay
