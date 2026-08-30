@@ -17,7 +17,7 @@ Blazing fast and robust line editor installed without shell-profile mutation.
 %autosetup -n blerust-%{version}
 
 %build
-cargo build --frozen --release --locked
+CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --frozen --release --locked
 
 %install
 install -Dm0755 target/release/blerust %{buildroot}%{_bindir}/blerust

@@ -10,7 +10,8 @@ mapfile -t rpms < <(find "$repo" -maxdepth 1 -type f -name '*.rpm' \
 ((${#rpms[@]} > 0)) || fail 'no binary RPMs found'
 
 for package in rustd rustd-resolved rustd-fedora-compat rustd-compat-libs \
-              rustd-selinux rustd-resolved-nss tuned-rs libinput-rs blerust ccze-rs; do
+              rustd-selinux rustd-resolved-nss tuned-rs libinput-rs blerust \
+              ccze-rs arachos-release; do
   printf '%s\n' "${rpms[@]}" | grep -Eq "/${package}-[^/]+\.rpm$" \
     || fail "required package is missing: $package"
 done
@@ -30,6 +31,16 @@ mapfile -t resolved_files < <(rpm -qpl "$resolved") \
   || fail "cannot read file list from $(basename "$resolved")"
 printf '%s\n' "${resolved_files[@]}" | grep -Fxq /usr/lib/rustd/rustd-resolved \
   || fail 'resolver daemon is not installed at its native path'
+branding=$(printf '%s\n' "${rpms[@]}" | grep -E '/arachos-release-[0-9][^/]*\.noarch\.rpm$' | head -1)
+[[ -n $branding ]] || fail 'ArachOS branding RPM is missing'
+mapfile -t branding_files < <(rpm -qpl "$branding") \
+  || fail "cannot read file list from $(basename "$branding")"
+for path in /etc/arachos-release /etc/anaconda/profile.d/z-arachos.conf \
+            /etc/issue.d/20-arachos.issue /usr/share/pixmaps/arachos.png \
+            /usr/share/backgrounds/arachos/ArachOS.png; do
+  printf '%s\n' "${branding_files[@]}" | grep -Fxq "$path" \
+    || fail "branding RPM does not own $path"
+done
 for archive in "${rpms[@]}"; do
   rpm -qpl "$archive" | grep -Eq '^/usr/lib/systemd/system/|^/run/systemd/' \
     && fail "outgoing unit/runtime root found in $(basename "$archive")"

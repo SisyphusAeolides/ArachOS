@@ -12,13 +12,15 @@ part / --size=8192 --fstype=ext4
 firstboot --disable
 shutdown
 
-url --url=https://download.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/
+# The local and Koji entrypoints replace this marker with the CIQ RLC 10.2
+# install tree.  Keeping a marker here prevents an accidental Fedora fallback.
+url --url=file:///run/arachos/rlc-10.2-install-tree
 
 %packages
-# Fedora Everything exposes a custom operating-system environment rather than
-# an everything-product-environment group.  Keep the package source as
-# Everything and select the image's contents explicitly below.
-@^custom-environment
+# Keep the image contents explicit.  Koji image builds resolve package groups
+# against the target repository, which can make a release image change when a
+# group definition changes.
+arachos-release
 anaconda
 anaconda-live
 authselect
@@ -36,9 +38,16 @@ grub2-pc
 grub2-pc-modules
 plymouth
 shim-x64
+# The local entrypoint uses the RLC kernel by default.  The Koji release
+# entrypoint substitutes kernel-clk6.12 and lets that package pull its own
+# namespaced core/modules payload.
+# ARACHOS_KERNEL_PACKAGE_BEGIN
 kernel
+# ARACHOS_KERNEL_PACKAGE_END
+# ARACHOS_KERNEL_MODULE_PACKAGES_BEGIN
 kernel-modules
 kernel-modules-extra
+# ARACHOS_KERNEL_MODULE_PACKAGES_END
 NetworkManager
 openssh-server
 polkit
@@ -60,6 +69,14 @@ ccze-rs
 -systemd-libs
 -systemd-udev
 -systemd-resolved
+-systemd-pam
+-systemd-standalone-sysusers
+-systemd-standalone-tmpfiles
+-systemd-sysusers
+-systemd-sysv
+-systemd-tmpfiles
+-systemd-units
+-udev
 -tuned
 -power-profiles-daemon
 -libinput
@@ -195,7 +212,7 @@ done
 
 dracut --regenerate-all --force
 
-# Fedora's kernel package keeps the executable image in /usr/lib/modules when
+# RLC's kernel package keeps the executable image in /usr/lib/modules when
 # kernel-install is unavailable in the systemd-free target.  livemedia-creator
 # discovers live kernels from /boot, so publish the installed image there.
 shopt -s nullglob
@@ -219,10 +236,9 @@ if command -v grubby >/dev/null 2>&1; then
 fi
 
 rpm -qa --qf '%{NAME}\n' | awk '
+    $0 == "udev" ||
     $0 == "systemd" ||
-    $0 == "systemd-libs" ||
-    $0 == "systemd-udev" ||
-    $0 == "systemd-resolved" { print; found = 1 }
+    $0 ~ /^systemd-/ { print; found = 1 }
     END { exit found ? 1 : 0 }
 '
 %end

@@ -18,8 +18,9 @@ mkdir -p "$RPM_OUTPUT" "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 rustd_output=$RPM_OUTPUT/rustd-core
 mkdir -p "$rustd_output"
 RUSTD_RESOLVED_SOURCE_ROOT="$RESOLVED_ROOT" \
-RUSTD_RPM_DIST="${ARACHOS_RPM_DIST:-.fc45}" \
-RUSTD_SELINUX_POLICY_VERSION="${SELINUX_POLICY_VERSION:-45.14}" \
+RUSTD_RPM_DIST="${ARACHOS_RPM_DIST:-.el10}" \
+RUSTD_SELINUX_POLICY_VERSION="${SELINUX_POLICY_VERSION:-}" \
+RUSTD_SYSTEMD_COMPAT_EVR="${ARACHOS_SYSTEMD_EVR:-}" \
 RUSTD_FEDORA_RPM_OUTPUT="$rustd_output" \
 RUSTD_FEDORA_RPM_TOPDIR="$TOPDIR/core" \
   bash "$SOURCE_ROOT/scripts/build-fedora-rpms.sh"
@@ -61,13 +62,16 @@ for name in tuned-rs libinput-rs blerust ccze-rs; do
 done
 
 cp "$ROOT"/packaging/fedora/*.spec "$TOPDIR/SPECS/"
+cp "$ROOT"/packaging/branding/*.spec "$TOPDIR/SPECS/"
+cp "$ROOT/docs/ArachOS.png" "$TOPDIR/SOURCES/ArachOS.png"
 cp "$ROOT"/packaging/rustd/*.service "$TOPDIR/SOURCES/"
 
-common=(--define "_topdir $TOPDIR")
+common=(--define "_topdir $TOPDIR" --define "dist ${ARACHOS_RPM_DIST:-.el10}")
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/tuned-rs-fedora.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/libinput-rs-fedora.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/blerust-fedora.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/ccze-rs-fedora.spec"
+rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/arachos-release.spec"
 find "$TOPDIR/RPMS" -type f -name '*.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 find "$TOPDIR/SRPMS" -type f -name '*.src.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 

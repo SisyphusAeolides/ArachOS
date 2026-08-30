@@ -1,0 +1,11 @@
+[rlc10.2]
+
+# Fill these values from the private CIQ/user Koji deployment. Do not commit
+# certificates, passwords, tokens, or private hostnames to this repository.
+server = https://koji.example.invalid/kojihub
+weburl = https://koji.example.invalid/koji
+topurl = https://koji.example.invalid/kojipkgs
+authtype = ssl
+cert = /path/to/koji-client.crt
+serverca = /path/to/koji-serverca.crt
+plugins = runroot

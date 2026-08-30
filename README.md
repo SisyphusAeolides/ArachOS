@@ -4,15 +4,19 @@
 
 # ArachOS
 
-ArachOS is a Fedora Everything-source live image with Anaconda installer
-support, built around RustD as PID 1 and RustD-Resolved as the native resolver. The image is
+ArachOS is a CIQ RLC 10.2 live image with Anaconda installer support, built
+around RustD as PID 1 and RustD-Resolved as the native resolver. The image is
 intended to be installed on a disposable test machine or a snapshot-backed
 virtual machine until the installed-system certification gates are green.
 
-The image replaces the Fedora service-manager and resolver packages with the
-ArachOS RPM set. Fedora compatibility entry points remain available for
+The image replaces the RLC service-manager and resolver packages with the
+ArachOS RPM set. RLC compatibility entry points remain available for
 package scripts, but the running manager, initramfs manager, udev path, resolver
 daemon, NSS module, and service units are RustD-owned.
+
+The CIQ RLC release package remains installed for platform, repository, and
+support metadata. The separate arachos-release package supplies the ArachOS
+identity layer, console branding, Anaconda profile, and image assets.
 
 The build consumes sibling checkouts in `/home/Sisyphus/Projects` by default:
 
@@ -30,8 +34,8 @@ checkout whose commit does not match that file.
 
 ## Build prerequisites
 
-Run the build on Fedora 45 development or a compatible Fedora build host with the Fedora
-build tools, a Rust toolchain meeting each source tree's minimum version, and
+Run the build on a CIQ RLC 10.2-compatible build host with the RLC build tools,
+a Rust toolchain meeting each source tree's minimum version, and
 the tools below:
 
 ```sh
@@ -50,15 +54,33 @@ make build-rpms
 make validate-rpms
 ```
 
-Build the live ISO and Anaconda installer as root on a Fedora host with
-`livemedia-creator` available:
+For local preflight testing, use the supplied RLC DVD as a read-only install
+tree. The original ISO is never modified:
 
 ```sh
-sudo make build-live
+sudo RLC_SOURCE_ISO=/home/Sisyphus/Downloads/rlc-plus-10.2-dvd-iso-x86_64-20260808-24929df0-att1.x86_64.iso \
+  make build-live-existing
 ```
 
-The result is written to `build/iso/ArachOS-live-x86_64.iso`. The build
+The result is written to `build/iso/ArachOS-RLC-10.2-live-x86_64.iso`. The build
 also emits a checksum and a package/source manifest beside the ISO.
+
+For the release build, submit the custom source RPMs and the LiveMedia task to
+the private RLC Koji deployment:
+
+```sh
+make build-rpms
+CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.12.src.rpm \
+KOJI_CONFIG=/path/to/koji.conf \
+RLC_INSTALL_TREE_URL=https://rlc.example.invalid/10.2/x86_64/ \
+KOJI_PROFILE=rlc10.2 KOJI_TARGET=rlc-10.2-build \
+  make koji-build
+```
+
+The Koji pipeline and target requirements are documented in
+[`packaging/koji/README.md`](packaging/koji/README.md). A local ISO path is
+intentionally rejected by the remote Koji path because the Koji builder must
+be able to fetch the install tree itself.
 
 ## Image contract
 
@@ -72,7 +94,7 @@ post-install validation requires:
 - `/run/rustd/resolve` to own resolver runtime state;
 - `libnss_rustd_dns.so.2` to be present and selected in the hosts NSS path;
 - no installed RPM whose name is `systemd` or begins with `systemd-`;
-- tuned-rs and the libinput resume unit to be installed under
+- tuned-rs 0.3.0 and the libinput resume unit to be installed under
   `/usr/lib/rustd/system`, never under the outgoing manager's unit root;
 - SELinux to remain enforcing with the ArachOS SELinux policy loaded.
 
@@ -86,10 +108,13 @@ making the image a machine's only boot path.
 ```text
 docs/ArachOS.png                Project branding
 kickstart/ArachOS.ks              Anaconda live/install kickstart
-packaging/fedora/*.spec         Companion Fedora RPM specs
+packaging/fedora/*.spec         Companion RLC-compatible RPM specs
+packaging/branding/*.spec       ArachOS identity and installer branding
+packaging/koji/                 Koji profile and LiveMedia instructions
 packaging/rustd/*.service       RustD-native companion service units
 scripts/build-rpms.sh           Pinned source and RPM assembly
-scripts/build-live.sh           Live ISO and Anaconda media assembly
+scripts/build-live.sh           Local RLC ISO and Anaconda media assembly
+scripts/build-koji.sh           Ordered RLC Koji RPM and LiveMedia pipeline
 scripts/validate-rpms.sh        RPM ownership and path validation
 scripts/verify-sources.sh       Source pin and tree validation
 sources.lock                    Exact source revisions
@@ -100,4 +125,4 @@ Makefile                        Reproducible entry points
 
 Keep a known-good recovery path. RustD is a PID 1 replacement and ArachOS
 performs a deliberately exclusive package cutover. Test in a VM or on a
-machine with recoverable snapshots, and retain the Fedora rescue media.
+machine with recoverable snapshots, and retain the RLC rescue media.

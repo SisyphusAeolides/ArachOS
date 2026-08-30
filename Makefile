@@ -2,6 +2,19 @@ SHELL := /bin/bash
 
 PROJECT_ROOT ?= $(abspath ..)
 BUILD_DIR ?= $(CURDIR)/build
+RLC_RELEASE ?= 10.2
+RLC_ARCH ?= x86_64
+RLC_INSTALL_TREE_URL ?=
+RLC_SOURCE_ISO ?=
+KOJI_PROFILE ?= rlc10.2
+KOJI_TARGET ?= rlc-10.2-build
+KOJI_ARCHES ?= x86_64
+KOJI_CONFIG ?=
+KOJI_BUILD_RPMS ?= 1
+KERNEL_PACKAGE ?= kernel
+KERNEL_MODULE_PACKAGES ?= kernel-modules kernel-modules-extra
+CHAOS_KERNEL_PACKAGE ?= kernel-clk6.12
+CHAOS_KERNEL_SRPM ?=
 RUSTD_SOURCE_ROOT ?= $(PROJECT_ROOT)/rustd
 RESOLVED_SOURCE_ROOT ?= $(PROJECT_ROOT)/rustd-resolved
 TUNED_SOURCE_ROOT ?= $(PROJECT_ROOT)/tuned-rs
@@ -9,7 +22,8 @@ LIBINPUT_SOURCE_ROOT ?= $(PROJECT_ROOT)/libinput-rs
 BLERUST_SOURCE_ROOT ?= $(PROJECT_ROOT)/blerust
 CCZE_SOURCE_ROOT ?= $(PROJECT_ROOT)/ccze-rs
 
-.PHONY: verify-sources build-rpms validate-rpms build-live validate clean
+.PHONY: verify-sources build-rpms validate-rpms build-live build-live-existing \
+	koji-build validate clean
 
 verify-sources:
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
@@ -35,8 +49,31 @@ validate-rpms:
 
 build-live: build-rpms validate-rpms
 	RPM_REPO="$(BUILD_DIR)/repo" ISO_OUTPUT="$(BUILD_DIR)/iso" \
+		RLC_RELEASE="$(RLC_RELEASE)" RLC_ARCH="$(RLC_ARCH)" \
+		RLC_INSTALL_TREE_URL="$(RLC_INSTALL_TREE_URL)" RLC_SOURCE_ISO="$(RLC_SOURCE_ISO)" \
+		KERNEL_PACKAGE="$(KERNEL_PACKAGE)" \
+		KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
 		RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
 		bash scripts/build-live.sh
+
+build-live-existing: validate-rpms
+	RPM_REPO="$(BUILD_DIR)/repo" ISO_OUTPUT="$(BUILD_DIR)/iso" \
+		RLC_RELEASE="$(RLC_RELEASE)" RLC_ARCH="$(RLC_ARCH)" \
+		RLC_INSTALL_TREE_URL="$(RLC_INSTALL_TREE_URL)" RLC_SOURCE_ISO="$(RLC_SOURCE_ISO)" \
+		KERNEL_PACKAGE="$(KERNEL_PACKAGE)" \
+		KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
+		bash scripts/build-live.sh
+
+koji-build:
+	RLC_RELEASE="$(RLC_RELEASE)" \
+		RLC_INSTALL_TREE_URL="$(RLC_INSTALL_TREE_URL)" \
+		KOJI_PROFILE="$(KOJI_PROFILE)" KOJI_TARGET="$(KOJI_TARGET)" \
+		KOJI_ARCHES="$(KOJI_ARCHES)" \
+		CHAOS_KERNEL_PACKAGE="$(CHAOS_KERNEL_PACKAGE)" \
+		CHAOS_KERNEL_SRPM="$(CHAOS_KERNEL_SRPM)" \
+		RPM_REPO="$(BUILD_DIR)/repo" \
+		KOJI_CONFIG="$(KOJI_CONFIG)" KOJI_BUILD_RPMS="$(KOJI_BUILD_RPMS)" \
+		bash scripts/build-koji.sh
 
 validate: verify-sources validate-rpms
 

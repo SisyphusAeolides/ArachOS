@@ -1,5 +1,5 @@
 Name:           tuned-rs
-Version:        0.2.10
+Version:        0.3.0
 Release:        1%{?dist}
 Summary:        Rust TuneD implementation for ArachOS
 License:        GPL-2.0-or-later AND MIT AND Apache-2.0
@@ -34,7 +34,7 @@ restart, and lifecycle management.
 test -f Cargo.lock
 
 %build
-CARGO_NET_OFFLINE=true cargo build --frozen --release --locked
+CARGO_NET_OFFLINE=true CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --frozen --release --locked
 
 %install
 make install-bin DESTDIR=%{buildroot} BINDIR=%{_bindir} SBINDIR=%{_sbindir}
