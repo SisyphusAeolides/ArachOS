@@ -23,6 +23,7 @@ Build the source RPM set first, then submit the packages and image as one
 ordered pipeline:
 
     make build-rpms
+    CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.12.src.rpm \
     KOJI_CONFIG=/path/to/koji.conf \
     RLC_INSTALL_TREE_URL=https://rlc.example.invalid/10.2/x86_64/ \
     KOJI_PROFILE=rlc10.2 KOJI_TARGET=rlc-10.2-build \
