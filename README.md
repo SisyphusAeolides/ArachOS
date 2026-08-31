@@ -4,8 +4,8 @@
 
 # ArachOS
 
-ArachOS is a CIQ RLC 10.2 Anaconda installer image built around RustD as PID 1
-and RustD-Resolved as the native resolver. The image is intended to be
+ArachOS is a CIQ RLC 10.2 Anaconda installer image built around Arach Kernel,
+GRUB, RustD as PID 1, and RustD-Resolved as the native resolver. The image is intended to be
 installed on a disposable test machine or a snapshot-backed virtual machine
 until the installed-system certification gates are green.
 
@@ -21,6 +21,14 @@ forced into the installer media. The desktop environment is selected in
 Anaconda's Software Selection screen and is then connected to RustD's standard
 display-manager alias in the installed target.
 
+Arach Kernel is the target installed kernel. During conversion, CLK 6.18 is
+retained only as a known-good installer and recovery kernel. Arach Kernel boots
+through GRUB Multiboot2 and receives measured `rustd` and bootstrap modules;
+Granite, Push, and the previous fixed COSMIC route are not part of this RLC
+architecture. Arach Kernel becomes the default only after its persistent RLC
+root, RustD service graph, RustD-resolved networking, and graphical install
+paths pass BIOS and UEFI testing.
+
 The CIQ RLC release package remains installed for platform, repository, and
 support metadata. The separate arachos-release package supplies the ArachOS
 identity layer, console branding, Anaconda profile, and image assets.
@@ -31,6 +39,7 @@ The build consumes sibling checkouts in `/home/Sisyphus/Projects` by default:
 | --- | --- | --- |
 | RustD | `../rustd` | PID 1, service manager, udev, journal, compatibility libraries |
 | RustD-Resolved | `../rustd-resolved` | Native DNS, NSS, Varlink, and resolver service |
+| Arach Kernel | `../Arach-Kernel` | GRUB Multiboot2 kernel and RLC Linux-ABI runtime |
 | tuned-rs | `../tuned-rs` | Native tuning and power-profile services |
 | libinput-rs | `../libinput-rs` | Native libinput ABI and tools |
 | blerust | `../blerust` | Rust line editor |
@@ -89,11 +98,13 @@ misleading SELinux denials against `container_ro_file_t` paths such as `diff`.
 SELinux remains enforcing in the installed target.
 
 For the release build, submit the custom source RPMs to the private RLC Koji
-deployment, then remaster the RLC DVD with the resulting package repository:
+deployment, then remaster the RLC DVD with the resulting package repository.
+The CLK 6.18 source RPM remains the installer/recovery kernel input during the
+Arach transition; it is not the final installed-kernel contract:
 
 ```sh
 make build-rpms
-CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.18.src.rpm \
+CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.18-recovery.src.rpm \
 KOJI_CONFIG=/path/to/koji.conf \
 KOJI_EXPORT_REPO=$PWD/build/koji-repo \
 KOJI_TOPURL=https://koji.example.invalid/kojipkgs \
@@ -111,6 +122,10 @@ The Koji package pipeline and target requirements are documented in
 [`packaging/koji/README.md`](packaging/koji/README.md). A local ISO path is
 intentionally kept out of the Koji command because standard Koji live-media
 tasks would replace the RLC Anaconda installer with a synthesized live root.
+The Arach Kernel GRUB bundle is built from the exact `arach-kernel`, `rustd`,
+and `rustd-resolved` revisions in `sources.lock`; it must pass its BIOS, UEFI,
+persistent-root, PID 1, resolver, and graphical Anaconda gates before replacing
+CLK in the installed default entry.
 
 ## Image contract
 

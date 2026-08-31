@@ -7,6 +7,7 @@ LOCK=$ROOT/sources.lock
 declare -A source_roots=(
   [rustd]="${RUSTD_SOURCE_ROOT:-$ROOT/../rustd}"
   [rustd-resolved]="${RESOLVED_SOURCE_ROOT:-$ROOT/../rustd-resolved}"
+  [arach-kernel]="${ARACH_KERNEL_SOURCE_ROOT:-$ROOT/../Arach-Kernel}"
   [tuned-rs]="${TUNED_SOURCE_ROOT:-$ROOT/../tuned-rs}"
   [libinput-rs]="${LIBINPUT_SOURCE_ROOT:-$ROOT/../libinput-rs}"
   [blerust]="${BLERUST_SOURCE_ROOT:-$ROOT/../blerust}"
@@ -26,4 +27,4 @@ for name in "${!source_roots[@]}"; do
     || fail "$name checkout has uncommitted changes"
 done
 
-printf 'verified six source checkouts against %s\n' "$LOCK"
+printf 'verified %d source checkouts against %s\n' "${#source_roots[@]}" "$LOCK"
