@@ -93,7 +93,7 @@ deployment, then remaster the RLC DVD with the resulting package repository:
 
 ```sh
 make build-rpms
-CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.12.src.rpm \
+CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.18.src.rpm \
 KOJI_CONFIG=/path/to/koji.conf \
 KOJI_EXPORT_REPO=$PWD/build/koji-repo \
 KOJI_TOPURL=https://koji.example.invalid/kojipkgs \

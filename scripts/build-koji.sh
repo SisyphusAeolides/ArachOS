@@ -10,7 +10,7 @@ KOJI_BUILD_RPMS=${KOJI_BUILD_RPMS:-1}
 KOJI_EXPORT_REPO=${KOJI_EXPORT_REPO:-}
 KOJI_TOPURL=${KOJI_TOPURL:-}
 KOJI_EXPORT_ARCH=${KOJI_EXPORT_ARCH:-x86_64}
-CHAOS_KERNEL_PACKAGE=${CHAOS_KERNEL_PACKAGE:-kernel-clk6.12}
+CHAOS_KERNEL_PACKAGE=${CHAOS_KERNEL_PACKAGE:-kernel-clk6.18}
 CHAOS_KERNEL_SRPM=${CHAOS_KERNEL_SRPM:-}
 KERNEL_PACKAGE=${KERNEL_PACKAGE:-$CHAOS_KERNEL_PACKAGE}
 SRPM_DIR=${SRPM_DIR:-${RPM_REPO:-$ROOT/build/repo}}
@@ -86,7 +86,7 @@ if [[ $KOJI_BUILD_RPMS == 1 ]]; then
             # RustD's RLC/RHEL compatibility integration is intentionally split into several
             # SRPMs. Submit each one so the Koji target can solve the complete
             # installed-system cutover transaction.
-            kernel|kernel-clk6.12|rustd|rustd-selinux|rustd-fedora-compat|rustd-compat-libs|\
+            kernel|kernel-clk6.18|kernel-clk6.12|rustd|rustd-selinux|rustd-fedora-compat|rustd-compat-libs|\
             rustd-resolved|tuned-rs|libinput-rs|blerust|ccze-rs|arachos-release)
                 [[ -z ${source_rpms[$name]+x} ]] || fail "duplicate SRPM for $name"
                 source_rpms[$name]=$srpm

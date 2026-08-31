@@ -9,7 +9,7 @@ RLC_RELEASE=${RLC_RELEASE:-10.2}
 RLC_ARCH=${RLC_ARCH:-x86_64}
 RLC_SOURCE_ISO=${RLC_SOURCE_ISO:-}
 RLC_SYSTEMD_EVR=${RLC_SYSTEMD_EVR:-${ARACHOS_SYSTEMD_EVR:-}}
-KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel-clk6.12}
+KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel-clk6.18}
 if [[ -z ${KERNEL_MODULE_PACKAGES+x} ]]; then
     case $KERNEL_PACKAGE in
         kernel) KERNEL_MODULE_PACKAGES='kernel-modules kernel-modules-extra' ;;
@@ -61,7 +61,7 @@ if [[ -n $RLC_SYSTEMD_EVR && $RLC_SYSTEMD_EVR != "$platform_systemd_evr" ]]; the
 fi
 RLC_SYSTEMD_EVR=$platform_systemd_evr
 
-# A namespaced kernel package (such as kernel-clk6.12) is not supplied by the
+# A namespaced kernel package (such as kernel-clk6.18) is not supplied by the
 # RLC DVD. Require it in the custom repository so the post-install transaction
 # cannot produce an ISO that later fails only after the user starts an install.
 if [[ $KERNEL_PACKAGE != kernel ]]; then
