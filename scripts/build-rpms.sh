@@ -7,8 +7,18 @@ TOPDIR=${RPM_TOPDIR:-$ROOT/build/rpmbuild}
 RLC_SOURCE_ISO=${RLC_SOURCE_ISO:-}
 RLC_INSTALL_TREE_URL=${RLC_INSTALL_TREE_URL:-}
 RLC_SYSTEMD_EVR=${RLC_SYSTEMD_EVR:-${ARACHOS_SYSTEMD_EVR:-}}
+RPMBUILD_DBPATH=${RPMBUILD_DBPATH:-}
+RPMBUILD_TMPDIR=${RPMBUILD_TMPDIR:-}
 SOURCE_ROOT=${RUSTD_SOURCE_ROOT:-$ROOT/../rustd}
 RESOLVED_ROOT=${RESOLVED_SOURCE_ROOT:-$ROOT/../rustd-resolved}
+
+# The shared Rustup installation is read-only for build users. Pinning the
+# already-installed ArachOS nightly through the environment also overrides a
+# component source's rust-toolchain file without asking Rustup to download a
+# channel manifest during an offline/reproducible package build.
+if [[ -z ${RUSTUP_TOOLCHAIN:-} && -x /usr/local/cargo/bin/rustup ]]; then
+  export RUSTUP_TOOLCHAIN=nightly-2026-07-20
+fi
 
 fail() { printf 'RPM build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
@@ -95,6 +105,14 @@ cp "$ROOT/docs/ArachOS.png" "$TOPDIR/SOURCES/ArachOS.png"
 cp "$ROOT"/packaging/rustd/*.service "$TOPDIR/SOURCES/"
 
 common=(--define "_topdir $TOPDIR" --define "dist ${ARACHOS_RPM_DIST:-.el10}")
+if [[ -n "$RPMBUILD_DBPATH" ]]; then
+  [[ -d "$RPMBUILD_DBPATH" ]] || fail "RPM build database is missing: $RPMBUILD_DBPATH"
+  common+=(--dbpath "$RPMBUILD_DBPATH")
+fi
+if [[ -n "$RPMBUILD_TMPDIR" ]]; then
+  [[ -d "$RPMBUILD_TMPDIR" ]] || fail "RPM build temporary directory is missing: $RPMBUILD_TMPDIR"
+  common+=(--define "_tmppath $RPMBUILD_TMPDIR")
+fi
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/tuned-rs-fedora.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/libinput-rs-fedora.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/blerust-fedora.spec"
@@ -108,7 +126,7 @@ find "$TOPDIR/SRPMS" -type f -name '*.src.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
   if [[ -n "$RLC_SYSTEMD_EVR" ]]; then
     printf 'systemd_reference_evr=%s\n' "$RLC_SYSTEMD_EVR"
   fi
-  for name in rustd rustd-resolved tuned-rs libinput-rs blerust ccze-rs; do
+  for name in rustd rustd-resolved arach-kernel iwchaos tuned-rs libinput-rs blerust ccze-rs; do
     printf '%s=%s\n' "$name" "$(awk -v key="$name" '$1 == key {print $3}' "$ROOT/sources.lock")"
   done
   find "$RPM_OUTPUT" -maxdepth 1 -type f -name '*.rpm' -print0 | sort -z |

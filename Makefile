@@ -8,6 +8,8 @@ RLC_ARCH ?= x86_64
 RLC_INSTALL_TREE_URL ?=
 RLC_SOURCE_ISO ?=
 RLC_SYSTEMD_EVR ?=
+RPMBUILD_DBPATH ?=
+RPMBUILD_TMPDIR ?=
 KOJI_PROFILE ?= rlc10.2
 KOJI_TARGET ?= rlc-10.2-build
 KOJI_ARCHES ?= x86_64
@@ -18,23 +20,35 @@ KOJI_TOPURL ?=
 KOJI_EXPORT_ARCH ?= x86_64
 CHAOS_KERNEL_PACKAGE ?= kernel-clk6.18
 CHAOS_KERNEL_SRPM ?=
-KERNEL_PACKAGE ?= $(CHAOS_KERNEL_PACKAGE)
+# The supplied RLC DVD already contains the signed installer/recovery kernel.
+# A custom CLK package remains selectable for a Koji-built release repository.
+KERNEL_PACKAGE ?= kernel
 KERNEL_MODULE_PACKAGES ?=
 RUSTD_SOURCE_ROOT ?= $(PROJECT_ROOT)/rustd
 RESOLVED_SOURCE_ROOT ?= $(PROJECT_ROOT)/rustd-resolved
 ARACH_KERNEL_SOURCE_ROOT ?= $(PROJECT_ROOT)/Arach-Kernel
+IWCHAOS_SOURCE_ROOT ?= $(PROJECT_ROOT)/iwchaos
 TUNED_SOURCE_ROOT ?= $(PROJECT_ROOT)/tuned-rs
 LIBINPUT_SOURCE_ROOT ?= $(PROJECT_ROOT)/libinput-rs
 BLERUST_SOURCE_ROOT ?= $(PROJECT_ROOT)/blerust
 CCZE_SOURCE_ROOT ?= $(PROJECT_ROOT)/ccze-rs
+ARACH_KERNEL_BUILD_ROOT ?= $(BUILD_DIR)/arach-kernel
+ARACH_KERNEL_BUNDLE_ROOT ?= $(BUILD_DIR)/kernel-bundle
+ARACH_KERNEL_IMAGE ?=
+ARACH_RUSTD_IMAGE ?=
+ARACH_BOOTSTRAP_IMAGE ?=
+ARACH_RESOLVED_IMAGE ?=
+ARACH_BOOTSTRAP_ABI ?= linux
 
-.PHONY: verify-sources build-rpms validate-rpms build-live build-live-existing \
-	build-live-container koji-build validate clean
+.PHONY: verify-sources check-chaos build-rpms build-arach-kernel-bundle \
+	validate-rpms build-live build-live-existing build-live-container \
+	koji-build validate clean
 
 verify-sources:
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
 	RESOLVED_SOURCE_ROOT="$(RESOLVED_SOURCE_ROOT)" \
 	ARACH_KERNEL_SOURCE_ROOT="$(ARACH_KERNEL_SOURCE_ROOT)" \
+	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" \
 	TUNED_SOURCE_ROOT="$(TUNED_SOURCE_ROOT)" \
 	LIBINPUT_SOURCE_ROOT="$(LIBINPUT_SOURCE_ROOT)" \
 	BLERUST_SOURCE_ROOT="$(BLERUST_SOURCE_ROOT)" \
@@ -45,6 +59,7 @@ build-rpms: verify-sources
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
 	RESOLVED_SOURCE_ROOT="$(RESOLVED_SOURCE_ROOT)" \
 	ARACH_KERNEL_SOURCE_ROOT="$(ARACH_KERNEL_SOURCE_ROOT)" \
+	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" \
 	TUNED_SOURCE_ROOT="$(TUNED_SOURCE_ROOT)" \
 	LIBINPUT_SOURCE_ROOT="$(LIBINPUT_SOURCE_ROOT)" \
 	BLERUST_SOURCE_ROOT="$(BLERUST_SOURCE_ROOT)" \
@@ -52,8 +67,34 @@ build-rpms: verify-sources
 	RLC_SOURCE_ISO="$(RLC_SOURCE_ISO)" \
 	RLC_INSTALL_TREE_URL="$(RLC_INSTALL_TREE_URL)" \
 	RLC_SYSTEMD_EVR="$(RLC_SYSTEMD_EVR)" \
+	RPMBUILD_DBPATH="$(RPMBUILD_DBPATH)" \
+	RPMBUILD_TMPDIR="$(RPMBUILD_TMPDIR)" \
 	RPM_OUTPUT="$(BUILD_DIR)/repo" \
 	bash scripts/build-rpms.sh
+
+check-chaos: verify-sources
+	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" bash scripts/check-chaos.sh
+
+build-arach-kernel-bundle: build-rpms
+	ARACH_KERNEL_SOURCE_ROOT="$(ARACH_KERNEL_SOURCE_ROOT)" \
+	ARACH_KERNEL_BUILD_ROOT="$(ARACH_KERNEL_BUILD_ROOT)" \
+	ARACH_KERNEL_BUNDLE_ROOT="$(ARACH_KERNEL_BUNDLE_ROOT)" \
+	ARACH_KERNEL_IMAGE="$(ARACH_KERNEL_IMAGE)" \
+	ARACH_RUSTD_IMAGE="$(ARACH_RUSTD_IMAGE)" \
+	ARACH_BOOTSTRAP_IMAGE="$(ARACH_BOOTSTRAP_IMAGE)" \
+	ARACH_RESOLVED_IMAGE="$(ARACH_RESOLVED_IMAGE)" \
+	ARACH_BOOTSTRAP_ABI="$(ARACH_BOOTSTRAP_ABI)" \
+	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
+	RESOLVED_SOURCE_ROOT="$(RESOLVED_SOURCE_ROOT)" \
+	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" \
+	TUNED_SOURCE_ROOT="$(TUNED_SOURCE_ROOT)" \
+	LIBINPUT_SOURCE_ROOT="$(LIBINPUT_SOURCE_ROOT)" \
+	BLERUST_SOURCE_ROOT="$(BLERUST_SOURCE_ROOT)" \
+	CCZE_SOURCE_ROOT="$(CCZE_SOURCE_ROOT)" \
+	RLC_RELEASE="$(RLC_RELEASE)" \
+	RLC_SOURCE_ISO="$(RLC_SOURCE_ISO)" \
+	RPM_REPO="$(RPM_REPO)" \
+	bash scripts/build-arach-kernel-bundle.sh
 
 validate-rpms:
 	RPM_REPO="$(RPM_REPO)" bash scripts/validate-rpms.sh
@@ -99,7 +140,7 @@ koji-build:
 		KOJI_CONFIG="$(KOJI_CONFIG)" KOJI_BUILD_RPMS="$(KOJI_BUILD_RPMS)" \
 		bash scripts/build-koji.sh
 
-validate: verify-sources validate-rpms
+validate: verify-sources check-chaos validate-rpms
 
 clean:
 	rm -rf "$(BUILD_DIR)"

@@ -9,7 +9,7 @@ RLC_RELEASE=${RLC_RELEASE:-10.2}
 RLC_ARCH=${RLC_ARCH:-x86_64}
 RLC_SOURCE_ISO=${RLC_SOURCE_ISO:-}
 RLC_SYSTEMD_EVR=${RLC_SYSTEMD_EVR:-${ARACHOS_SYSTEMD_EVR:-}}
-KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel-clk6.18}
+KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel}
 if [[ -z ${KERNEL_MODULE_PACKAGES+x} ]]; then
     case $KERNEL_PACKAGE in
         kernel) KERNEL_MODULE_PACKAGES='kernel-modules kernel-modules-extra' ;;
@@ -157,7 +157,9 @@ mkksiso \
     --replace 'Install Rocky Linux 10 Rocky Linux by CIQ Plus 10.2' 'Install ArachOS 10.2 (CIQ RLC)' \
     --replace 'Test this media & install Rocky Linux 10 Rocky Linux by CIQ Plus 10.2' 'Test this media & install ArachOS 10.2 (CIQ RLC)' \
     --replace 'Install Rocky Linux 10 Rocky Linux by CIQ Plus 10.2 in basic graphics mode' 'Install ArachOS 10.2 (CIQ RLC) in basic graphics mode' \
+    --replace 'Install Rocky Linux 10 in basic graphics mode' 'Install ArachOS 10.2 (CIQ RLC) in basic graphics mode' \
     --replace 'Rescue a Rocky Linux system' 'Rescue an ArachOS system' \
+    --replace 'Rescue a Rocky Linux Rocky Linux by CIQ Plus 10.2 system' 'Rescue an ArachOS system' \
     --volid "ARACHOS${RLC_RELEASE//./}" \
     "$RLC_SOURCE_ISO" "$iso"
 
@@ -192,6 +194,22 @@ grep -Fq 'Install ArachOS 10.2 (CIQ RLC)' "$boot_cfg" \
     || fail 'installer GRUB unexpectedly requests a live root image'
 ! grep -Fq 'inst.text' "$boot_cfg" \
     || fail 'installer GRUB unexpectedly requests text Anaconda'
+
+bios_boot_cfg="$WORK/grub2.cfg"
+xorriso -osirrox on -indev "$iso" -extract /boot/grub2/grub.cfg "$bios_boot_cfg" \
+    >/dev/null 2>&1 || fail 'cannot extract the rebuilt BIOS GRUB configuration'
+grep -Fq 'inst.ks=hd:LABEL=ARACHOS102:/ArachOS.ks' "$bios_boot_cfg" \
+    || fail 'BIOS GRUB does not point Anaconda at ArachOS.ks'
+grep -Fq 'set default="0"' "$bios_boot_cfg" \
+    || fail 'BIOS GRUB does not default to the graphical RLC install entry'
+grep -Fq 'Install ArachOS 10.2 (CIQ RLC)' "$bios_boot_cfg" \
+    || fail 'BIOS GRUB is missing the ArachOS installer title'
+! grep -Fq 'Rocky Linux' "$bios_boot_cfg" \
+    || fail 'BIOS GRUB still carries source Rocky Linux branding'
+! grep -Fq 'rd.live.image' "$bios_boot_cfg" \
+    || fail 'BIOS GRUB unexpectedly requests a live root image'
+! grep -Fq 'inst.text' "$bios_boot_cfg" \
+    || fail 'BIOS GRUB unexpectedly requests text Anaconda'
 
 (
     cd "$(dirname "$iso")"

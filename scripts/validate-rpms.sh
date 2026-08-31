@@ -9,9 +9,12 @@ mapfile -t rpms < <(find "$repo" -maxdepth 1 -type f -name '*.rpm' \
   ! -name '*.src.rpm' ! -name '*-debuginfo*.rpm' ! -name '*-debugsource*.rpm' | sort)
 ((${#rpms[@]} > 0)) || fail 'no binary RPMs found'
 
+# This repository contains ArachOS-owned packages only. The installer keeps
+# the RLC DVD's baseos/appstream repositories as the source for packages such
+# as dracut, kernel, Anaconda, and the graphical environment.
 for package in rustd rustd-resolved rustd-fedora-compat rustd-compat-libs \
-              rustd-selinux rustd-resolved-nss tuned-rs libinput-rs blerust \
-              ccze-rs arachos-release dracut-live; do
+              rustd-cutover-tools rustd-selinux rustd-resolved-nss tuned-rs \
+              libinput-rs blerust ccze-rs arachos-release; do
   printf '%s\n' "${rpms[@]}" | grep -Eq "/${package}-[^/]+\.rpm$" \
     || fail "required package is missing: $package"
 done

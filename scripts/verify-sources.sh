@@ -8,6 +8,7 @@ declare -A source_roots=(
   [rustd]="${RUSTD_SOURCE_ROOT:-$ROOT/../rustd}"
   [rustd-resolved]="${RESOLVED_SOURCE_ROOT:-$ROOT/../rustd-resolved}"
   [arach-kernel]="${ARACH_KERNEL_SOURCE_ROOT:-$ROOT/../Arach-Kernel}"
+  [iwchaos]="${IWCHAOS_SOURCE_ROOT:-$ROOT/../iwchaos}"
   [tuned-rs]="${TUNED_SOURCE_ROOT:-$ROOT/../tuned-rs}"
   [libinput-rs]="${LIBINPUT_SOURCE_ROOT:-$ROOT/../libinput-rs}"
   [blerust]="${BLERUST_SOURCE_ROOT:-$ROOT/../blerust}"

@@ -44,6 +44,7 @@ The build consumes sibling checkouts in `/home/Sisyphus/Projects` by default:
 | libinput-rs | `../libinput-rs` | Native libinput ABI and tools |
 | blerust | `../blerust` | Rust line editor |
 | ccze-rs | `../ccze-rs` | Streaming log colorizer |
+| iwchaos | `../iwchaos` | Chaos-math validation and target-kernel Intel Wi-Fi module source |
 
 All inputs are pinned in [`sources.lock`](sources.lock). The build refuses a
 checkout whose commit does not match that file.
@@ -66,6 +67,7 @@ Build the RPM set first:
 
 ```sh
 make verify-sources
+make check-chaos
 make build-rpms
 make validate-rpms
 ```
@@ -82,6 +84,21 @@ The result is written to `build/iso/ArachOS-RLC-10.2-live-x86_64.iso`. The
 filename retains the project name, but the media is an RLC Anaconda installer,
 not a desktop live session. The build also emits a checksum and a
 package/source manifest beside the ISO.
+
+Build the measured Arach Kernel GRUB bundle after the RPM set is available:
+
+```sh
+RLC_SOURCE_ISO=/home/Sisyphus/Downloads/rlc-plus-10.2-dvd-iso-x86_64-20260808-24929df0-att1.x86_64.iso \
+  make build-arach-kernel-bundle
+```
+
+This command builds the exact pinned Arach Kernel and its static C0 Linux-ABI
+bootstrap probe, extracts the exact RustD and RustD-Resolved RPM artifacts,
+measures all four inputs, and creates `build/kernel-bundle/`. The bundle is a
+kernel qualification image, not a replacement for the graphical RLC installer:
+persistent block-backed root, the complete Linux ABI, and the installed RustD
+service graph must pass BIOS and UEFI tests before it can become the default
+installed boot entry.
 
 If the host does not have the RLC 10.2 `mkksiso` tooling, run the preflight in
 the rootful EL10 builder instead:
@@ -160,9 +177,11 @@ packaging/koji/                 Koji package-pipeline instructions
 packaging/rustd/*.service       RustD-native companion service units
 scripts/build-rpms.sh           Pinned source and RPM assembly
 scripts/build-live.sh           Local RLC DVD remaster and Anaconda media assembly
+scripts/build-arach-kernel-bundle.sh  Measured Arach Kernel/RustD GRUB bundle
 scripts/build-koji.sh           Ordered RLC Koji RPM pipeline
 scripts/validate-rpms.sh        RPM ownership and path validation
 scripts/verify-sources.sh       Source pin and tree validation
+scripts/check-chaos.sh          Chaos-math, Fortran, and iwchaos source gates
 sources.lock                    Exact source revisions
 Makefile                        Reproducible entry points
 ```
