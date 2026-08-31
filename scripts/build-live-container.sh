@@ -7,8 +7,14 @@ RLC_RELEASE=${RLC_RELEASE:-10.2}
 RLC_ARCH=${RLC_ARCH:-x86_64}
 RLC_INSTALL_TREE_URL=${RLC_INSTALL_TREE_URL:-}
 RLC_SOURCE_ISO=${RLC_SOURCE_ISO:-}
-KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel}
-KERNEL_MODULE_PACKAGES=${KERNEL_MODULE_PACKAGES:-kernel-modules kernel-modules-extra}
+RLC_SYSTEMD_EVR=${RLC_SYSTEMD_EVR:-}
+KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel-clk6.12}
+if [[ -z ${KERNEL_MODULE_PACKAGES+x} ]]; then
+    case $KERNEL_PACKAGE in
+        kernel) KERNEL_MODULE_PACKAGES='kernel-modules kernel-modules-extra' ;;
+        *) KERNEL_MODULE_PACKAGES='' ;;
+    esac
+fi
 BUILDER_IMAGE=${ARACHOS_BUILDER_IMAGE:-localhost/arachos-build:el10-xfs-ready}
 
 fail() { printf 'container live build: %s\n' "$*" >&2; exit 1; }
@@ -64,12 +70,13 @@ printf 'Container build root: %s\n' "$build_root"
     "${source_env[@]}" \
     --env "RLC_RELEASE=$RLC_RELEASE" \
     --env "RLC_ARCH=$RLC_ARCH" \
+    --env "RLC_SYSTEMD_EVR=$RLC_SYSTEMD_EVR" \
     --env "KERNEL_PACKAGE=$KERNEL_PACKAGE" \
     --env "KERNEL_MODULE_PACKAGES=$KERNEL_MODULE_PACKAGES" \
     "$BUILDER_IMAGE" \
     bash -lc '
         set -Eeuo pipefail
-        for path in /usr/bin/make /usr/sbin/livemedia-creator /usr/sbin/chroot; do
+        for path in /usr/bin/make /usr/bin/mkksiso /usr/bin/xorriso; do
             test -x "$path" || { printf "builder is missing %s\\n" "$path" >&2; exit 1; }
         done
         BUILD_DIR=/out LIVE_MEDIA_WORK=/out/work \

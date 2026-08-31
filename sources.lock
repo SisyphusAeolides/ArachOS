@@ -1,5 +1,5 @@
 schema=arachos-sources-v1
-rustd https://github.com/SisyphusAeolides/rustd.git c57fe4b79c0153405c6db585e52bdf1078128aad
+rustd https://github.com/SisyphusAeolides/rustd.git d75092ed1deae213277d16f51622c12863b1dec8
 rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 85e894597f6b89d2277e92f10204b0abb598da4a
 tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git b78181c2a08439ad25787a0114717dd0d1bb9931
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 17389ca8f9b4a13400925204e31f277a7a74fb44

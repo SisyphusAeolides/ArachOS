@@ -60,5 +60,5 @@ EOF
 %{_datadir}/pixmaps/arachos.png
 
 %changelog
-* Sun Aug 30 2026 ArachOS Maintainers <maintainers@arachos.invalid> - 10.2-1
+* Sun Aug 30 2026 Sisyphus Aeolides <SisyphusAeolides@pm.me> - 10.2-1
 - Add the ArachOS identity layer and CIQ RLC Anaconda profile.

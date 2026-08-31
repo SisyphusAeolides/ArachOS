@@ -11,13 +11,13 @@ mapfile -t rpms < <(find "$repo" -maxdepth 1 -type f -name '*.rpm' \
 
 for package in rustd rustd-resolved rustd-fedora-compat rustd-compat-libs \
               rustd-selinux rustd-resolved-nss tuned-rs libinput-rs blerust \
-              ccze-rs arachos-release; do
+              ccze-rs arachos-release dracut-live; do
   printf '%s\n' "${rpms[@]}" | grep -Eq "/${package}-[^/]+\.rpm$" \
     || fail "required package is missing: $package"
 done
 
 compat=$(printf '%s\n' "${rpms[@]}" | grep -E '/rustd-fedora-compat-[0-9][^/]*\.(x86_64|noarch)\.rpm$' | head -1)
-[[ -n $compat ]] || fail 'rustd-fedora-compat binary RPM is missing'
+[[ -n $compat ]] || fail 'RustD RLC compatibility provider RPM is missing (rustd-fedora-compat)'
 resolved=$(printf '%s\n' "${rpms[@]}" | grep -E '/rustd-resolved-[0-9][^/]*\.x86_64\.rpm$' | head -1)
 [[ -n $resolved ]] || fail 'rustd-resolved binary RPM is missing'
 mapfile -t compat_files < <(rpm -qpl "$compat") \

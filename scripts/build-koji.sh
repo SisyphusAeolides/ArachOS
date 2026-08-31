@@ -3,18 +3,16 @@ set -Eeuo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 RLC_RELEASE=${RLC_RELEASE:-10.2}
-RLC_INSTALL_TREE_URL=${RLC_INSTALL_TREE_URL:-}
 KOJI_PROFILE=${KOJI_PROFILE:-rlc10.2}
 KOJI_TARGET=${KOJI_TARGET:-rlc-10.2-build}
-KOJI_ARCHES=${KOJI_ARCHES:-x86_64}
 KOJI_CONFIG=${KOJI_CONFIG:-/etc/koji.conf}
 KOJI_BUILD_RPMS=${KOJI_BUILD_RPMS:-1}
+KOJI_EXPORT_REPO=${KOJI_EXPORT_REPO:-}
+KOJI_TOPURL=${KOJI_TOPURL:-}
+KOJI_EXPORT_ARCH=${KOJI_EXPORT_ARCH:-x86_64}
 CHAOS_KERNEL_PACKAGE=${CHAOS_KERNEL_PACKAGE:-kernel-clk6.12}
 CHAOS_KERNEL_SRPM=${CHAOS_KERNEL_SRPM:-}
 KERNEL_PACKAGE=${KERNEL_PACKAGE:-$CHAOS_KERNEL_PACKAGE}
-# The namespaced Chaos Kernel package pulls its own core/modules packages.
-# Callers selecting the stock RLC kernel can set both variables explicitly.
-KERNEL_MODULE_PACKAGES=${KERNEL_MODULE_PACKAGES-}
 SRPM_DIR=${SRPM_DIR:-${RPM_REPO:-$ROOT/build/repo}}
 WORK=${KOJI_WORK:-$ROOT/build/koji-$(date +%Y%m%d%H%M%S)-$$}
 
@@ -23,15 +21,9 @@ need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 for command in koji git awk rpm rpmbuild sha256sum; do need "$command"; done
 
 [[ $RLC_RELEASE == 10.2 ]] || fail 'this pipeline is pinned to CIQ RLC 10.2'
-[[ $KOJI_ARCHES != *,* ]] || fail 'spin-livemedia accepts one image architecture per invocation'
-[[ $KOJI_ARCHES =~ ^[[:alnum:]_.+-]+$ ]] || fail "invalid image architecture: $KOJI_ARCHES"
 [[ -r $KOJI_CONFIG ]] || fail "Koji configuration is missing: $KOJI_CONFIG"
-[[ -n $RLC_INSTALL_TREE_URL ]] || fail \
-    'set RLC_INSTALL_TREE_URL to an HTTPS-exposed CIQ RLC 10.2 install tree'
-case $RLC_INSTALL_TREE_URL in
-    https://*) ;;
-    *) fail 'Koji LiveMedia builds require an HTTPS install tree; a local ISO is for make build-live-existing' ;;
-esac
+[[ $KOJI_EXPORT_ARCH =~ ^[[:alnum:]_.+-]+$ ]] || fail \
+    "invalid Koji export architecture: $KOJI_EXPORT_ARCH"
 
 # Never allow an unset profile to fall through to the public Fedora Koji
 # service. The RLC hub, target, and repository must be supplied by the
@@ -56,8 +48,12 @@ koji_args=(--config "$KOJI_CONFIG" --profile "$KOJI_PROFILE")
 koji_call() { koji "${koji_args[@]}" "$@"; }
 
 # Check authentication and target visibility before uploading any source RPM.
-koji_call list-targets >/dev/null \
+koji_call list-targets --name="$KOJI_TARGET" >/dev/null \
     || fail "cannot access Koji profile [$KOJI_PROFILE]"
+
+build_tag=$(koji_call list-targets --name="$KOJI_TARGET" --quiet \
+    | awk 'NF >= 3 { print $2; exit }')
+[[ -n $build_tag ]] || fail "cannot determine the build tag for $KOJI_TARGET"
 
 prepare_branding_srpm() {
     local existing branding_top
@@ -87,9 +83,9 @@ if [[ $KOJI_BUILD_RPMS == 1 ]]; then
         name=$(rpm -qp --qf '%{NAME}' "$srpm") \
             || fail "cannot inspect $(basename "$srpm")"
         case $name in
-            # RustD's Fedora integration is intentionally split into several
+            # RustD's RLC/RHEL compatibility integration is intentionally split into several
             # SRPMs. Submit each one so the Koji target can solve the complete
-            # cutover transaction before the LiveMedia task starts.
+            # installed-system cutover transaction.
             kernel|kernel-clk6.12|rustd|rustd-selinux|rustd-fedora-compat|rustd-compat-libs|\
             rustd-resolved|tuned-rs|libinput-rs|blerust|ccze-rs|arachos-release)
                 [[ -z ${source_rpms[$name]+x} ]] || fail "duplicate SRPM for $name"
@@ -140,79 +136,57 @@ fi
 
 koji_call wait-repo --target --timeout 180 "$KOJI_TARGET"
 
-# Validate that the target contains the package set which the kickstart asks
-# for when the caller intentionally skips source-RPM submission.
-if [[ $KOJI_BUILD_RPMS == 0 ]]; then
-    runtime_packages=(
-        "$KERNEL_PACKAGE"
-        rustd
-        rustd-cutover-tools
-        rustd-selinux
-        rustd-compat-libs
-        rustd-fedora-compat
-        rustd-resolved
-        rustd-resolved-nss
-        arachos-release
-        tuned-rs
-        libinput-rs
-        blerust
-        ccze-rs
-    )
-    for name in "${runtime_packages[@]}"; do
-        koji_call latest-build "$KOJI_TARGET" "$name" >/dev/null \
-            || fail "Koji target lacks a latest build for $name"
+# Validate the tagged build repository for both fresh and already-built runs.
+# latest-build takes the build tag, not the build-target name.
+koji_build_packages=(
+    "$CHAOS_KERNEL_PACKAGE"
+    rustd
+    rustd-selinux
+    rustd-compat-libs
+    rustd-fedora-compat
+    rustd-resolved
+    arachos-release
+    tuned-rs
+    libinput-rs
+    blerust
+    ccze-rs
+)
+for name in "${koji_build_packages[@]}"; do
+    latest=$(koji_call latest-build --quiet "$build_tag" "$name") \
+        || fail "Koji could not query the latest build for $name"
+    [[ -n $latest ]] || fail "Koji build tag $build_tag lacks a latest build for $name"
+done
+
+if [[ -n $KOJI_EXPORT_REPO ]]; then
+    need createrepo_c
+    [[ -n $KOJI_TOPURL ]] || fail \
+        'KOJI_TOPURL is required when KOJI_EXPORT_REPO is requested'
+    [[ -d $KOJI_EXPORT_REPO || ! -e $KOJI_EXPORT_REPO ]] || fail \
+        "Koji export path is not a directory: $KOJI_EXPORT_REPO"
+
+    export_work="$WORK/exported-rpms"
+    mkdir -p "$export_work" "$KOJI_EXPORT_REPO"
+    for name in "${koji_build_packages[@]}"; do
+        printf 'Exporting %s from Koji\n' "$name"
+        (
+            cd "$export_work"
+            koji "${koji_args[@]}" \
+                --topurl "$KOJI_TOPURL" \
+                download-build --latestfrom "$build_tag" \
+                --arch "$KOJI_EXPORT_ARCH" --noprogress "$name"
+        )
     done
+    find "$export_work" -maxdepth 1 -type f -name '*.rpm' \
+        -exec cp -a {} "$KOJI_EXPORT_REPO/" \;
+    createrepo_c --update "$KOJI_EXPORT_REPO"
+    printf 'Koji RPM repository exported to %s\n' "$KOJI_EXPORT_REPO"
 fi
 
-rendered_ks="$WORK/ArachOS.ks"
-awk -v install_tree="$RLC_INSTALL_TREE_URL" '
-    BEGIN {
-        module_count = split("'"$KERNEL_MODULE_PACKAGES"'", module_list, /[[:space:]]+/)
-        in_kernel = ""
-    }
-    /^url[[:space:]]+--url=/ {
-        print "url --url=" install_tree
-        next
-    }
-    /^# ARACHOS_KERNEL_PACKAGE_BEGIN$/ {
-        print "'"$KERNEL_PACKAGE"'"
-        in_kernel = "package"
-        next
-    }
-    /^# ARACHOS_KERNEL_PACKAGE_END$/ {
-        in_kernel = ""
-        next
-    }
-    /^# ARACHOS_KERNEL_MODULE_PACKAGES_BEGIN$/ {
-        for (i = 1; i <= module_count; i++)
-            if (module_list[i] != "") print module_list[i]
-        in_kernel = "modules"
-        next
-    }
-    /^# ARACHOS_KERNEL_MODULE_PACKAGES_END$/ {
-        in_kernel = ""
-        next
-    }
-    in_kernel != "" { next }
-    { print }
-' "$ROOT/kickstart/ArachOS.ks" > "$rendered_ks"
-grep -q '^url --url=https://' "$rendered_ks" \
-    || fail 'rendered Koji kickstart does not point at HTTPS RLC media'
-
-remote=$(git -C "$ROOT" remote get-url origin)
-commit=$(git -C "$ROOT" rev-parse HEAD)
-case $remote in
-    https://*) lorax_url="git+$remote?#$commit" ;;
-    *) fail 'ArachOS origin must be an HTTPS Git remote for the Koji builder' ;;
-esac
-
-printf 'Submitting ArachOS RLC %s LiveMedia build\n' "$RLC_RELEASE"
-koji_call spin-livemedia --wait \
-    --install-tree-url "$RLC_INSTALL_TREE_URL" \
-    --release "$RLC_RELEASE" \
-    --volid "ARACHOS${RLC_RELEASE//./}" \
-    --lorax_url "$lorax_url" \
-    --lorax_dir packaging/lorax/live \
-    "ArachOS-live" "$RLC_RELEASE" "$KOJI_TARGET" "$KOJI_ARCHES" "$rendered_ks"
-
-printf 'Koji ArachOS build submitted successfully; work files: %s\n' "$WORK"
+# Standard Koji's spin-livemedia/spin-livecd tasks synthesize a live root. That
+# is deliberately not ArachOS's installer model: CIQ RLC's DVD already boots
+# Anaconda directly. The tagged RPM repository is consumed by the RLC DVD
+# remaster step (scripts/build-live.sh), which preserves that boot contract.
+printf 'Koji ArachOS RPM pipeline completed for target %s (build tag %s)\n' \
+    "$KOJI_TARGET" "$build_tag"
+printf 'No live-media task was submitted; use the RLC DVD remaster step for the installer ISO.\n'
+printf 'Koji work files: %s\n' "$WORK"
