@@ -1,6 +1,6 @@
-[rlc10.2]
+[arachos]
 
-# Fill these values from the private CIQ/user Koji deployment. Do not commit
+# Fill these values from the private ArachOS Koji deployment. Do not commit
 # certificates, passwords, tokens, or private hostnames to this repository.
 server = https://koji.example.invalid/kojihub
 weburl = https://koji.example.invalid/koji

@@ -41,7 +41,7 @@ Requires:       python3-pyyaml
 
 %description python-tools
 Optional Python-based libinput analysis and replay helpers.  They are kept in
-a separate package because python3-libevdev is not part of the CIQ RLC 10.2
+a separate package because python3-libevdev is optional in the bootstrap
 installation tree; the core ABI and native tools do not need this dependency.
 
 %prep

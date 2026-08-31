@@ -3,29 +3,22 @@ set -Eeuo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 RPM_REPO=${RPM_REPO:-$ROOT/build/repo}
-RLC_RELEASE=${RLC_RELEASE:-10.2}
-RLC_ARCH=${RLC_ARCH:-x86_64}
-RLC_INSTALL_TREE_URL=${RLC_INSTALL_TREE_URL:-}
-RLC_SOURCE_ISO=${RLC_SOURCE_ISO:-}
-RLC_SYSTEMD_EVR=${RLC_SYSTEMD_EVR:-}
+ARACHOS_VERSION=${ARACHOS_VERSION:-1.0}
+ARACHOS_RELEASE=${ARACHOS_RELEASE:-1}
+ARACHOS_ARCH=${ARACHOS_ARCH:-x86_64}
+ARACHOS_BASEOS_URL=${ARACHOS_BASEOS_URL:-https://dl.rockylinux.org/pub/rocky/10/BaseOS/x86_64/os/}
+ARACHOS_APPSTREAM_URL=${ARACHOS_APPSTREAM_URL:-https://dl.rockylinux.org/pub/rocky/10/AppStream/x86_64/os/}
+ARACHOS_CRB_URL=${ARACHOS_CRB_URL:-https://dl.rockylinux.org/pub/rocky/10/CRB/x86_64/os/}
+ARACHOS_REPOSITORY_URL=${ARACHOS_REPOSITORY_URL:-}
 KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel}
-if [[ -z ${KERNEL_MODULE_PACKAGES+x} ]]; then
-    case $KERNEL_PACKAGE in
-        kernel) KERNEL_MODULE_PACKAGES='kernel-modules kernel-modules-extra' ;;
-        *) KERNEL_MODULE_PACKAGES='' ;;
-    esac
-fi
-BUILDER_IMAGE=${ARACHOS_BUILDER_IMAGE:-localhost/arachos-build:el10-xfs-ready}
+KERNEL_MODULE_PACKAGES=${KERNEL_MODULE_PACKAGES:-}
+BUILDER_IMAGE=${ARACHOS_BUILDER_IMAGE:-localhost/arachos-build:el10}
 
-fail() { printf 'container live build: %s\n' "$*" >&2; exit 1; }
+fail() { printf 'ArachOS container installer build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 need podman
 [[ -d $RPM_REPO ]] || fail "ArachOS RPM repository is missing: $RPM_REPO"
-[[ $RLC_RELEASE == 10.2 ]] || fail 'this pipeline is pinned to CIQ RLC 10.2'
-[[ -n $RLC_INSTALL_TREE_URL || -n $RLC_SOURCE_ISO ]] || fail \
-    'set RLC_SOURCE_ISO or RLC_INSTALL_TREE_URL'
-[[ -z $RLC_SOURCE_ISO || -f $RLC_SOURCE_ISO ]] || \
-    fail "RLC source ISO is missing: $RLC_SOURCE_ISO"
+[[ $ARACHOS_ARCH == x86_64 ]] || fail 'the container installer builder currently supports x86_64 only'
 
 if [[ $EUID -eq 0 ]]; then
     podman_cmd=(podman)
@@ -40,48 +33,34 @@ if [[ -n ${ARACHOS_CONTAINER_BUILD_ROOT:-} ]]; then
     [[ ! -e $build_root ]] || fail "build root already exists: $build_root"
     mkdir -p "$build_root"
 else
-    build_root=$(mktemp -d /tmp/arachos-rlc-live-build.XXXXXX)
+    build_root=$(mktemp -d /tmp/arachos-installer-build.XXXXXX)
 fi
 mkdir -p "$build_root/repo"
 cp -a "$RPM_REPO"/. "$build_root/repo"/
-
-source_mount=()
-source_env=(
-    --env "RLC_INSTALL_TREE_URL=$RLC_INSTALL_TREE_URL"
-    --env "RLC_SOURCE_ISO="
-)
-if [[ -n $RLC_SOURCE_ISO ]]; then
-    source_mount=(
-        --volume "$RLC_SOURCE_ISO:/mnt/rlc-source.iso:ro,nosuid,nodev,noexec"
-    )
-    source_env=(
-        --env 'RLC_INSTALL_TREE_URL='
-        --env 'RLC_SOURCE_ISO=/mnt/rlc-source.iso'
-    )
-fi
 
 printf 'Container build root: %s\n' "$build_root"
 "${podman_cmd[@]}" run --rm --privileged --network host \
     --security-opt label=disable --pids-limit 2048 \
     --volume "$build_root:/out:rw,rprivate,rbind" \
-    --volume /lib/modules:/lib/modules:ro,rprivate,rbind \
     --volume "$ROOT:/workspace:ro,rprivate,rbind" \
-    "${source_mount[@]}" \
-    "${source_env[@]}" \
-    --env "RLC_RELEASE=$RLC_RELEASE" \
-    --env "RLC_ARCH=$RLC_ARCH" \
-    --env "RLC_SYSTEMD_EVR=$RLC_SYSTEMD_EVR" \
+    --env "ARACHOS_VERSION=$ARACHOS_VERSION" \
+    --env "ARACHOS_RELEASE=$ARACHOS_RELEASE" \
+    --env "ARACHOS_ARCH=$ARACHOS_ARCH" \
+    --env "ARACHOS_BASEOS_URL=$ARACHOS_BASEOS_URL" \
+    --env "ARACHOS_APPSTREAM_URL=$ARACHOS_APPSTREAM_URL" \
+    --env "ARACHOS_CRB_URL=$ARACHOS_CRB_URL" \
+    --env "ARACHOS_REPOSITORY_URL=$ARACHOS_REPOSITORY_URL" \
     --env "KERNEL_PACKAGE=$KERNEL_PACKAGE" \
     --env "KERNEL_MODULE_PACKAGES=$KERNEL_MODULE_PACKAGES" \
     "$BUILDER_IMAGE" \
     bash -lc '
         set -Eeuo pipefail
-        for path in /usr/bin/make /usr/bin/mkksiso /usr/bin/xorriso; do
+        for path in /usr/bin/make /usr/sbin/lorax /usr/bin/mkksiso /usr/bin/xorriso; do
             test -x "$path" || { printf "builder is missing %s\\n" "$path" >&2; exit 1; }
         done
-        BUILD_DIR=/out LIVE_MEDIA_WORK=/out/work \
-            make -C /workspace build-live-existing
+        BUILD_DIR=/out RPM_REPO=/out/repo ISO_OUTPUT=/out/iso \
+            LIVE_MEDIA_WORK=/out/work make -C /workspace build-live-existing
     '
 
-printf 'Container live build complete: %s/iso/ArachOS-RLC-%s-live-%s.iso\n' \
-    "$build_root" "$RLC_RELEASE" "$RLC_ARCH"
+printf 'ArachOS container installer: %s/iso/ArachOS-%s-%s-installer-%s.iso\n' \
+    "$build_root" "$ARACHOS_VERSION" "$ARACHOS_RELEASE" "$ARACHOS_ARCH"

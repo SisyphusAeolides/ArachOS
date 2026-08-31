@@ -1,49 +1,55 @@
-# Koji package build
+# ArachOS Koji package build
 
-ArachOS packages are built and tagged in a private CIQ RLC 10.2 Koji
-deployment. The public Fedora Koji service is never a valid target for this
-project.
+Koji is an optional build-farm backend for ArachOS. It builds source RPMs in a
+private ArachOS profile, tags the resulting builds, waits for repository
+metadata, and can export a validated RPM repository for the standalone Lorax
+installer. It does not build or remaster another distribution's media.
 
-## Required Koji setup
+## Required setup
 
-Create a Koji profile using koji.conf.example, then configure a target such
-as `rlc-10.2-build` whose build tag contains the CIQ RLC 10.2 repositories
-and all build dependencies required by the RustD, RustD-Resolved, tuned-rs,
-companion-package, and CLK 6.18 Chaos Kernel SRPMs.
+Copy [`koji.conf.example`](koji.conf.example) to a private configuration and
+fill in the HTTPS hub, authentication, and ArachOS package targets. The target
+must provide EL10-compatible build dependencies plus the Rust, C, Fortran,
+SELinux, graphics, and kernel toolchains used by the pinned source trees.
 
-The RLC DVD is not passed to a standard Koji live-media task. Koji's
-`spin-livemedia`, `spin-livecd`, and `spin-appliance` tasks synthesize a
-different live-root boot model, which is not the RLC Anaconda installer.
-Instead, `scripts/build-koji.sh` builds and validates the tagged RPM
-repository. `scripts/build-live.sh` then remasters the supplied RLC DVD with
-`mkksiso`, preserving its direct graphical Anaconda path and Software
-Selection screen.
+The profile and target defaults are `arachos` and `arachos-1.0-build`. Change
+them only when the Koji deployment uses different names.
 
-## Build
+## Build and export
 
-Build the source RPM set first, then submit the packages as one ordered
-pipeline:
+Build the local source RPM set first, then submit the ordered package set:
 
-    make build-rpms
-    CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.18.src.rpm \
-    KOJI_CONFIG=/path/to/koji.conf \
-    KOJI_EXPORT_REPO=$PWD/build/koji-repo \
-    KOJI_TOPURL=https://koji.example.invalid/kojipkgs \
-    KOJI_PROFILE=rlc10.2 KOJI_TARGET=rlc-10.2-build \
-    make koji-build
+```sh
+make build-rpms
 
-The pipeline builds the CIQ CLK 6.18 Chaos Kernel first, then RustD,
-RustD-Resolved, the ArachOS branding layer, and the companion Rust packages.
-It waits for the target repository and verifies every package required by the
-installed-target transaction in the target's build tag. It does not submit a
-live-media task. When `KOJI_EXPORT_REPO` is set, it downloads the validated
-binary RPMs from Koji into a local repository for the RLC DVD remaster.
+ARACH_KERNEL_SRPM=/path/to/arach-kernel.src.rpm \
+KOJI_CONFIG=/path/to/koji.conf \
+KOJI_EXPORT_REPO=$PWD/build/koji-repo \
+KOJI_TOPURL=https://koji.example/kojipkgs \
+KOJI_PROFILE=arachos KOJI_TARGET=arachos-1.0-build \
+  make koji-build
+```
 
-Set `CHAOS_KERNEL_SRPM` to the self-contained `kernel-clk6.18` source RPM from
-the Chaos Kernel build. The SRPM is intentionally supplied as a build input
-rather than committed to Git because it contains the large CIQ kernel source
-archive. The Koji target must provide the RLC 10.2 kernel build dependencies.
+`KOJI_BUILD_RPMS=0` skips submission and validates that the target already has
+the required latest builds. When `KOJI_EXPORT_REPO` is set, the script
+downloads the tagged binary RPMs, regenerates repository metadata, and leaves
+the result ready for `make build-installer`:
 
-If the custom packages are already built and tagged in the target, use
-`KOJI_BUILD_RPMS=0`; the script checks that every package named by the
-installed-target transaction has a latest build before it returns.
+```sh
+RPM_REPO=$PWD/build/koji-repo \
+  make build-live-existing
+```
+
+The default Arach Kernel source tree is qualified as a GRUB Multiboot2 image.
+An SRPM is required only when the package farm is also building a separately
+installable kernel package; large source archives remain external build inputs
+and are never committed to this repository.
+
+## Scope
+
+Koji produces packages and repository metadata. The graphical installer is
+composed by [`scripts/build-live.sh`](../../scripts/build-live.sh), which uses
+Lorax directly with the configured ArachOS bootstrap repositories and the
+exported ArachOS RPM repository. A successful Koji task is not a runtime
+certificate: boot, resolver, storage, graphics, service lifecycle, and fault
+recovery still require the ArachOS disposable-VM campaign.

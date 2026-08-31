@@ -1,39 +1,36 @@
-# Interactive ArachOS installer configuration for the CIQ RLC 10.2 DVD.
+# ArachOS interactive installer kickstart.
 #
-# The RLC media boots its installer stage2 directly through anaconda.target.
-# This file intentionally contains no desktop, login-manager, compositor, or
-# live-user setup. Anaconda remains graphical and the user selects the
-# installation environment in its Software Selection screen.
+# The Lorax boot image supplies the graphical Anaconda runtime.  This file
+# supplies only repository sources and the installed-system transition.  It
+# deliberately contains no clearpart, autopart, or forced desktop selection;
+# disk layout and optional graphical packages remain Anaconda decisions.
+url --url=__ARACHOS_BASEOS_URL__
+repo --name=arachos-appstream --baseurl=__ARACHOS_APPSTREAM_URL__
+repo --name=arachos-crb --baseurl=__ARACHOS_CRB_URL__
 repo --name=arachos-custom --baseurl=file:///run/install/repo/ArachOS-Repo
 
-# Preserve the CIQ RLC installer post scripts shipped by the source media.
-%include /usr/share/anaconda/post-scripts/50-ciq-install-depot.ks
-%include /usr/share/anaconda/post-scripts/50-ciq-login-banner.ks
-
-# Install the ArachOS runtime after Anaconda has applied the user's software
-# selection. The source DVD repositories are listed explicitly because the
-# post script runs outside the target chroot and must see every RLC variant.
 %post --nochroot --erroronfail --log=/mnt/sysroot/root/arachos-rustd-install.log
 set -Eeuo pipefail
 
 target=/mnt/sysroot
 media=/run/install/repo
+ARACHOS_BASEOS_URL=__ARACHOS_BASEOS_URL__
+ARACHOS_APPSTREAM_URL=__ARACHOS_APPSTREAM_URL__
+ARACHOS_CRB_URL=__ARACHOS_CRB_URL__
+ARACHOS_REPOSITORY_URL=__ARACHOS_REPOSITORY_URL__
+ARACHOS_REPOSITORY_ENABLED=__ARACHOS_REPOSITORY_ENABLED__
 test -d "$target"
 test -d "$media/ArachOS-Repo"
 test -x /usr/bin/dnf
 
-repo_args=()
-for repo_name in baseos appstream CIQDepot crb extras rlc_core rlc_supplemental security; do
-    repo_id="rlc-${repo_name,,}"
-    repo_path="$media/$repo_name"
-    test -f "$repo_path/repodata/repomd.xml"
-    repo_args+=(
-        "--repofrompath=${repo_id},file://${repo_path}"
-        "--setopt=${repo_id}.gpgcheck=0"
-    )
-done
-repo_args+=(
+repo_args=(
+    --repofrompath=arachos-baseos,"$ARACHOS_BASEOS_URL"
+    --repofrompath=arachos-appstream,"$ARACHOS_APPSTREAM_URL"
+    --repofrompath=arachos-crb,"$ARACHOS_CRB_URL"
     --repofrompath=arachos-custom,file:///run/install/repo/ArachOS-Repo
+    --setopt=arachos-baseos.gpgcheck=0
+    --setopt=arachos-appstream.gpgcheck=0
+    --setopt=arachos-crb.gpgcheck=0
     --setopt=arachos-custom.gpgcheck=0
 )
 
@@ -70,6 +67,7 @@ packages=(
     libinput-rs
     blerust
     ccze-rs
+    hermes-gpu-stack
     # ARACHOS_KERNEL_PACKAGE_BEGIN
     kernel
     # ARACHOS_KERNEL_PACKAGE_END
@@ -79,9 +77,9 @@ packages=(
     # ARACHOS_KERNEL_MODULE_PACKAGES_END
 )
 
-dnf -y \
+/usr/bin/dnf -y \
     --installroot="$target" \
-    --releasever=10.2 \
+    --releasever=10 \
     --setopt=module_platform_id=platform:el10 \
     --setopt=install_weak_deps=False \
     --setopt=protected_packages= \
@@ -89,10 +87,6 @@ dnf -y \
     "${repo_args[@]}" \
     install "${packages[@]}" --allowerasing
 
-# Finish the target configuration in its own filesystem namespace. The
-# package transaction removes the RLC systemd implementation and leaves RustD
-# as the installed PID 1 while retaining the standard unit paths applications
-# expect.
 chroot "$target" /usr/bin/bash -s <<'TARGET_POST'
 set -Eeuo pipefail
 
@@ -106,8 +100,8 @@ test -f /usr/lib/rustd/system/tuned-rs-ppd.service
 test -f /usr/lib/rustd/system/libinput-rs-elan-resume.service
 test -f /usr/lib64/libnss_rustd_dns.so.2 || test -f /usr/lib/libnss_rustd_dns.so.2
 
-# Migrate the RLC authselect/PAM and NSS configuration before systemd's PAM
-# package is absent from the installed target.
+# Move authentication, PAM, and NSS state to the RustD compatibility boundary
+# before the outgoing manager's implementation packages are absent.
 /usr/sbin/rustd-fedora-cutover
 
 if grep -q '^hosts:' /etc/nsswitch.conf; then
@@ -123,9 +117,8 @@ test -x /usr/bin/dbus-uuidgen
 /usr/bin/dbus-uuidgen --ensure=/etc/machine-id
 test -s /etc/machine-id
 
-# Preserve whichever display manager the selected Anaconda environment
-# installed. RustD keeps its control symlink in /etc/rustd/system while the
-# desktop package continues to use the standard systemd-compatible alias.
+# Keep the normal application-facing unit path while RustD owns the native
+# service namespace and lifecycle.
 display_manager=/etc/systemd/system/display-manager.service
 if test -e "$display_manager" || test -L "$display_manager"; then
     display_manager_target=$(readlink -f "$display_manager" 2>/dev/null || true)
@@ -149,15 +142,43 @@ fi
     rustd-user-sessions.service \
     tuned-rs.service \
     tuned-rs-ppd.service \
-    libinput-rs-elan-resume.service
+    libinput-rs-elan-resume.service \
+    hermes-gpu.service
+
+install -d -m 0755 /etc/yum.repos.d
+cat > /etc/yum.repos.d/arachos.repo <<REPO
+[arachos]
+name=ArachOS packages
+baseurl=$ARACHOS_REPOSITORY_URL
+enabled=$ARACHOS_REPOSITORY_ENABLED
+gpgcheck=0
+repo_gpgcheck=0
+
+[arachos-baseos]
+name=ArachOS bootstrap core
+baseurl=$ARACHOS_BASEOS_URL
+enabled=1
+gpgcheck=0
+
+[arachos-appstream]
+name=ArachOS bootstrap applications
+baseurl=$ARACHOS_APPSTREAM_URL
+enabled=1
+gpgcheck=0
+
+[arachos-crb]
+name=ArachOS bootstrap build content
+baseurl=$ARACHOS_CRB_URL
+enabled=1
+gpgcheck=0
+REPO
 
 command -v restorecon >/dev/null
 test -s /etc/selinux/targeted/contexts/files/file_contexts
 restorecon -RF /etc /usr /var /boot
 
-# Rebuild the installed initramfs with the RustD dracut contract before the
-# first reboot. This is the installed-system transition; the RLC installer
-# initramfs remains the stock Anaconda environment that just booted.
+# Rebuild the target initramfs against the RustD dracut contract before the
+# first reboot.  This is separate from the Anaconda runtime image.
 dracut --regenerate-all --force
 
 rpm -qa --qf '%{NAME}\n' | awk '
@@ -166,5 +187,7 @@ rpm -qa --qf '%{NAME}\n' | awk '
     $0 ~ /^systemd-/ { print; found = 1 }
     END { exit found ? 1 : 0 }
 '
+
+test "$(awk -F= '$1 == "ID" {gsub(/"/, "", $2); print $2}' /etc/os-release)" = arachos
 TARGET_POST
 %end

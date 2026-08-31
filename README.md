@@ -4,190 +4,196 @@
 
 # ArachOS
 
-ArachOS is a CIQ RLC 10.2 Anaconda installer image built around Arach Kernel,
-GRUB, RustD as PID 1, and RustD-Resolved as the native resolver. The image is intended to be
-installed on a disposable test machine or a snapshot-backed virtual machine
-until the installed-system certification gates are green.
+ArachOS is an independent x86-64 Linux distribution with its own release
+identity, RPM repository metadata, DNF configuration, graphical Anaconda
+installer, RustD service manager, RustD-resolved resolver, and Arach Kernel
+qualification path. The distribution is no longer a remaster or derivative
+installer build: the installer boot image is composed from repository metadata
+by Lorax, and the final ISO is assembled by ArachOS tooling.
 
-The image replaces the RLC service-manager and resolver packages with the
-ArachOS RPM set. RLC compatibility entry points remain available for
-package scripts, but the running manager, initramfs manager, udev path, resolver
-daemon, NSS module, and service units are RustD-owned.
+ArachOS uses the generic EL10 RPM ABI as a bootstrap ecosystem so existing RPM
+and DNF software remains useful. That is a package-compatibility boundary, not
+the product identity. The installed release reports `ID=arachos`, owns the
+release and logo capabilities needed by Anaconda, and does not install another
+distribution's release or logo package. Upstream licenses and required
+compatibility paths remain intact where software expects them.
 
-The installer preserves the CIQ RLC DVD boot path: the RLC installer stage2
-boots `anaconda.target` directly and presents Anaconda's graphical interface.
-No desktop environment, login manager, live user, or alternate compositor is
-forced into the installer media. The desktop environment is selected in
-Anaconda's Software Selection screen and is then connected to RustD's standard
-display-manager alias in the installed target.
+The design priorities are bounded chaos-math control, predictable performance,
+fail-closed validation at security and ABI boundaries, and explicit C shims
+where a Linux or vendor ABI requires one. RustD owns the installed service
+graph and PID 1; RustD-resolved owns DNS, NSS, Varlink, and resolver
+compatibility; Hermes supplies the GPU/GSP compatibility surfaces; the other
+Rust components provide tuning, input, line editing, log analysis, and Wi-Fi
+validation.
 
-Arach Kernel is the target installed kernel. During conversion, CLK 6.18 is
-retained only as a known-good installer and recovery kernel. Arach Kernel boots
-through GRUB Multiboot2 and receives measured `rustd` and bootstrap modules;
-Granite, Push, and the previous fixed COSMIC route are not part of this RLC
-architecture. Arach Kernel becomes the default only after its persistent RLC
-root, RustD service graph, RustD-resolved networking, and graphical install
-paths pass BIOS and UEFI testing.
+## Component graph
 
-The CIQ RLC release package remains installed for platform, repository, and
-support metadata. The separate arachos-release package supplies the ArachOS
-identity layer, console branding, Anaconda profile, and image assets.
-
-The build consumes sibling checkouts in `/home/Sisyphus/Projects` by default:
-
-| Component | Checkout | Package role |
+| Component | Checkout | ArachOS role |
 | --- | --- | --- |
-| RustD | `../rustd` | PID 1, service manager, udev, journal, compatibility libraries |
-| RustD-Resolved | `../rustd-resolved` | Native DNS, NSS, Varlink, and resolver service |
-| Arach Kernel | `../Arach-Kernel` | GRUB Multiboot2 kernel and RLC Linux-ABI runtime |
-| tuned-rs | `../tuned-rs` | Native tuning and power-profile services |
-| libinput-rs | `../libinput-rs` | Native libinput ABI and tools |
+| RustD | `../rustd` | PID 1, service manager, udev, journal, D-Bus and RPM compatibility shims |
+| RustD-resolved | `../rustd-resolved` | Native DNS, NSS, Varlink, DNSSEC, and resolver service |
+| Arach Kernel | `../Arach-Kernel` | Rust-first kernel and measured Linux ABI qualification image |
+| tuned-rs | `../tuned-rs` | Tuning and power-profile services |
+| libinput-rs | `../libinput-rs` | libinput ABI, tools, udev helpers, and input quirks |
 | blerust | `../blerust` | Rust line editor |
-| ccze-rs | `../ccze-rs` | Streaming log colorizer |
-| iwchaos | `../iwchaos` | Chaos-math validation and target-kernel Intel Wi-Fi module source |
+| ccze-rs | `../ccze-rs` | Streaming log colorizer and bounded analytics |
+| iwchaos | `../iwchaos` | Chaos-math validation and wireless integration inputs |
+| Hermes | `../Hermes` | Multi-vendor GPU/GSP, CUDA/NVML/Mesa surfaces and kernel-module shims |
 
-All inputs are pinned in [`sources.lock`](sources.lock). The build refuses a
-checkout whose commit does not match that file.
+Every component revision is recorded in [`sources.lock`](sources.lock), and
+the build refuses a checkout whose commit differs from that lock file.
 
 ## Build prerequisites
 
-Run the build on a CIQ RLC 10.2-compatible build host with the RLC build tools,
-a Rust toolchain meeting each source tree's minimum version, and
-the tools below:
+The normal build host needs an EL10-compatible RPM toolchain, Lorax/Anaconda,
+QEMU, and the native build dependencies used by the component repositories.
+Rustup nightly is supported; the reproducible RustD path defaults to the
+system-wide `nightly-2026-07-20` toolchain.
 
 ```sh
 sudo dnf install \
+  anaconda anaconda-gui anaconda-tui lorax lorax-templates-generic \
   mkksiso xorriso createrepo_c rpm-build rpmdevtools \
-  cargo rust rustfmt clippy gcc gcc-c++ gcc-gfortran make meson ninja-build patch \
-  openssl-devel liburing-devel libevdev-devel mtdev-devel json-c-devel \
-  dbus-devel pam-devel polkit-devel selinux-policy-devel python3
+  cargo rust rustfmt clippy gcc gcc-c++ gcc-gfortran make meson ninja-build \
+  patch openssl-devel liburing-devel libevdev-devel mtdev-devel json-c-devel \
+  dbus-devel pam-devel polkit-devel selinux-policy-devel python3 clang kmod
 ```
 
-Build the RPM set first:
+All checkouts belong under `~/Projects`:
 
 ```sh
+cd ~/Projects/ArachOS
+export RUSTUP_TOOLCHAIN=nightly-2026-07-20
 make verify-sources
 make check-chaos
+```
+
+## RPM and DNF repository
+
+The build uses public EL10-compatible repositories only as bootstrap inputs.
+Override them with ArachOS mirrors when they are available:
+
+```sh
+export ARACHOS_BASEOS_URL=https://mirror.example/arachos/1.0/core/x86_64/
+export ARACHOS_APPSTREAM_URL=https://mirror.example/arachos/1.0/apps/x86_64/
+export ARACHOS_CRB_URL=https://mirror.example/arachos/1.0/build/x86_64/
+export ARACHOS_RPM_DIST=.arachos
+
 make build-rpms
 make validate-rpms
 ```
 
-For local preflight testing, use the supplied RLC DVD as a read-only install
-tree. The original ISO is never modified:
+`build-rpms` creates a repository containing the RustD stack, ArachOS release
+identity, Hermes, and all pinned companion packages. It also writes a manifest
+with source revisions, the exact bootstrap systemd capability used for RPM
+dependency compatibility, and SHA-256 digests. Sign the repository and enable
+GPG verification before publishing a production mirror; local preflight builds
+keep verification disabled because no project signing key is committed.
+
+## Graphical Anaconda installer
+
+The installer is a standalone Anaconda boot ISO. It is composed directly from
+the configured repositories; no pre-existing distribution ISO is read,
+modified, or required. The kickstart supplies repository sources and the
+RustD post-install transition but intentionally leaves disk selection and
+optional desktop selection to the graphical Anaconda UI.
 
 ```sh
-sudo RLC_SOURCE_ISO=/home/Sisyphus/Downloads/rlc-plus-10.2-dvd-iso-x86_64-20260808-24929df0-att1.x86_64.iso \
-  make build-live-existing
+sudo make build-installer
 ```
 
-The result is written to `build/iso/ArachOS-RLC-10.2-live-x86_64.iso`. The
-filename retains the project name, but the media is an RLC Anaconda installer,
-not a desktop live session. The build also emits a checksum and a
-package/source manifest beside the ISO.
-
-Build the measured Arach Kernel GRUB bundle after the RPM set is available:
+For a release candidate, provide the hosted ArachOS repository URL so the
+installed system has an enabled ArachOS source after reboot:
 
 ```sh
-RLC_SOURCE_ISO=/home/Sisyphus/Downloads/rlc-plus-10.2-dvd-iso-x86_64-20260808-24929df0-att1.x86_64.iso \
-  make build-arach-kernel-bundle
+sudo ARACHOS_REPOSITORY_URL=https://mirror.example/arachos/1.0/x86_64/ \
+  make build-installer
 ```
 
-This command builds the exact pinned Arach Kernel and its static C0 Linux-ABI
-bootstrap probe, extracts the exact RustD and RustD-Resolved RPM artifacts,
-measures all four inputs, and creates `build/kernel-bundle/`. The bundle is a
-kernel qualification image, not a replacement for the graphical RLC installer:
-persistent block-backed root, the complete Linux ABI, and the installed RustD
-service graph must pass BIOS and UEFI tests before it can become the default
-installed boot entry.
+If that variable is omitted, the installer writes a disabled media-repository
+entry and prints a warning. The result is:
 
-If the host does not have the RLC 10.2 `mkksiso` tooling, run the preflight in
-the rootful EL10 builder instead:
+```text
+build/iso/ArachOS-1.0-1-installer-x86_64.iso
+```
+
+The ISO contains the graphical Anaconda runtime, BIOS and UEFI boot entries,
+the ArachOS kickstart, and the ArachOS RPM repository. `build-live` and
+`build-live-existing` remain compatibility make targets for the installer
+builder; neither target consumes an external ISO or creates a desktop live
+session.
+
+## Arach Kernel qualification bundle
+
+Arach Kernel is developed and measured independently from the generic Linux
+kernel used to bootstrap Anaconda. The bundle builder builds RustD as a
+loader-free static PIE from the pinned RustD checkout, builds the measured C0
+Linux-ABI probe and Arach Kernel, and packages them into a GRUB Multiboot2
+qualification image:
 
 ```sh
-RLC_SOURCE_ISO=/home/Sisyphus/Downloads/rlc-plus-10.2-dvd-iso-x86_64-20260808-24929df0-att1.x86_64.iso \
+make build-arach-kernel-bundle
+```
+
+The bundle is a qualification artifact, not a claim that every Linux driver,
+filesystem, graphical stack, or installed-system path already runs on Arach
+Kernel. Its manifest records every measured artifact and source revision.
+Persistent storage, the complete Linux ABI, external-module lifecycle,
+RustD/RustD-resolved service startup, and graphical desktop paths remain
+separate runtime gates until their BIOS and UEFI tests pass.
+
+## Installed-system transition
+
+The target transaction installs the ArachOS release package, RustD, the
+RustD-resolved service and NSS module, RustD-owned compatibility libraries and
+commands, SELinux policy, tuned-rs, libinput-rs, blerust, ccze-rs, and Hermes.
+It then rebuilds the target initramfs and checks that:
+
+- `/etc/os-release` reports `ID=arachos`;
+- `/usr/sbin/init` and `/proc/1/exe` resolve to RustD;
+- resolver state is under `/run/rustd/resolve` and the NSS module is active;
+- native unit definitions live under `/usr/lib/rustd/system`;
+- RPM/DNF dependency capabilities remain available through RustD shims; and
+- no outgoing service-manager implementation package remains in the target.
+
+These checks are necessary but not sufficient for a production release. Run
+the full disposable-VM boot, networking, storage, graphical, suspend/resume,
+shutdown, fault-recovery, and long-running soak campaign before installing on
+hardware without a recovery path.
+
+## Containerized media build
+
+For a rootful builder image containing the same Lorax and Anaconda packages:
+
+```sh
+ARACHOS_BUILDER_IMAGE=localhost/arachos-build:el10 \
   make build-live-container
 ```
 
-The container builder remasters the supplied RLC DVD with `mkksiso`; it does
-not construct a second desktop session. Do not use a rootless container or a
-readonly container-storage overlay as the build root; that is what produces
-misleading SELinux denials against `container_ro_file_t` paths such as `diff`.
-SELinux remains enforcing in the installed target.
-
-For the release build, submit the custom source RPMs to the private RLC Koji
-deployment, then remaster the RLC DVD with the resulting package repository.
-The CLK 6.18 source RPM remains the installer/recovery kernel input during the
-Arach transition; it is not the final installed-kernel contract:
-
-```sh
-make build-rpms
-CHAOS_KERNEL_SRPM=/path/to/kernel-clk6.18-recovery.src.rpm \
-KOJI_CONFIG=/path/to/koji.conf \
-KOJI_EXPORT_REPO=$PWD/build/koji-repo \
-KOJI_TOPURL=https://koji.example.invalid/kojipkgs \
-KOJI_PROFILE=rlc10.2 KOJI_TARGET=rlc-10.2-build \
-  make koji-build
-
-# On the RLC build host, remaster the DVD with the tagged RPMs exported from
-# the Koji target:
-sudo RPM_REPO=$PWD/build/koji-repo \
-  RLC_SOURCE_ISO=/path/to/rlc-plus-10.2-dvd.iso \
-  make build-live-existing
-```
-
-The Koji package pipeline and target requirements are documented in
-[`packaging/koji/README.md`](packaging/koji/README.md). A local ISO path is
-intentionally kept out of the Koji command because standard Koji live-media
-tasks would replace the RLC Anaconda installer with a synthesized live root.
-The Arach Kernel GRUB bundle is built from the exact `arach-kernel`, `rustd`,
-and `rustd-resolved` revisions in `sources.lock`; it must pass its BIOS, UEFI,
-persistent-root, PID 1, resolver, and graphical Anaconda gates before replacing
-CLK in the installed default entry.
-
-## Image contract
-
-Anaconda presents the RLC graphical installer and its environment choices. The
-post-install transaction then installs the RustD boot graph, RustD-Resolved,
-SELinux policy, the RustD compatibility packages, and the requested Rust
-utilities. Its validation requires:
-
-- `/proc/1/exe` to resolve to `/usr/lib/rustd/rustd`;
-- `/usr/sbin/init` to resolve to RustD;
-- `rustd-resolved.service` to be managed by `rustctl`;
-- `/run/rustd/resolve` to own resolver runtime state;
-- `libnss_rustd_dns.so.2` to be present and selected in the hosts NSS path;
-- no installed RPM whose name is `systemd` or begins with `systemd-`;
-- tuned-rs 0.3.0 and the libinput resume unit to be installed under
-  `/usr/lib/rustd/system`, never under the outgoing manager's unit root;
-- SELinux to remain enforcing with the ArachOS SELinux policy loaded.
-
-The image build does not claim that a successful ISO assembly is equivalent to
-the RustD installed-system release certificate. Run the exact RustD and
-RustD-Resolved source gates and the full-VM certification campaign before
-making the image a machine's only boot path.
+The container builder mounts only the ArachOS checkout and a dedicated output
+directory. It runs the same repository-native installer composition and emits
+the same ISO contract as the host build.
 
 ## Repository layout
 
 ```text
-docs/ArachOS.png                Project branding
-kickstart/ArachOS.ks              Interactive RLC Anaconda kickstart
-packaging/fedora/*.spec         Companion RLC-compatible RPM specs
-packaging/branding/*.spec       ArachOS identity and installer branding
-packaging/koji/                 Koji package-pipeline instructions
-packaging/rustd/*.service       RustD-native companion service units
-scripts/build-rpms.sh           Pinned source and RPM assembly
-scripts/build-live.sh           Local RLC DVD remaster and Anaconda media assembly
-scripts/build-arach-kernel-bundle.sh  Measured Arach Kernel/RustD GRUB bundle
-scripts/build-koji.sh           Ordered RLC Koji RPM pipeline
-scripts/validate-rpms.sh        RPM ownership and path validation
-scripts/verify-sources.sh       Source pin and tree validation
-scripts/check-chaos.sh          Chaos-math, Fortran, and iwchaos source gates
-sources.lock                    Exact source revisions
-Makefile                        Reproducible entry points
+docs/ArachOS.png                    Project artwork
+kickstart/ArachOS.ks                Interactive Anaconda configuration
+packaging/branding/                 ArachOS release and logo package
+packaging/fedora/                   RPM ABI compatibility package specs
+packaging/koji/                     Optional ArachOS Koji build-farm setup
+packaging/rustd/                    RustD-native companion service units
+scripts/build-rpms.sh               Pinned source and RPM assembly
+scripts/build-live.sh               Standalone Lorax and Anaconda ISO build
+scripts/build-arach-kernel-bundle.sh Arach Kernel/RustD qualification build
+scripts/build-koji.sh               Ordered optional Koji RPM pipeline
+scripts/validate-rpms.sh            RPM ownership and capability validation
+scripts/verify-sources.sh            Source pin and tree validation
+scripts/check-chaos.sh               Chaos-math, Fortran, and wireless gates
+sources.lock                         Exact source revisions
+Makefile                             Reproducible entry points
 ```
 
-## Safety
+## License
 
-Keep a known-good recovery path. RustD is a PID 1 replacement and ArachOS
-performs a deliberately exclusive package cutover. Test in a VM or on a
-machine with recoverable snapshots, and retain the RLC rescue media.
+MIT

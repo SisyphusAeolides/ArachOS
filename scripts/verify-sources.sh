@@ -13,6 +13,7 @@ declare -A source_roots=(
   [libinput-rs]="${LIBINPUT_SOURCE_ROOT:-$ROOT/../libinput-rs}"
   [blerust]="${BLERUST_SOURCE_ROOT:-$ROOT/../blerust}"
   [ccze-rs]="${CCZE_SOURCE_ROOT:-$ROOT/../ccze-rs}"
+  [hermes]="${HERMES_SOURCE_ROOT:-$ROOT/../Hermes}"
 )
 
 fail() { printf 'source verification: %s\n' "$*" >&2; exit 1; }
