@@ -23,7 +23,7 @@ BLERUST_SOURCE_ROOT ?= $(PROJECT_ROOT)/blerust
 CCZE_SOURCE_ROOT ?= $(PROJECT_ROOT)/ccze-rs
 
 .PHONY: verify-sources build-rpms validate-rpms build-live build-live-existing \
-	koji-build validate clean
+	build-live-container koji-build validate clean
 
 verify-sources:
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
@@ -63,6 +63,14 @@ build-live-existing: validate-rpms
 		KERNEL_PACKAGE="$(KERNEL_PACKAGE)" \
 		KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
 		bash scripts/build-live.sh
+
+build-live-container: validate-rpms
+	RPM_REPO="$(BUILD_DIR)/repo" \
+		RLC_RELEASE="$(RLC_RELEASE)" RLC_ARCH="$(RLC_ARCH)" \
+		RLC_INSTALL_TREE_URL="$(RLC_INSTALL_TREE_URL)" RLC_SOURCE_ISO="$(RLC_SOURCE_ISO)" \
+		KERNEL_PACKAGE="$(KERNEL_PACKAGE)" \
+		KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
+		bash scripts/build-live-container.sh
 
 koji-build:
 	RLC_RELEASE="$(RLC_RELEASE)" \

@@ -126,21 +126,22 @@ printf '%s\n' \
     '[Unit]' \
     'Description=ArachOS live installer boot' \
     'Requires=basic.target' \
-    'Wants=NetworkManager.service anaconda-live.service' \
-    'After=basic.target' \
+    'Wants=dbus.service rustd-resolved.service NetworkManager.service anaconda-live.service' \
+    'After=basic.target dbus.service rustd-resolved.service NetworkManager.service' \
     'AllowIsolate=yes' \
     > /etc/rustd/system/default.target
 
 printf '%s\n' \
     '[Unit]' \
     'Description=ArachOS live Anaconda installer' \
-    'After=basic.target' \
+    'Requires=dbus.service rustd-resolved.service' \
     'Wants=NetworkManager.service' \
+    'After=basic.target dbus.service rustd-resolved.service NetworkManager.service' \
     'Conflicts=shutdown.target' \
     '' \
     '[Service]' \
     'Type=simple' \
-    'ExecStart=/usr/bin/dbus-run-session -- /usr/bin/anaconda --liveinst --text --noselinux --noeject' \
+    'ExecStart=/usr/bin/dbus-run-session -- /usr/sbin/anaconda --liveinst --text --noselinux --noeject' \
     'WorkingDirectory=/root' \
     'Environment=HOME=/root LANG=en_US.UTF-8 PATH=/usr/bin:/bin:/sbin:/usr/sbin' \
     'StandardInput=tty-force' \
@@ -198,7 +199,7 @@ restorecon -RF /etc /usr /var /boot
 for path in \
     /usr/bin/mount \
     /usr/bin/umount \
-    /usr/bin/chroot \
+    /usr/sbin/chroot \
     /usr/bin/udevadm \
     /usr/sbin/init \
     /usr/lib/rustd/rustd \
@@ -227,9 +228,8 @@ done
 compgen -G '/boot/vmlinuz-*' >/dev/null
 
 # If the Chaos kernel is present, make it the persistent boot-loader default.
-# The conditional keeps the image build usable with the Fedora-only fallback
-# repository while ensuring a Chaos-enabled image never silently boots a
-# stock kernel first.
+# The stock RLC kernel remains the local preflight fallback; a completed Chaos
+# Kernel build is selected automatically when its package is present.
 if command -v grubby >/dev/null 2>&1; then
     chaos_kernel=$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*chaos*' -print | sort -V | tail -n 1)
     if [[ -n "$chaos_kernel" ]]; then

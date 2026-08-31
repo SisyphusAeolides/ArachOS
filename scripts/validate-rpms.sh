@@ -27,6 +27,9 @@ for path in /usr/sbin/init /usr/bin/systemctl /usr/bin/systemd-tmpfiles \
   printf '%s\n' "${compat_files[@]}" | grep -Fxq "$path" \
     || fail "compatibility RPM does not own $path"
 done
+udevd_mode=$(rpm -qp --qf '[%{filemodes:perms} %{filenames}\n]' "$compat" \
+  | awk '$2 == "/usr/lib/systemd/systemd-udevd" {print $1}')
+[[ $udevd_mode == -* ]] || fail 'udev compatibility path must be a regular executable file'
 mapfile -t resolved_files < <(rpm -qpl "$resolved") \
   || fail "cannot read file list from $(basename "$resolved")"
 printf '%s\n' "${resolved_files[@]}" | grep -Fxq /usr/lib/rustd/rustd-resolved \

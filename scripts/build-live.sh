@@ -14,9 +14,29 @@ KERNEL_MODULE_PACKAGES=${KERNEL_MODULE_PACKAGES:-kernel-modules kernel-modules-e
 
 fail() { printf 'live media build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
-for command in livemedia-creator createrepo_c sha256sum awk; do need "$command"; done
+for command in livemedia-creator createrepo_c sha256sum awk losetup mknod; do need "$command"; done
 [[ $EUID -eq 0 ]] || fail 'livemedia-creator must run as root'
 [[ -d $RPM_REPO ]] || fail "ArachOS RPM repository is missing: $RPM_REPO"
+
+# Lorax creates several filesystem images concurrently.  Minimal containers
+# commonly expose only loop0..loop4, which lets Anaconda finish and then
+# fails much later at EFI image creation with a misleading losetup error.
+# Provision a bounded set of standard loop nodes in the disposable build
+# namespace and fail before the package transaction if none is usable.
+[[ -c /dev/loop-control ]] || fail 'loop-control is unavailable; run the builder with loop-device access'
+for ((loop_number = 0; loop_number < 16; loop_number++)); do
+    loop_device="/dev/loop${loop_number}"
+    if [[ ! -e $loop_device ]]; then
+        mknod -m 0660 "$loop_device" b 7 "$loop_number" \
+            || fail "cannot create $loop_device"
+    elif [[ ! -b $loop_device ]]; then
+        fail "$loop_device exists but is not a block device"
+    fi
+done
+losetup -f >/dev/null 2>&1 \
+    || fail 'no free loop device; release stale mounts or increase loop capacity'
+[[ -x /usr/sbin/chroot ]] \
+    || fail 'EL10 chroot helper is missing at /usr/sbin/chroot'
 
 rm -rf "$ISO_OUTPUT" "$WORK"
 mkdir -p "$WORK"
@@ -112,6 +132,10 @@ awk -v install_tree="$RLC_INSTALL_TREE_URL" -v custom_repo="$RPM_REPO" \
 ' "$ROOT/kickstart/ArachOS.ks" > "$rendered_ks"
 grep -q '^url --url=' "$rendered_ks" || fail 'rendered kickstart has no install tree'
 
+# RLC 10.2's dracut-live ships a 90livenet module whose check() returns
+# 255. This is intentional for network-live images, but the local ISO uses
+# compressed local media, so keep the usable live-media modules and
+# explicitly omit livenet from Lorax's older default argument set.
 livemedia-creator \
   --make-iso \
   --ks "$rendered_ks" \
@@ -124,6 +148,12 @@ livemedia-creator \
   --resultdir "$ISO_OUTPUT" \
   --tmp "$WORK" \
   --logfile "$WORK/livemedia-creator.log" \
+  --dracut-arg="--xz" \
+  --dracut-arg="--add dmsquash-live convertfs pollcdrom qemu qemu-net" \
+  --dracut-arg="--omit plymouth" \
+  --dracut-arg="--no-hostonly" \
+  --dracut-arg="--debug" \
+  --dracut-arg="--no-early-microcode" \
   --no-virt
 
 iso=$(find "$ISO_OUTPUT" -maxdepth 2 -type f -name '*.iso' -print -quit)
@@ -133,7 +163,10 @@ if [[ $iso != "$final_iso" ]]; then
     cp "$iso" "$final_iso"
     iso="$final_iso"
 fi
-sha256sum "$iso" > "$iso.sha256"
+(
+    cd "$(dirname "$iso")"
+    sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256"
+)
 cp "$ROOT/sources.lock" "$ISO_OUTPUT/sources.lock"
 cp "$RPM_REPO/manifest.txt" "$ISO_OUTPUT/rpm-manifest.txt" 2>/dev/null || true
 printf 'ISO: %s\n' "$iso"

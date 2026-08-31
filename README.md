@@ -65,6 +65,21 @@ sudo RLC_SOURCE_ISO=/home/Sisyphus/Downloads/rlc-plus-10.2-dvd-iso-x86_64-202608
 The result is written to `build/iso/ArachOS-RLC-10.2-live-x86_64.iso`. The build
 also emits a checksum and a package/source manifest beside the ISO.
 
+If the host does not have the RLC 10.2 LiveMedia tools, run the preflight in the
+rootful EL10 builder instead:
+
+```sh
+RLC_SOURCE_ISO=/home/Sisyphus/Downloads/rlc-plus-10.2-dvd-iso-x86_64-20260808-24929df0-att1.x86_64.iso \
+  make build-live-container
+```
+
+The container builder uses the disposable build label namespace, exposes the
+loop devices required by Lorax, and checks the EL10 `/usr/sbin/chroot` path
+before Anaconda starts. Do not use a rootless container or a readonly
+container-storage overlay as the build root; that is what produces misleading
+SELinux denials against `container_ro_file_t` paths such as `diff`. SELinux
+remains enforcing in the generated image.
+
 For the release build, submit the custom source RPMs and the LiveMedia task to
 the private RLC Koji deployment:
 
