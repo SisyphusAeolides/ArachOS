@@ -303,9 +303,11 @@ machine_id=${machine_id:0:32}
 # post-transaction hook ran and validates the RustD-owned BLS contract before
 # Anaconda reboots the machine.
 # Replace any entry created before the target had its final identity, then
-# add the native RustD entry with the normalized command line above.
-/usr/bin/kernel-install --verbose --boot-path=/boot remove "$kernel_version"
-/usr/bin/kernel-install --verbose --boot-path=/boot add "$kernel_version" \
+# add the native RustD entry with the normalized command line above. The
+# explicit dracut and GRUB steps below own this reconciliation, so skip the
+# package plugin pass that would rebuild DKMS and boot artifacts a second time.
+/usr/bin/kernel-install --verbose --skip-plugins --boot-path=/boot remove "$kernel_version"
+/usr/bin/kernel-install --verbose --skip-plugins --boot-path=/boot add "$kernel_version" \
     "$kernel_image" "$kernel_initrd"
 
 install -d -m 0755 /boot/grub2
