@@ -12,7 +12,7 @@ BuildRequires:  gcc-gfortran
 Provides:       ccze = %{version}-%{release}
 Obsoletes:      ccze < %{version}-%{release}
 # The tiny Rust executable has no source files discoverable by
-# find-debuginfo on EL9/EL10; suppress an otherwise empty debugsource
+# find-debuginfo on some RPM build environments; suppress an otherwise empty debugsource
 # subpackage rather than making the binary build fail.
 %global debug_package %{nil}
 

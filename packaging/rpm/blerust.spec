@@ -1,5 +1,5 @@
 Name:           blerust
-Version:        0.1.15
+Version:        0.1.16
 Release:        1%{?dist}
 Summary:        Rust line editor
 License:        MIT

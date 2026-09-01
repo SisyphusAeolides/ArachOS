@@ -8,7 +8,7 @@ Source0:        ArachOS.png
 BuildArch:      noarch
 
 Provides:       system-release = %{version}-%{release}
-Provides:       system-release(releasever) = 10
+Provides:       system-release(releasever) = %{?arachos_releasever}%{!?arachos_releasever:1}
 Provides:       system-logos = %{version}-%{release}
 
 %description
@@ -35,7 +35,7 @@ cat > %{buildroot}%{_sysconfdir}/anaconda/profile.d/z-arachos.conf <<'EOF'
 
 [Profile]
 profile_id = arachos
-base_profile = rhel
+base_profile = fedora
 
 [Profile Detection]
 os_id = arachos
@@ -93,7 +93,7 @@ NAME="ArachOS"
 ID=arachos
 VERSION="%{version}"
 VERSION_ID="%{version}"
-PLATFORM_ID="platform:el10"
+PLATFORM_ID="platform:arachos"
 PRETTY_NAME="ArachOS %{version}"
 ANSI_COLOR="0;35"
 LOGO=arachos

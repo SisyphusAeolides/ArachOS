@@ -7,16 +7,16 @@
 ArachOS is an independent x86-64 Linux distribution with its own release
 identity, RPM repository metadata, DNF configuration, graphical Anaconda
 installer, RustD service manager, RustD-resolved resolver, and Arach Kernel
-qualification path. The distribution is no longer a remaster or derivative
-installer build: the installer boot image is composed from repository metadata
-by Lorax, and the final ISO is assembled by ArachOS tooling.
+qualification path. The distribution is not a remaster or derivative release:
+the installed product reports ArachOS identity and the final installer is
+assembled by ArachOS tooling from a pinned bootstrap netinst image.
 
-ArachOS uses the generic EL10 RPM ABI as a bootstrap ecosystem so existing RPM
-and DNF software remains useful. That is a package-compatibility boundary, not
-the product identity. The installed release reports `ID=arachos`, owns the
-release and logo capabilities needed by Anaconda, and does not install another
-distribution's release or logo package. Upstream licenses and required
-compatibility paths remain intact where software expects them.
+ArachOS uses the Fedora 45 package pool represented by the supplied dated
+netinst image as a bootstrap ecosystem. That is build input, not the product
+identity. ArachOS owns its release package, repository metadata, installer
+profile, and artwork; the installed release reports `ID=arachos` and does not
+install another distribution's release or logo package. Upstream licenses and
+required compatibility paths remain intact where software expects them.
 
 The design priorities are bounded chaos-math control, predictable performance,
 fail-closed validation at security and ABI boundaries, and explicit C shims
@@ -45,14 +45,13 @@ the build refuses a checkout whose commit differs from that lock file.
 
 ## Build prerequisites
 
-The normal build host needs an EL10-compatible RPM toolchain, Lorax/Anaconda,
-QEMU, and the native build dependencies used by the component repositories.
-Rustup nightly is supported; the reproducible RustD path defaults to the
-system-wide `nightly-2026-07-20` toolchain.
+The normal build host needs an RPM toolchain, `mkksiso`, QEMU, and the native
+build dependencies used by the component repositories. Rustup nightly is
+supported; the reproducible RustD path defaults to the system-wide
+`nightly-2026-07-20` toolchain.
 
 ```sh
 sudo dnf install \
-  anaconda anaconda-gui anaconda-tui lorax lorax-templates-generic \
   mkksiso xorriso createrepo_c rpm-build rpmdevtools \
   cargo rust rustfmt clippy gcc gcc-c++ gcc-gfortran make meson ninja-build \
   patch openssl-devel liburing-devel libevdev-devel mtdev-devel json-c-devel \
@@ -70,13 +69,13 @@ make check-chaos
 
 ## RPM and DNF repository
 
-The build uses public EL10-compatible repositories only as bootstrap inputs.
-Override them with ArachOS mirrors when they are available:
+The build uses the Fedora 45 Everything core and updates repositories as
+bootstrap inputs. Override them with ArachOS mirrors when they are available:
 
 ```sh
-export ARACHOS_BASEOS_URL=https://mirror.example/arachos/1.0/core/x86_64/
-export ARACHOS_APPSTREAM_URL=https://mirror.example/arachos/1.0/apps/x86_64/
-export ARACHOS_CRB_URL=https://mirror.example/arachos/1.0/build/x86_64/
+export ARACHOS_BOOTSTRAP_RELEASE=45
+export ARACHOS_CORE_URL=https://mirror.example/arachos/bootstrap/45/core/x86_64/
+export ARACHOS_UPDATES_URL=https://mirror.example/arachos/bootstrap/45/updates/x86_64/
 export ARACHOS_RPM_DIST=.arachos
 
 make build-rpms
@@ -92,11 +91,19 @@ keep verification disabled because no project signing key is committed.
 
 ## Graphical Anaconda installer
 
-The installer is a standalone Anaconda boot ISO. It is composed directly from
-the configured repositories; no pre-existing distribution ISO is read,
-modified, or required. The kickstart supplies repository sources and the
-RustD post-install transition but intentionally leaves disk selection and
-optional desktop selection to the graphical Anaconda UI.
+The installer uses the supplied Fedora 45 Everything netinst image as its
+graphical Anaconda bootstrap and adds the ArachOS kickstart and RPM repository.
+The installer boots from the configured core/update repositories; it is not a
+desktop live session. The kickstart supplies repository sources and the RustD
+post-install transition but intentionally leaves disk selection and optional
+desktop selection to the graphical Anaconda UI.
+
+The current bootstrap input is:
+
+```text
+/home/Sisyphus/Downloads/Fedora-Everything-netinst-x86_64-45-20260831.n.0.iso
+sha256=523f17169f6012c8a9f04b1b1ceb330428a8fb1cf72e076de71dd396ffd9c40d
+```
 
 ```sh
 sudo make build-installer
@@ -118,10 +125,11 @@ build/iso/ArachOS-1.0-1-installer-x86_64.iso
 ```
 
 The ISO contains the graphical Anaconda runtime, BIOS and UEFI boot entries,
-the ArachOS kickstart, and the ArachOS RPM repository. `build-live` and
-`build-live-existing` remain compatibility make targets for the installer
-builder; neither target consumes an external ISO or creates a desktop live
-session.
+the ArachOS kickstart, and the ArachOS RPM repository. The upstream installer
+license notice remains on the bootstrap media; the installed target is checked
+for ArachOS identity and absence of the bootstrap release package. `build-live`
+and `build-live-existing` are retained as compatible make targets for the same
+netinst composition path.
 
 ## Arach Kernel qualification bundle
 
@@ -163,10 +171,10 @@ hardware without a recovery path.
 
 ## Containerized media build
 
-For a rootful builder image containing the same Lorax and Anaconda packages:
+For a rootful builder image containing `mkksiso` and the ISO tools:
 
 ```sh
-ARACHOS_BUILDER_IMAGE=localhost/arachos-build:el10 \
+ARACHOS_BUILDER_IMAGE=localhost/arachos-build:fedora45 \
   make build-live-container
 ```
 
@@ -180,11 +188,11 @@ the same ISO contract as the host build.
 docs/ArachOS.png                    Project artwork
 kickstart/ArachOS.ks                Interactive Anaconda configuration
 packaging/branding/                 ArachOS release and logo package
-packaging/fedora/                   RPM ABI compatibility package specs
+packaging/rpm/                      ArachOS RPM package specs
 packaging/koji/                     Optional ArachOS Koji build-farm setup
 packaging/rustd/                    RustD-native companion service units
 scripts/build-rpms.sh               Pinned source and RPM assembly
-scripts/build-live.sh               Standalone Lorax and Anaconda ISO build
+scripts/build-live.sh               Netinst and Anaconda ISO composition
 scripts/build-arach-kernel-bundle.sh Arach Kernel/RustD qualification build
 scripts/build-koji.sh               Ordered optional Koji RPM pipeline
 scripts/validate-rpms.sh            RPM ownership and capability validation

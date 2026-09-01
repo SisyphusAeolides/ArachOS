@@ -6,7 +6,10 @@ RPM_OUTPUT=${RPM_OUTPUT:-$ROOT/build/repo}
 TOPDIR=${RPM_TOPDIR:-$ROOT/build/rpmbuild}
 ARACHOS_VERSION=${ARACHOS_VERSION:-1.0}
 ARACHOS_RELEASE=${ARACHOS_RELEASE:-1}
-ARACHOS_BASEOS_URL=${ARACHOS_BASEOS_URL:-https://dl.rockylinux.org/pub/rocky/10/BaseOS/x86_64/os/}
+ARACHOS_RELEASEVER=${ARACHOS_RELEASEVER:-1}
+ARACHOS_BOOTSTRAP_RELEASE=${ARACHOS_BOOTSTRAP_RELEASE:-45}
+ARACHOS_CORE_URL=${ARACHOS_CORE_URL:-https://dl.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/}
+ARACHOS_UPDATES_URL=${ARACHOS_UPDATES_URL:-https://dl.fedoraproject.org/pub/fedora/linux/updates/45/Everything/x86_64/}
 ARACHOS_SYSTEMD_EVR=${ARACHOS_SYSTEMD_EVR:-}
 ARACHOS_RPM_DIST=${ARACHOS_RPM_DIST:-.arachos}
 RPMBUILD_DBPATH=${RPMBUILD_DBPATH:-}
@@ -31,17 +34,28 @@ bash "$ROOT/scripts/verify-sources.sh"
 rm -rf "$RPM_OUTPUT" "$TOPDIR"
 mkdir -p "$RPM_OUTPUT" "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,work}
 
+[[ $ARACHOS_BOOTSTRAP_RELEASE =~ ^[0-9]+$ ]] || fail \
+  "bootstrap release must be numeric: $ARACHOS_BOOTSTRAP_RELEASE"
+[[ -n $ARACHOS_CORE_URL && -n $ARACHOS_UPDATES_URL ]] || fail \
+  'both ArachOS bootstrap repository URLs are required'
+
+bootstrap_repo_args=(
+  --repofrompath=arachos-core,"$ARACHOS_CORE_URL"
+  --repofrompath=arachos-updates,"$ARACHOS_UPDATES_URL"
+  --enablerepo=arachos-core,arachos-updates
+  --releasever="$ARACHOS_BOOTSTRAP_RELEASE"
+)
+
 # The compatibility providers must advertise the exact systemd capability of
 # the selected base repository. Querying that repository keeps this build
 # independent of whatever release is installed on the build host.
 if [[ -z "$ARACHOS_SYSTEMD_EVR" ]]; then
   ARACHOS_SYSTEMD_EVR=$(dnf -q --disablerepo='*' \
-    --repofrompath=arachos-baseos,"$ARACHOS_BASEOS_URL" \
-    --enablerepo=arachos-baseos --releasever=10 \
+    "${bootstrap_repo_args[@]}" \
     repoquery --latest-limit=1 --qf '%{evr}' systemd | head -n 1)
 fi
 [[ -n "$ARACHOS_SYSTEMD_EVR" ]] || fail \
-  "could not determine systemd EVR from ArachOS base repository: $ARACHOS_BASEOS_URL"
+  "could not determine systemd EVR from ArachOS bootstrap repositories"
 
 rustd_output=$RPM_OUTPUT/rustd-core
 mkdir -p "$rustd_output"
@@ -100,16 +114,17 @@ hermes_version=$(awk '
 make_source hermes "$HERMES_ROOT" "$hermes_sha" "$hermes_version" \
   "$TOPDIR/SOURCES/hermes-$hermes_version.tar.gz"
 
-cp "$ROOT"/packaging/fedora/*.spec "$TOPDIR/SPECS/"
+cp "$ROOT"/packaging/rpm/*.spec "$TOPDIR/SPECS/"
 cp "$ROOT"/packaging/branding/*.spec "$TOPDIR/SPECS/"
 cp "$ROOT/docs/ArachOS.png" "$TOPDIR/SOURCES/ArachOS.png"
 cp "$ROOT"/packaging/rustd/*.service "$TOPDIR/SOURCES/"
 
 common=(
   --define "_topdir $TOPDIR"
-  --define "dist ${ARACHOS_RPM_DIST:-.el10}"
+  --define "dist ${ARACHOS_RPM_DIST:-.arachos}"
   --define "arachos_version $ARACHOS_VERSION"
   --define "arachos_release $ARACHOS_RELEASE"
+  --define "arachos_releasever $ARACHOS_RELEASEVER"
 )
 if [[ -n "$RPMBUILD_DBPATH" ]]; then
   [[ -d "$RPMBUILD_DBPATH" ]] || fail "RPM build database is missing: $RPMBUILD_DBPATH"
@@ -119,10 +134,10 @@ if [[ -n "$RPMBUILD_TMPDIR" ]]; then
   [[ -d "$RPMBUILD_TMPDIR" ]] || fail "RPM build temporary directory is missing: $RPMBUILD_TMPDIR"
   common+=(--define "_tmppath $RPMBUILD_TMPDIR")
 fi
-rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/tuned-rs-fedora.spec"
-rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/libinput-rs-fedora.spec"
-rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/blerust-fedora.spec"
-rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/ccze-rs-fedora.spec"
+rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/tuned-rs.spec"
+rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/libinput-rs.spec"
+rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/blerust.spec"
+rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/ccze-rs.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/hermes-gpu-stack.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/arachos-release.spec"
 find "$TOPDIR/RPMS" -type f -name '*.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
@@ -130,6 +145,9 @@ find "$TOPDIR/SRPMS" -type f -name '*.src.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 
 {
   printf 'schema=arachos-rpm-set-v1\n'
+  printf 'bootstrap_release=%s\n' "$ARACHOS_BOOTSTRAP_RELEASE"
+  printf 'bootstrap_core_url=%s\n' "$ARACHOS_CORE_URL"
+  printf 'bootstrap_updates_url=%s\n' "$ARACHOS_UPDATES_URL"
   if [[ -n "$ARACHOS_SYSTEMD_EVR" ]]; then
   printf 'systemd_reference_evr=%s\n' "$ARACHOS_SYSTEMD_EVR"
   fi

@@ -2,15 +2,17 @@
 
 Koji is an optional build-farm backend for ArachOS. It builds source RPMs in a
 private ArachOS profile, tags the resulting builds, waits for repository
-metadata, and can export a validated RPM repository for the standalone Lorax
-installer. It does not build or remaster another distribution's media.
+metadata, and can export a validated RPM repository for the standalone
+ArachOS netinst installer. It does not build or remaster another distribution's
+release.
 
 ## Required setup
 
 Copy [`koji.conf.example`](koji.conf.example) to a private configuration and
 fill in the HTTPS hub, authentication, and ArachOS package targets. The target
-must provide EL10-compatible build dependencies plus the Rust, C, Fortran,
-SELinux, graphics, and kernel toolchains used by the pinned source trees.
+must provide the Fedora 45-era RPM build dependencies plus the Rust, C,
+Fortran, SELinux, graphics, and kernel toolchains used by the pinned source
+trees.
 
 The profile and target defaults are `arachos` and `arachos-1.0-build`. Change
 them only when the Koji deployment uses different names.
@@ -49,7 +51,7 @@ and are never committed to this repository.
 
 Koji produces packages and repository metadata. The graphical installer is
 composed by [`scripts/build-live.sh`](../../scripts/build-live.sh), which uses
-Lorax directly with the configured ArachOS bootstrap repositories and the
-exported ArachOS RPM repository. A successful Koji task is not a runtime
+the pinned Fedora 45 netinst image with the configured bootstrap repositories
+and exported ArachOS RPM repository. A successful Koji task is not a runtime
 certificate: boot, resolver, storage, graphics, service lifecycle, and fault
 recovery still require the ArachOS disposable-VM campaign.

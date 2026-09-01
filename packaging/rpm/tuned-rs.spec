@@ -26,7 +26,7 @@ Requires:       rustd >= 0.1.2
 
 %description
 Rust TuneD and power-profile services installed in the RustD unit namespace.
-The package keeps Fedora's D-Bus interfaces while RustD owns service startup,
+The package keeps the standard D-Bus interfaces while RustD owns service startup,
 restart, and lifecycle management.
 
 %prep

@@ -23,8 +23,8 @@ Provides:       libnvidia-cfg.so.1()(64bit)
 Provides:       libGLX_nvidia.so.0()(64bit)
 Provides:       libEGL_nvidia.so.0()(64bit)
 
-# The release artifacts are stripped Rust binaries and shared objects.  EL10's
-# automatic debug-source pass otherwise creates an empty subpackage and rejects
+# The release artifacts are stripped Rust binaries and shared objects.  Some
+# RPM build environments otherwise create an empty debug-source subpackage and reject
 # the otherwise complete package.
 %global debug_package %{nil}
 

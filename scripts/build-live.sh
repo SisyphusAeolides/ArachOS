@@ -7,10 +7,13 @@ ISO_OUTPUT=${ISO_OUTPUT:-$ROOT/build/iso}
 WORK=${LIVE_MEDIA_WORK:-$ROOT/build/installer-work}
 ARACHOS_VERSION=${ARACHOS_VERSION:-1.0}
 ARACHOS_RELEASE=${ARACHOS_RELEASE:-1}
+ARACHOS_RELEASEVER=${ARACHOS_RELEASEVER:-1}
 ARACHOS_ARCH=${ARACHOS_ARCH:-x86_64}
-ARACHOS_BASEOS_URL=${ARACHOS_BASEOS_URL:-https://dl.rockylinux.org/pub/rocky/10/BaseOS/x86_64/os/}
-ARACHOS_APPSTREAM_URL=${ARACHOS_APPSTREAM_URL:-https://dl.rockylinux.org/pub/rocky/10/AppStream/x86_64/os/}
-ARACHOS_CRB_URL=${ARACHOS_CRB_URL:-https://dl.rockylinux.org/pub/rocky/10/CRB/x86_64/os/}
+ARACHOS_BOOTSTRAP_RELEASE=${ARACHOS_BOOTSTRAP_RELEASE:-45}
+ARACHOS_CORE_URL=${ARACHOS_CORE_URL:-https://dl.fedoraproject.org/pub/fedora/linux/development/45/Everything/x86_64/os/}
+ARACHOS_UPDATES_URL=${ARACHOS_UPDATES_URL:-https://dl.fedoraproject.org/pub/fedora/linux/updates/45/Everything/x86_64/}
+ARACHOS_BOOTSTRAP_ISO=${ARACHOS_BOOTSTRAP_ISO:-/home/Sisyphus/Downloads/Fedora-Everything-netinst-x86_64-45-20260831.n.0.iso}
+ARACHOS_BOOTSTRAP_ISO_SHA256=${ARACHOS_BOOTSTRAP_ISO_SHA256:-523f17169f6012c8a9f04b1b1ceb330428a8fb1cf72e076de71dd396ffd9c40d}
 ARACHOS_REPOSITORY_URL=${ARACHOS_REPOSITORY_URL:-}
 ARACHOS_SYSTEMD_EVR=${ARACHOS_SYSTEMD_EVR:-}
 KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel}
@@ -25,25 +28,40 @@ fi
 fail() { printf 'ArachOS installer media build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 
-for command in lorax mkksiso createrepo_c sha256sum awk rpm dnf xorriso grep; do
+for command in mkksiso createrepo_c sha256sum awk rpm dnf xorriso grep sed; do
     need "$command"
 done
-[[ $EUID -eq 0 ]] || fail 'Lorax and mkksiso must run as root'
+[[ $EUID -eq 0 ]] || fail 'mkksiso must run as root'
 [[ $ARACHOS_ARCH == x86_64 ]] || fail 'the installer builder currently supports x86_64 only'
+[[ $ARACHOS_BOOTSTRAP_RELEASE =~ ^[0-9]+$ ]] || fail \
+    "bootstrap release must be numeric: $ARACHOS_BOOTSTRAP_RELEASE"
+[[ -f $ARACHOS_BOOTSTRAP_ISO ]] || fail \
+    "bootstrap installer ISO is missing: $ARACHOS_BOOTSTRAP_ISO"
 [[ -d $RPM_REPO ]] || fail "ArachOS RPM repository is missing: $RPM_REPO"
 [[ -f $RPM_REPO/manifest.txt ]] || fail \
     "ArachOS RPM manifest is missing: $RPM_REPO/manifest.txt"
-[[ -n $ARACHOS_BASEOS_URL && -n $ARACHOS_APPSTREAM_URL && -n $ARACHOS_CRB_URL ]] \
-    || fail 'all three ArachOS bootstrap repository URLs are required'
+[[ -n $ARACHOS_CORE_URL && -n $ARACHOS_UPDATES_URL ]] || fail \
+    'both ArachOS bootstrap repository URLs are required'
 
-case "$ARACHOS_BASEOS_URL$ARACHOS_APPSTREAM_URL$ARACHOS_CRB_URL$ARACHOS_REPOSITORY_URL" in
-    *"'"*) fail 'repository URLs may not contain single quotes' ;;
+case "$ARACHOS_CORE_URL$ARACHOS_UPDATES_URL$ARACHOS_REPOSITORY_URL" in
+    *"'"*|*$'\n'*|*$'\r'*) fail 'repository URLs may not contain quotes or newlines' ;;
 esac
 
+source_iso_sha256=$(sha256sum "$ARACHOS_BOOTSTRAP_ISO" | awk '{print $1}')
+if [[ -n $ARACHOS_BOOTSTRAP_ISO_SHA256 ]]; then
+    [[ $source_iso_sha256 == "$ARACHOS_BOOTSTRAP_ISO_SHA256" ]] || fail \
+        "bootstrap installer ISO checksum mismatch: $ARACHOS_BOOTSTRAP_ISO"
+fi
+
+bootstrap_repo_args=(
+    --repofrompath=arachos-core,"$ARACHOS_CORE_URL"
+    --repofrompath=arachos-updates,"$ARACHOS_UPDATES_URL"
+    --enablerepo=arachos-core,arachos-updates
+    --releasever="$ARACHOS_BOOTSTRAP_RELEASE"
+)
+
 repo_query() {
-    dnf -q --disablerepo='*' \
-        --repofrompath=arachos-bootstrap,"$ARACHOS_BASEOS_URL" \
-        --enablerepo=arachos-bootstrap --releasever=10 \
+    dnf -q --disablerepo='*' "${bootstrap_repo_args[@]}" \
         repoquery --latest-limit=1 --qf '%{evr}' "$1" | head -n 1
 }
 
@@ -51,7 +69,7 @@ if [[ -z $ARACHOS_SYSTEMD_EVR ]]; then
     ARACHOS_SYSTEMD_EVR=$(repo_query systemd)
 fi
 [[ -n $ARACHOS_SYSTEMD_EVR ]] || fail \
-    "could not determine systemd capability from $ARACHOS_BASEOS_URL"
+    'could not determine systemd capability from the ArachOS bootstrap repositories'
 
 find_binary_rpm() {
     local pattern=$1
@@ -68,6 +86,7 @@ for package in rustd rustd-resolved rustd-fedora-compat rustd-compat-libs \
 done
 
 compat_rpm=$(find_binary_rpm 'rustd-fedora-compat-[0-9]*.rpm')
+[[ -n $compat_rpm ]] || fail 'RustD RPM compatibility provider is missing'
 compat_provides=$(rpm -qp --provides "$compat_rpm")
 for capability in \
     "systemd = $ARACHOS_SYSTEMD_EVR" \
@@ -79,13 +98,15 @@ for capability in \
         "RustD compatibility provider does not provide $capability"
 done
 compat_libs_rpm=$(find_binary_rpm 'rustd-compat-libs-[0-9]*.rpm')
+[[ -n $compat_libs_rpm ]] || fail 'RustD compatibility libraries are missing'
 grep -Fxq "systemd-libs = $ARACHOS_SYSTEMD_EVR" \
     <(rpm -qp --provides "$compat_libs_rpm") || fail \
     "RustD compatibility libraries do not provide systemd-libs = $ARACHOS_SYSTEMD_EVR"
 resolved_rpm=$(find_binary_rpm 'rustd-resolved-[0-9]*.rpm')
+[[ -n $resolved_rpm ]] || fail 'RustD-resolved binary RPM is missing'
 grep -Fxq "systemd-resolved = $ARACHOS_SYSTEMD_EVR" \
     <(rpm -qp --provides "$resolved_rpm") || fail \
-    "RustD-Resolved does not provide systemd-resolved = $ARACHOS_SYSTEMD_EVR"
+    "RustD-resolved does not provide systemd-resolved = $ARACHOS_SYSTEMD_EVR"
 
 if [[ $KERNEL_PACKAGE != kernel ]]; then
     kernel_rpm=$(find_binary_rpm "$KERNEL_PACKAGE-[0-9]*.rpm")
@@ -93,7 +114,33 @@ if [[ $KERNEL_PACKAGE != kernel ]]; then
         "custom repository is missing the selected kernel package: $KERNEL_PACKAGE"
 fi
 
+if [[ -e $ISO_OUTPUT || -e $WORK ]]; then
+    rm -rf -- "$ISO_OUTPUT" "$WORK"
+fi
+mkdir -p "$ISO_OUTPUT" "$WORK"
+
+discinfo="$WORK/discinfo"
+xorriso -osirrox on -indev "$ARACHOS_BOOTSTRAP_ISO" \
+    -extract /.discinfo "$discinfo" >/dev/null 2>&1 \
+    || fail 'bootstrap installer ISO has no .discinfo metadata'
+iso_release=$(sed -n '2p' "$discinfo")
+iso_arch=$(sed -n '3p' "$discinfo")
+[[ $iso_release == "$ARACHOS_BOOTSTRAP_RELEASE" ]] || fail \
+    "bootstrap ISO release $iso_release does not match $ARACHOS_BOOTSTRAP_RELEASE"
+[[ $iso_arch == "$ARACHOS_ARCH" ]] || fail \
+    "bootstrap ISO architecture $iso_arch does not match $ARACHOS_ARCH"
+
+source_grub="$WORK/source-grub.cfg"
+xorriso -osirrox on -indev "$ARACHOS_BOOTSTRAP_ISO" \
+    -extract /EFI/BOOT/grub.cfg "$source_grub" >/dev/null 2>&1 \
+    || fail 'bootstrap installer ISO has no UEFI GRUB configuration'
+source_label=$(grep -o 'LABEL=[^[:space:]]*' "$source_grub" | head -n 1 | cut -d= -f2)
+[[ -n $source_label ]] || fail 'could not determine bootstrap ISO volume label'
+
 createrepo_c --update "$RPM_REPO"
+custom_repo="$WORK/ArachOS-Repo"
+mkdir -p "$custom_repo"
+cp -a "$RPM_REPO"/. "$custom_repo"/
 
 if [[ -n $ARACHOS_REPOSITORY_URL ]]; then
     repository_url=$ARACHOS_REPOSITORY_URL
@@ -101,23 +148,16 @@ if [[ -n $ARACHOS_REPOSITORY_URL ]]; then
 else
     repository_url=file:///run/install/repo/ArachOS-Repo
     repository_enabled=0
-    printf '%s\n' 'warning: ARACHOS_REPOSITORY_URL is unset; the installed ArachOS repo entry will be disabled until a hosted repository is configured' >&2
+    printf '%s\n' \
+    'warning: ARACHOS_REPOSITORY_URL is unset; the installed ArachOS repo entry will be disabled until a hosted repository is configured' >&2
 fi
-
-if [[ -e $ISO_OUTPUT || -e $WORK ]]; then
-    rm -rf -- "$ISO_OUTPUT" "$WORK"
-fi
-mkdir -p "$ISO_OUTPUT" "$WORK"
-
-custom_repo="$WORK/ArachOS-Repo"
-mkdir -p "$custom_repo"
-cp -a "$RPM_REPO"/. "$custom_repo"/
 
 rendered_ks="$WORK/ArachOS.ks"
 awk \
-    -v baseos="$ARACHOS_BASEOS_URL" \
-    -v appstream="$ARACHOS_APPSTREAM_URL" \
-    -v crb="$ARACHOS_CRB_URL" \
+    -v core="$ARACHOS_CORE_URL" \
+    -v updates="$ARACHOS_UPDATES_URL" \
+    -v bootstrap_release="$ARACHOS_BOOTSTRAP_RELEASE" \
+    -v releasever="$ARACHOS_RELEASEVER" \
     -v repository="$repository_url" \
     -v repository_enabled="$repository_enabled" \
     -v kernel_package="$KERNEL_PACKAGE" \
@@ -126,36 +166,36 @@ awk \
         module_count = split(kernel_modules, module_list, /[[:space:]]+/)
         in_kernel = ""
     }
-    /^url --url=__ARACHOS_BASEOS_URL__$/ {
-        print "url --url=" baseos
+    /^url --url=__ARACHOS_CORE_URL__$/ {
+        print "url --url=" core
         next
     }
-    /^repo --name=arachos-appstream --baseurl=__ARACHOS_APPSTREAM_URL__$/ {
-        print "repo --name=arachos-appstream --baseurl=" appstream
+    /^repo --name=arachos-updates --baseurl=__ARACHOS_UPDATES_URL__$/ {
+        print "repo --name=arachos-updates --baseurl=" updates
         next
     }
-    /^repo --name=arachos-crb --baseurl=__ARACHOS_CRB_URL__$/ {
-        print "repo --name=arachos-crb --baseurl=" crb
+    /^ARACHOS_BOOTSTRAP_RELEASE=__ARACHOS_BOOTSTRAP_RELEASE__$/ {
+        print "ARACHOS_BOOTSTRAP_RELEASE='\''" bootstrap_release "'\''"
         next
     }
-    /^ARACHOS_BASEOS_URL=__ARACHOS_BASEOS_URL__$/ {
-        print "ARACHOS_BASEOS_URL='" baseos "'"
+    /^ARACHOS_RELEASEVER=__ARACHOS_RELEASEVER__$/ {
+        print "ARACHOS_RELEASEVER='\''" releasever "'\''"
         next
     }
-    /^ARACHOS_APPSTREAM_URL=__ARACHOS_APPSTREAM_URL__$/ {
-        print "ARACHOS_APPSTREAM_URL='" appstream "'"
+    /^ARACHOS_CORE_URL=__ARACHOS_CORE_URL__$/ {
+        print "ARACHOS_CORE_URL='\''" core "'\''"
         next
     }
-    /^ARACHOS_CRB_URL=__ARACHOS_CRB_URL__$/ {
-        print "ARACHOS_CRB_URL='" crb "'"
+    /^ARACHOS_UPDATES_URL=__ARACHOS_UPDATES_URL__$/ {
+        print "ARACHOS_UPDATES_URL='\''" updates "'\''"
         next
     }
     /^ARACHOS_REPOSITORY_URL=__ARACHOS_REPOSITORY_URL__$/ {
-        print "ARACHOS_REPOSITORY_URL='" repository "'"
+        print "ARACHOS_REPOSITORY_URL='\''" repository "'\''"
         next
     }
     /^ARACHOS_REPOSITORY_ENABLED=__ARACHOS_REPOSITORY_ENABLED__$/ {
-        print "ARACHOS_REPOSITORY_ENABLED='" repository_enabled "'"
+        print "ARACHOS_REPOSITORY_ENABLED='\''" repository_enabled "'\''"
         next
     }
     /^# ARACHOS_KERNEL_PACKAGE_BEGIN$/ {
@@ -181,8 +221,10 @@ awk \
     { print }
 ' "$ROOT/kickstart/ArachOS.ks" > "$rendered_ks"
 
-grep -Fxq "url --url=$ARACHOS_BASEOS_URL" "$rendered_ks" \
-    || fail 'rendered kickstart has no BaseOS installation source'
+grep -Fxq "url --url=$ARACHOS_CORE_URL" "$rendered_ks" \
+    || fail 'rendered kickstart has no core installation source'
+grep -Fxq "repo --name=arachos-updates --baseurl=$ARACHOS_UPDATES_URL" \
+    "$rendered_ks" || fail 'rendered kickstart has no updates repository'
 grep -Fxq 'repo --name=arachos-custom --baseurl=file:///run/install/repo/ArachOS-Repo' \
     "$rendered_ks" || fail 'rendered kickstart has no ISO repository'
 grep -Fq '%post --nochroot' "$rendered_ks" \
@@ -191,41 +233,21 @@ if grep -Eiq 'gdm|gnome-shell|weston|liveuser' "$rendered_ks"; then
     fail 'installer kickstart contains an obsolete product or forced desktop path'
 fi
 
-lorax_tree="$WORK/lorax-tree"
-lorax_templates=/usr/share/lorax/templates.d/99-generic
-
-# Lorax creates the Anaconda boot environment from the repositories themselves.
-# It never consumes the host's repository configuration or an installer ISO.
-lorax \
-    --product ArachOS \
-    --version "$ARACHOS_VERSION" \
-    --release "$ARACHOS_RELEASE" \
-    --bugurl https://github.com/SisyphusAeolides/ArachOS/issues \
-    --source "$ARACHOS_BASEOS_URL" \
-    --source "$ARACHOS_APPSTREAM_URL" \
-    --source "$ARACHOS_CRB_URL" \
-    --source "$RPM_REPO" \
-    --installpkgs arachos-release \
-    --skip-branding \
-    --buildarch "$ARACHOS_ARCH" \
-    --volid "ARACHOS${ARACHOS_VERSION//[^[:alnum:]]/}" \
-    --nomacboot \
-    --sharedir "$lorax_templates" \
-    --workdir "$WORK/lorax-work" \
-    --logfile "$WORK/lorax.log" \
-    --rootfs-size 4 \
-    "$lorax_tree"
-
-boot_iso="$lorax_tree/images/boot.iso"
-[[ -s $boot_iso ]] || fail 'Lorax did not produce images/boot.iso'
-
+volid="ARACHOS${ARACHOS_VERSION//[^[:alnum:]]/}"
 iso="$ISO_OUTPUT/ArachOS-${ARACHOS_VERSION}-${ARACHOS_RELEASE}-installer-${ARACHOS_ARCH}.iso"
 mkksiso \
     --ks "$rendered_ks" \
     --add "$custom_repo" \
-    --replace '--class fedora' '--class arachos' \
-    --volid "ARACHOS${ARACHOS_VERSION//[^[:alnum:]]/}" \
-    "$boot_iso" "$iso"
+    --volid "$volid" \
+    -R "$source_label" "$volid" \
+    -R "Install Fedora $ARACHOS_BOOTSTRAP_RELEASE" "Install ArachOS $ARACHOS_VERSION" \
+    -R "Test this media & install Fedora $ARACHOS_BOOTSTRAP_RELEASE" \
+       "Test this media & install ArachOS $ARACHOS_VERSION" \
+    -R "Install Fedora $ARACHOS_BOOTSTRAP_RELEASE in basic graphics mode" \
+       "Install ArachOS $ARACHOS_VERSION in basic graphics mode" \
+    -R 'Rescue a Fedora system' 'Rescue an ArachOS system' \
+    -R fedora arachos \
+    "$ARACHOS_BOOTSTRAP_ISO" "$iso"
 
 [[ -s $iso ]] || fail 'mkksiso did not produce an installer ISO'
 
@@ -234,7 +256,7 @@ iso_ks=$(xorriso -indev "$iso" -find / -name ArachOS.ks \
 [[ $iso_ks == /ArachOS.ks ]] || fail 'ArachOS kickstart was not added at ISO root'
 xorriso -indev "$iso" -ls /ArachOS-Repo/repodata/repomd.xml >/dev/null 2>&1 \
     || fail 'ArachOS RPM repository was not added to the ISO'
-for path in /.treeinfo /images/install.img /images/pxeboot/vmlinuz \
+for path in /.discinfo /images/install.img /images/pxeboot/vmlinuz \
             /images/pxeboot/initrd.img /EFI/BOOT/grub.cfg /boot/grub2/grub.cfg; do
     xorriso -indev "$iso" -ls "$path" >/dev/null 2>&1 \
         || fail "standalone installer is missing $path"
@@ -254,7 +276,9 @@ for cfg in "$uefi_cfg" "$bios_cfg"; do
         || fail "$(basename "$cfg") has no ArachOS GRUB class"
     ! grep -Fq -- '--class fedora' "$cfg" \
         || fail "$(basename "$cfg") retains the generic GRUB class"
-    ! grep -Eiq 'Rocky Linux' "$cfg" \
+    ! grep -Fq 'Fedora' "$cfg" \
+        || fail "$(basename "$cfg") retains the bootstrap product name"
+    ! grep -Eiq 'Rocky Linux|Fedora' "$cfg" \
         || fail "$(basename "$cfg") retains a retired product identity"
     ! grep -Fq 'rd.live.image' "$cfg" \
         || fail "$(basename "$cfg") requests a live root instead of Anaconda stage2"
@@ -262,15 +286,16 @@ for cfg in "$uefi_cfg" "$bios_cfg"; do
         || fail "$(basename "$cfg") forces text mode"
 done
 
-grep -Fq "inst.ks=hd:LABEL=ARACHOS${ARACHOS_VERSION//[^[:alnum:]]/}:/ArachOS.ks" "$uefi_cfg" \
+grep -Fq "inst.ks=hd:LABEL=$volid:/ArachOS.ks" "$uefi_cfg" \
     || fail 'UEFI GRUB does not point Anaconda at ArachOS.ks'
-grep -Fq "inst.ks=hd:LABEL=ARACHOS${ARACHOS_VERSION//[^[:alnum:]]/}:/ArachOS.ks" "$bios_cfg" \
+grep -Fq "inst.ks=hd:LABEL=$volid:/ArachOS.ks" "$bios_cfg" \
     || fail 'BIOS GRUB does not point Anaconda at ArachOS.ks'
 
 (
     cd "$(dirname "$iso")"
     sha256sum "$(basename "$iso")" > "$(basename "$iso").sha256"
 )
+printf '%s\n' "$source_iso_sha256" > "$ISO_OUTPUT/bootstrap-iso.sha256"
 cp "$ROOT/sources.lock" "$ISO_OUTPUT/sources.lock"
 cp "$RPM_REPO/manifest.txt" "$ISO_OUTPUT/rpm-manifest.txt"
 printf 'ArachOS installer ISO: %s\n' "$iso"

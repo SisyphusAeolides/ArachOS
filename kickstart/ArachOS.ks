@@ -1,12 +1,12 @@
 # ArachOS interactive installer kickstart.
 #
-# The Lorax boot image supplies the graphical Anaconda runtime.  This file
-# supplies only repository sources and the installed-system transition.  It
-# deliberately contains no clearpart, autopart, or forced desktop selection;
-# disk layout and optional graphical packages remain Anaconda decisions.
-url --url=__ARACHOS_BASEOS_URL__
-repo --name=arachos-appstream --baseurl=__ARACHOS_APPSTREAM_URL__
-repo --name=arachos-crb --baseurl=__ARACHOS_CRB_URL__
+# The Fedora 45 netinst image supplies the graphical Anaconda runtime.  This
+# file supplies only repository sources and the installed-system transition.
+# It deliberately contains no clearpart, autopart, or forced desktop
+# selection; disk layout and optional graphical packages remain Anaconda
+# decisions.
+url --url=__ARACHOS_CORE_URL__
+repo --name=arachos-updates --baseurl=__ARACHOS_UPDATES_URL__
 repo --name=arachos-custom --baseurl=file:///run/install/repo/ArachOS-Repo
 
 %post --nochroot --erroronfail --log=/mnt/sysroot/root/arachos-rustd-install.log
@@ -14,23 +14,22 @@ set -Eeuo pipefail
 
 target=/mnt/sysroot
 media=/run/install/repo
-ARACHOS_BASEOS_URL=__ARACHOS_BASEOS_URL__
-ARACHOS_APPSTREAM_URL=__ARACHOS_APPSTREAM_URL__
-ARACHOS_CRB_URL=__ARACHOS_CRB_URL__
+ARACHOS_BOOTSTRAP_RELEASE=__ARACHOS_BOOTSTRAP_RELEASE__
+ARACHOS_RELEASEVER=__ARACHOS_RELEASEVER__
+ARACHOS_CORE_URL=__ARACHOS_CORE_URL__
+ARACHOS_UPDATES_URL=__ARACHOS_UPDATES_URL__
 ARACHOS_REPOSITORY_URL=__ARACHOS_REPOSITORY_URL__
 ARACHOS_REPOSITORY_ENABLED=__ARACHOS_REPOSITORY_ENABLED__
 test -d "$target"
 test -d "$media/ArachOS-Repo"
-test -x /usr/bin/dnf
+test -x /usr/bin/dnf5
 
 repo_args=(
-    --repofrompath=arachos-baseos,"$ARACHOS_BASEOS_URL"
-    --repofrompath=arachos-appstream,"$ARACHOS_APPSTREAM_URL"
-    --repofrompath=arachos-crb,"$ARACHOS_CRB_URL"
+    --repofrompath=arachos-core,"$ARACHOS_CORE_URL"
+    --repofrompath=arachos-updates,"$ARACHOS_UPDATES_URL"
     --repofrompath=arachos-custom,file:///run/install/repo/ArachOS-Repo
-    --setopt=arachos-baseos.gpgcheck=0
-    --setopt=arachos-appstream.gpgcheck=0
-    --setopt=arachos-crb.gpgcheck=0
+    --setopt=arachos-core.gpgcheck=0
+    --setopt=arachos-updates.gpgcheck=0
     --setopt=arachos-custom.gpgcheck=0
 )
 
@@ -40,7 +39,9 @@ packages=(
     dbus
     dbus-daemon
     dbus-tools
-    dnf
+    dnf5
+    dnf5-plugins
+    rpm
     dracut
     dracut-config-generic
     dracut-network
@@ -77,10 +78,9 @@ packages=(
     # ARACHOS_KERNEL_MODULE_PACKAGES_END
 )
 
-/usr/bin/dnf -y \
+/usr/bin/dnf5 -y \
     --installroot="$target" \
-    --releasever=10 \
-    --setopt=module_platform_id=platform:el10 \
+    --releasever="$ARACHOS_BOOTSTRAP_RELEASE" \
     --setopt=install_weak_deps=False \
     --setopt=protected_packages= \
     --disablerepo='*' \
@@ -101,7 +101,7 @@ test -f /usr/lib/rustd/system/libinput-rs-elan-resume.service
 test -f /usr/lib64/libnss_rustd_dns.so.2 || test -f /usr/lib/libnss_rustd_dns.so.2
 
 # Move authentication, PAM, and NSS state to the RustD compatibility boundary
-# before the outgoing manager's implementation packages are absent.
+# before the bootstrap manager's implementation packages are absent.
 /usr/sbin/rustd-fedora-cutover
 
 if grep -q '^hosts:' /etc/nsswitch.conf; then
@@ -154,21 +154,15 @@ enabled=$ARACHOS_REPOSITORY_ENABLED
 gpgcheck=0
 repo_gpgcheck=0
 
-[arachos-baseos]
+[arachos-core]
 name=ArachOS bootstrap core
-baseurl=$ARACHOS_BASEOS_URL
+baseurl=$ARACHOS_CORE_URL
 enabled=1
 gpgcheck=0
 
-[arachos-appstream]
-name=ArachOS bootstrap applications
-baseurl=$ARACHOS_APPSTREAM_URL
-enabled=1
-gpgcheck=0
-
-[arachos-crb]
-name=ArachOS bootstrap build content
-baseurl=$ARACHOS_CRB_URL
+[arachos-updates]
+name=ArachOS bootstrap updates
+baseurl=$ARACHOS_UPDATES_URL
 enabled=1
 gpgcheck=0
 REPO
@@ -185,6 +179,13 @@ rpm -qa --qf '%{NAME}\n' | awk '
     $0 == "udev" ||
     $0 == "systemd" ||
     $0 ~ /^systemd-/ { print; found = 1 }
+    END { exit found ? 1 : 0 }
+'
+
+rpm -qa --qf '%{NAME}\n' | awk '
+    $0 == "fedora-release" ||
+    $0 == "fedora-release-common" ||
+    $0 == "fedora-logos" { print; found = 1 }
     END { exit found ? 1 : 0 }
 '
 
