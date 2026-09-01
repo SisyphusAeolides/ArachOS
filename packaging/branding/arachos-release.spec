@@ -7,7 +7,10 @@ URL:            https://github.com/SisyphusAeolides/ArachOS
 Source0:        ArachOS.png
 BuildArch:      noarch
 
-Provides:       system-release = %{version}-%{release}
+# Fedora packages use this capability as a minimum package-ecosystem ABI
+# guard.  Keep the public ArachOS version independent from the selected
+# bootstrap repository while advertising the compatible Fedora package level.
+Provides:       system-release = %{?arachos_bootstrap_release}%{!?arachos_bootstrap_release:45}-%{release}
 Provides:       system-release(releasever) = %{?arachos_releasever}%{!?arachos_releasever:1}
 Provides:       system-logos = %{version}-%{release}
 

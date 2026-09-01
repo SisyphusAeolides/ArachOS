@@ -4,6 +4,7 @@ set -Eeuo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ARACHOS_VERSION=${ARACHOS_VERSION:-1.0}
 ARACHOS_RELEASE=${ARACHOS_RELEASE:-1}
+ARACHOS_BOOTSTRAP_RELEASE=${ARACHOS_BOOTSTRAP_RELEASE:-45}
 KOJI_PROFILE=${KOJI_PROFILE:-arachos}
 KOJI_TARGET=${KOJI_TARGET:-arachos-${ARACHOS_VERSION}-build}
 KOJI_CONFIG=${KOJI_CONFIG:-/etc/koji.conf}
@@ -71,6 +72,7 @@ prepare_branding_srpm() {
         --define 'dist .arachos' \
         --define "arachos_version $ARACHOS_VERSION" \
         --define "arachos_release $ARACHOS_RELEASE" \
+        --define "arachos_bootstrap_release $ARACHOS_BOOTSTRAP_RELEASE" \
         "$branding_top/SPECS/arachos-release.spec" >/dev/null
     find "$branding_top/SRPMS" -maxdepth 1 -type f -name 'arachos-release-*.src.rpm' \
         -print -quit

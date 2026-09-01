@@ -196,6 +196,7 @@ common=(
   --define "arachos_version $ARACHOS_VERSION"
   --define "arachos_release $ARACHOS_RELEASE"
   --define "arachos_releasever $ARACHOS_RELEASEVER"
+  --define "arachos_bootstrap_release $ARACHOS_BOOTSTRAP_RELEASE"
 )
 if [[ -n "$RPMBUILD_DBPATH" ]]; then
   [[ -d "$RPMBUILD_DBPATH" ]] || fail "RPM build database is missing: $RPMBUILD_DBPATH"
