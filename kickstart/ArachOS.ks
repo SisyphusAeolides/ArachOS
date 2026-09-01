@@ -74,6 +74,7 @@ packages=(
     dracut
     dracut-config-generic
     dracut-network
+    lvm2
     firewalld
     grub2-efi-x64
     grub2-efi-x64-cdboot
