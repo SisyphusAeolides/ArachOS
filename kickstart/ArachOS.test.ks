@@ -10,7 +10,13 @@ network --bootproto=dhcp --device=link --activate
 firewall --enabled --service=ssh
 zerombr
 clearpart --all --initlabel
-autopart --type=lvm
+part biosboot --fstype=biosboot --size=1 --ondisk=vda
+part /boot/efi --fstype=efi --size=600 --ondisk=vda
+part /boot --fstype=ext4 --size=1024 --ondisk=vda
+part pv.01 --size=1 --grow --ondisk=vda
+volgroup arachos pv.01
+logvol / --fstype=ext4 --name=root --vgname=arachos --size=8192 --grow
+logvol swap --fstype=swap --name=swap --vgname=arachos --size=2048
 firstboot --disable
 reboot
 

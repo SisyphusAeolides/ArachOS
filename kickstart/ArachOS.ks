@@ -208,32 +208,155 @@ command -v restorecon >/dev/null
 test -s /etc/selinux/targeted/contexts/files/file_contexts
 restorecon -RF /etc /usr /var /boot
 
+# Establish the installed boot contract before generating any BLS entry.
+# Anaconda's bootstrap kernel transaction can run before the ArachOS release
+# package is configured, which otherwise leaves a temporary bootstrap entry
+# token and LVM command line behind.
+kernel_version=$(find /lib/modules -mindepth 1 -maxdepth 1 -type d \
+    -printf '%f\n' | sort -V | tail -n 1)
+test -n "$kernel_version"
+root_source=$(awk '$2 == "/" {print $1; exit}' /etc/fstab)
+test -n "$root_source"
+
+grub_cmdline=
+if test -f /etc/default/grub; then
+    grub_cmdline=$(awk '
+        /^[[:space:]]*GRUB_CMDLINE_LINUX(_DEFAULT)?=/ {
+            value = $0
+            sub(/^[^=]*=/, "", value)
+            gsub(/"/, "", value)
+            gsub(/\047/, "", value)
+            printf "%s%s", separator, value
+            separator = " "
+        }
+    ' /etc/default/grub)
+fi
+
+kernel_cmdline="root=$root_source"
+for option in $grub_cmdline; do
+    case "$option" in
+        root=*|rd.lvm.lv=*|BOOT_IMAGE=*|inst.*|ro|rw)
+            ;;
+        *)
+            kernel_cmdline="$kernel_cmdline $option"
+            ;;
+    esac
+done
+kernel_cmdline="$kernel_cmdline ro"
+
+install -d -m 0755 /etc/kernel
+printf '%s\n' "$kernel_cmdline" > /etc/kernel/cmdline
+chmod 0644 /etc/kernel/cmdline
+
+test -f /etc/default/grub
+grub_config=$(mktemp /etc/default/grub.XXXXXX)
+awk -v cmdline="$kernel_cmdline" '
+    BEGIN { distributor = 0; cmdline_seen = 0 }
+    /^[[:space:]]*GRUB_DISTRIBUTOR=/ {
+        print "GRUB_DISTRIBUTOR=\"ArachOS\""
+        distributor = 1
+        next
+    }
+    /^[[:space:]]*GRUB_CMDLINE_LINUX=/ {
+        print "GRUB_CMDLINE_LINUX=\"" cmdline "\""
+        cmdline_seen = 1
+        next
+    }
+    { print }
+    END {
+        if (!distributor) print "GRUB_DISTRIBUTOR=\"ArachOS\""
+        if (!cmdline_seen) print "GRUB_CMDLINE_LINUX=\"" cmdline "\""
+    }
+' /etc/default/grub > "$grub_config"
+install -m 0644 "$grub_config" /etc/default/grub
+rm -f "$grub_config"
+
+# Remove the temporary default-token artifacts created while Anaconda was
+# installing the bootstrap kernel. The paths are deliberately exact so a
+# separately installed kernel entry cannot be removed here.
+for candidate in /boot/loader/entries/default-*.conf; do
+    test -e "$candidate" || continue
+    rm -f -- "$candidate"
+done
+if test -d /boot/default; then
+    find /boot/default -depth \( -type f -o -type l \) -delete
+    find /boot/default -depth -type d -empty -delete
+fi
+
 # Rebuild the target initramfs against the RustD dracut contract before the
 # first reboot.  This is separate from the Anaconda runtime image.
 dracut --regenerate-all --force
+
+machine_id=$(cat /etc/machine-id)
+test "${#machine_id}" -ge 32
+machine_id=${machine_id:0:32}
 
 # The kernel RPM invokes the standard kernel-install pathname during its
 # transaction. Reconcile the boot artifacts explicitly as well: this keeps
 # the target bootable when a package transaction was interrupted before its
 # post-transaction hook ran and validates the RustD-owned BLS contract before
 # Anaconda reboots the machine.
-kernel_version=$(find /lib/modules -mindepth 1 -maxdepth 1 -type d \
-    -printf '%f\n' | sort -V | tail -n 1)
-test -n "$kernel_version"
 kernel_image=/lib/modules/$kernel_version/vmlinuz
 kernel_initrd=/boot/initramfs-$kernel_version.img
 test -s "$kernel_image"
 test -s "$kernel_initrd"
 
+# Replace any entry created before the target had its final identity, then
+# add the native RustD entry with the normalized command line above.
+/usr/bin/kernel-install --verbose remove "$kernel_version"
+/usr/bin/kernel-install --verbose add "$kernel_version" \
+    "$kernel_image" "$kernel_initrd"
+
+install -d -m 0755 /boot/grub2
+test -x /usr/sbin/grub2-mkconfig
+/usr/sbin/grub2-mkconfig -o /boot/grub2/grub.cfg
+
+# Anaconda may have provisioned an ESP even when firmware boot was not used.
+# Install both the named and removable ArachOS EFI paths without touching
+# firmware variables from the chroot. Remove only the bootstrap vendor tree.
+if awk '$2 == "/boot/efi" {found = 1} END {exit found ? 0 : 1}' /etc/fstab; then
+    test -x /usr/sbin/grub2-install
+    /usr/sbin/grub2-install --target=x86_64-efi \
+        --efi-directory=/boot/efi --bootloader-id=arachos \
+        --no-nvram --recheck
+    /usr/sbin/grub2-install --target=x86_64-efi \
+        --efi-directory=/boot/efi --removable --no-nvram --recheck
+fi
+if test -d /boot/efi/EFI/fedora; then
+    find /boot/efi/EFI/fedora -depth \( -type f -o -type l \) -delete
+    find /boot/efi/EFI/fedora -depth -type d -empty -delete
+fi
+
+if test -d /boot/loader; then
+    if grep -RInE --include='*.conf' -i 'fedora|red[[:space:]]+hat' \
+        /boot/loader; then
+        printf '%s\n' 'ArachOS post: bootstrap release text remains in BLS entries' >&2
+        exit 1
+    fi
+fi
+if test -d /boot/grub2; then
+    if grep -RInE --include='*.cfg' -i 'fedora|red[[:space:]]+hat' \
+        /boot/grub2; then
+        printf '%s\n' 'ArachOS post: bootstrap release text remains in GRUB configuration' >&2
+        exit 1
+    fi
+fi
+if test -d /boot/efi/EFI; then
+    if test -e /boot/efi/EFI/fedora; then
+        printf '%s\n' 'ArachOS post: bootstrap EFI directory remains' >&2
+        exit 1
+    fi
+    if grep -RInE --include='*.cfg' -i 'fedora|red[[:space:]]+hat' \
+        /boot/efi/EFI; then
+        printf '%s\n' 'ArachOS post: bootstrap release text remains in EFI configuration' >&2
+        exit 1
+    fi
+fi
+
 boot_artifacts_valid() {
     local entry linux_path initrd_path
-    entry=
-    for candidate in /boot/loader/entries/*-"$kernel_version".conf; do
-        test -f "$candidate" || continue
-        entry=$candidate
-        break
-    done
-    test -n "$entry" || return 1
+    entry=/boot/loader/entries/"$machine_id-$kernel_version.conf"
+    test -f "$entry" || return 1
     linux_path=$(awk '$1 == "linux" {print $2; exit}' "$entry")
     initrd_path=$(awk '$1 == "initrd" {print $2; exit}' "$entry")
     case "$linux_path:$initrd_path" in
@@ -247,11 +370,13 @@ boot_artifacts_valid() {
     esac
 }
 
-if ! boot_artifacts_valid; then
-    /usr/bin/kernel-install --verbose add "$kernel_version" \
-        "$kernel_image" "$kernel_initrd"
-fi
 boot_artifacts_valid
+
+for candidate in /boot/loader/entries/default-*.conf; do
+    test -e "$candidate" || continue
+    printf 'ArachOS post: unexpected default-token BLS entry: %s\n' "$candidate" >&2
+    exit 1
+done
 
 rpm -qa --qf '%{NAME}\n' | awk '
     $0 == "udev" ||
