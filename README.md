@@ -157,8 +157,11 @@ The target transaction installs the ArachOS release package, RustD, the
 RustD-resolved service and NSS module, RustD-owned compatibility libraries and
 commands, SELinux policy, tuned-rs, libinput-rs, blerust, ccze-rs, iwchaos, and
 Hermes. The iwchaos package registers its target-kernel DKMS source and builds
-the four Intel Wi-Fi modules for each installed kernel when the matching
-kernel-development package and toolchain are available.
+the four Intel Wi-Fi modules for the bootstrap kernel from a source tree pinned
+in `sources.lock`; DKMS then rebuilds the same modules for later installed
+kernels. This keeps the first installed system independent of network access
+to a source host. A later kernel with a different upstream API must provide a
+matching source tree or an explicit `IWCHAOS_LINUX_REF` before it is activated.
 It then rebuilds the target initramfs and checks that:
 
 - `/etc/os-release` reports `ID=arachos`;

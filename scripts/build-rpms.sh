@@ -18,6 +18,7 @@ SOURCE_ROOT=${RUSTD_SOURCE_ROOT:-$ROOT/../rustd}
 RESOLVED_ROOT=${RESOLVED_SOURCE_ROOT:-$ROOT/../rustd-resolved}
 HERMES_ROOT=${HERMES_SOURCE_ROOT:-$ROOT/../Hermes}
 IWCHAOS_ROOT=${IWCHAOS_SOURCE_ROOT:-$ROOT/../iwchaos}
+IWCHAOS_LINUX_REPO=${IWCHAOS_LINUX_REPO:-https://github.com/gregkh/linux.git}
 
 # The shared Rustup installation is read-only for build users. Pinning the
 # already-installed ArachOS nightly through the environment also overrides a
@@ -47,16 +48,34 @@ bootstrap_repo_args=(
   --releasever="$ARACHOS_BOOTSTRAP_RELEASE"
 )
 
+repo_query() {
+  dnf -q --disablerepo='*' "${bootstrap_repo_args[@]}" \
+    repoquery --latest-limit=1 --qf "$1" "$2" | head -n 1
+}
+
 # The compatibility providers must advertise the exact systemd capability of
 # the selected base repository. Querying that repository keeps this build
 # independent of whatever release is installed on the build host.
 if [[ -z "$ARACHOS_SYSTEMD_EVR" ]]; then
-  ARACHOS_SYSTEMD_EVR=$(dnf -q --disablerepo='*' \
-    "${bootstrap_repo_args[@]}" \
-    repoquery --latest-limit=1 --qf '%{evr}' systemd | head -n 1)
+  ARACHOS_SYSTEMD_EVR=$(repo_query '%{evr}' systemd)
 fi
 [[ -n "$ARACHOS_SYSTEMD_EVR" ]] || fail \
   "could not determine systemd EVR from ArachOS bootstrap repositories"
+
+read -r iwchaos_kernel_version iwchaos_kernel_release iwchaos_kernel_arch \
+  <<<"$(repo_query '%{version} %{release} %{arch}' kernel-devel)"
+[[ $iwchaos_kernel_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail \
+  "could not determine the bootstrap kernel-devel version"
+[[ -n $iwchaos_kernel_release && $iwchaos_kernel_arch == x86_64 ]] || fail \
+  "bootstrap kernel-devel must provide an x86_64 release"
+kernel_metadata=$(repo_query '%{version} %{release} %{arch}' kernel)
+[[ $kernel_metadata == "$iwchaos_kernel_version $iwchaos_kernel_release $iwchaos_kernel_arch" ]] \
+  || fail "bootstrap kernel and kernel-devel versions do not match"
+iwchaos_kernel_uname=${iwchaos_kernel_version}-${iwchaos_kernel_release}.${iwchaos_kernel_arch}
+iwchaos_linux_ref=${IWCHAOS_LINUX_REF:-v${iwchaos_kernel_version%.*}}
+iwchaos_linux_commit=$(awk '$1 == "iwchaos-linux" {print $3; exit}' "$ROOT/sources.lock")
+[[ $iwchaos_linux_commit =~ ^[0-9a-f]{40}$ ]] || fail \
+  'iwchaos-linux is missing a pinned commit in sources.lock'
 
 rustd_output=$RPM_OUTPUT/rustd-core
 mkdir -p "$rustd_output"
@@ -98,6 +117,40 @@ make_source_tree() {
     -C "$TOPDIR/work" -czf "$dest" "$name-$version"
 }
 
+make_iwchaos_source() {
+  local name=iwchaos repo=$1 sha=$2 version=$3 dest=$4
+  local work=$TOPDIR/work/$name-$version
+  local linux_work=$TOPDIR/work/iwchaos-linux-$iwchaos_kernel_uname
+  local linux_tree=$linux_work/linux
+  local timestamp actual_commit
+  timestamp=$(git -C "$repo" show -s --format=%ct "$sha")
+  mkdir -p "$work"
+  git -C "$repo" archive "$sha" | tar -xf - -C "$work"
+
+  mkdir -p "$linux_work"
+  git -c advice.detachedHead=false clone --filter=blob:none --no-checkout \
+    --depth 1 --branch "$iwchaos_linux_ref" "$IWCHAOS_LINUX_REPO" "$linux_tree"
+  actual_commit=$(git -C "$linux_tree" rev-parse "${iwchaos_linux_ref}^{commit}")
+  [[ $actual_commit == "$iwchaos_linux_commit" ]] || fail \
+    "iwchaos Linux source ref $iwchaos_linux_ref resolved to $actual_commit, expected $iwchaos_linux_commit"
+  git -C "$linux_tree" sparse-checkout set \
+    drivers/net/wireless/intel/iwlwifi
+  git -C "$linux_tree" checkout --quiet "$iwchaos_linux_commit"
+  [[ -f "$linux_tree/drivers/net/wireless/intel/iwlwifi/iwl-drv.c" ]] || fail \
+    'pinned iwchaos Linux source has no iwlwifi driver tree'
+
+  mkdir -p "$work/vendor"
+  cp -a "$linux_tree/drivers/net/wireless/intel/iwlwifi" \
+    "$work/vendor/iwlwifi-$iwchaos_kernel_uname"
+  printf 'ref=%s\ncommit=%s\nkernel=%s\nbase=%s\n' \
+    "$iwchaos_linux_ref" "$iwchaos_linux_commit" \
+    "$iwchaos_kernel_uname" "$iwchaos_kernel_version" \
+    > "$work/vendor/iwlwifi-$iwchaos_kernel_uname/.iwchaos-source"
+
+  tar --sort=name --mtime="@$timestamp" --owner=0 --group=0 --numeric-owner \
+    -C "$TOPDIR/work" -czf "$dest" "$name-$version"
+}
+
 version_from_cargo() {
   awk '/^\[package\]/{in_package=1; next} in_package && /^version = /{gsub(/[" ]/,"",$3); print $3; exit}' "$1/Cargo.toml"
 }
@@ -129,7 +182,7 @@ make_source hermes "$HERMES_ROOT" "$hermes_sha" "$hermes_version" \
 iwchaos_sha=$(awk -v key="iwchaos" '$1 == key {print $3}' "$ROOT/sources.lock")
 iwchaos_version=$(awk '$1 == "Version:" {print $2; exit}' "$IWCHAOS_ROOT/iwchaos.spec")
 [[ -n "$iwchaos_version" ]] || fail "iwchaos version is missing: $IWCHAOS_ROOT/iwchaos.spec"
-make_source_tree iwchaos "$IWCHAOS_ROOT" "$iwchaos_sha" "$iwchaos_version" \
+make_iwchaos_source "$IWCHAOS_ROOT" "$iwchaos_sha" "$iwchaos_version" \
   "$TOPDIR/SOURCES/iwchaos-$iwchaos_version.tar.gz"
 
 cp "$ROOT"/packaging/rpm/*.spec "$TOPDIR/SPECS/"
@@ -172,6 +225,10 @@ createrepo_c --update "$RPM_OUTPUT"
   if [[ -n "$ARACHOS_SYSTEMD_EVR" ]]; then
   printf 'systemd_reference_evr=%s\n' "$ARACHOS_SYSTEMD_EVR"
   fi
+  printf 'iwchaos-linux-repository=%s\n' "$IWCHAOS_LINUX_REPO"
+  printf 'iwchaos-linux-ref=%s\n' "$iwchaos_linux_ref"
+  printf 'iwchaos-linux-commit=%s\n' "$iwchaos_linux_commit"
+  printf 'iwchaos-kernel-release=%s\n' "$iwchaos_kernel_uname"
   for name in rustd rustd-resolved arach-kernel iwchaos tuned-rs libinput-rs blerust ccze-rs hermes; do
     printf '%s=%s\n' "$name" "$(awk -v key="$name" '$1 == key {print $3}' "$ROOT/sources.lock")"
   done

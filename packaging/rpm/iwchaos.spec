@@ -39,18 +39,18 @@ install -d %{buildroot}/usr/src/%{name}-%{version}
 cp -a . %{buildroot}/usr/src/%{name}-%{version}/
 install -Dm0644 LICENSE %{buildroot}/usr/share/licenses/%{name}/LICENSE
 rm -rf %{buildroot}/usr/src/%{name}-%{version}/.git
-rm -rf %{buildroot}/usr/src/%{name}-%{version}/vendor
 rm -rf %{buildroot}/usr/src/%{name}-%{version}/rust/target
 rm -rf %{buildroot}/usr/src/%{name}-%{version}/rust/.ar-extract
 find %{buildroot}/usr/src/%{name}-%{version} -type f \
   \( -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.d' \) -delete
+test -s %{buildroot}/usr/src/%{name}-%{version}/vendor/iwlwifi-*/iwl-drv.c
 
 %post
 if command -v dkms >/dev/null 2>&1; then
   if [ ! -f "/var/lib/dkms/%{name}/%{version}/source/dkms.conf" ]; then
-    dkms add -m %{name} -v %{version} --rpm_safe_upgrade || :
+    dkms add -m %{name} -v %{version} --rpm_safe_upgrade
   fi
-  dkms autoinstall -m %{name} -v %{version} --force --rpm_safe_upgrade || :
+  dkms autoinstall -m %{name} -v %{version} --force --rpm_safe_upgrade
 fi
 
 %preun

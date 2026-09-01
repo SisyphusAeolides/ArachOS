@@ -15,11 +15,13 @@ mapfile -t rpms < <(find "$repo" -maxdepth 1 -type f -name '*.rpm' \
 for package in rustd rustd-resolved rustd-fedora-compat rustd-compat-libs \
               rustd-cutover-tools rustd-selinux rustd-resolved-nss tuned-rs \
               libinput-rs blerust ccze-rs iwchaos hermes-gpu-stack arachos-release; do
-  printf '%s\n' "${rpms[@]}" | grep -Eq "/${package}-[^/]+\.rpm$" \
+  printf '%s\n' "${rpms[@]}" | grep -E "/${package}-[^/]+\.rpm$" >/dev/null \
     || fail "required package is missing: $package"
 done
 
-iwchaos=$(printf '%s\n' "${rpms[@]}" | grep -E '/iwchaos-[0-9][^/]*\.(x86_64|noarch)\.rpm$' | head -1)
+iwchaos=$(printf '%s\n' "${rpms[@]}" \
+  | grep -E '/iwchaos-[0-9][^/]*\.(x86_64|noarch)\.rpm$' \
+  | sed -n '1p')
 [[ -n $iwchaos ]] || fail 'iwchaos DKMS source RPM is missing'
 mapfile -t iwchaos_files < <(rpm -qpl "$iwchaos") \
   || fail "cannot read file list from $(basename "$iwchaos")"
@@ -27,22 +29,28 @@ for pattern in \
     '^/usr/src/iwchaos-[^/]+/dkms\.conf$' \
     '^/usr/src/iwchaos-[^/]+/Makefile$' \
     '^/usr/src/iwchaos-[^/]+/scripts/prepare-source\.sh$' \
-    '^/usr/src/iwchaos-[^/]+/rust/Cargo\.lock$'; do
-  printf '%s\n' "${iwchaos_files[@]}" | grep -Eq "$pattern" \
+    '^/usr/src/iwchaos-[^/]+/rust/Cargo\.lock$' \
+    '^/usr/src/iwchaos-[^/]+/vendor/iwlwifi-[^/]+/\.iwchaos-source$' \
+    '^/usr/src/iwchaos-[^/]+/vendor/iwlwifi-[^/]+/iwl-drv\.c$'; do
+  printf '%s\n' "${iwchaos_files[@]}" | grep -E "$pattern" >/dev/null \
     || fail "iwchaos RPM does not own a required source path matching $pattern"
 done
-printf '%s\n' "${iwchaos_files[@]}" | grep -Fxq /usr/share/licenses/iwchaos/LICENSE \
+printf '%s\n' "${iwchaos_files[@]}" | grep -Fx /usr/share/licenses/iwchaos/LICENSE >/dev/null \
   || fail 'iwchaos RPM does not own its license'
 
-compat=$(printf '%s\n' "${rpms[@]}" | grep -E '/rustd-fedora-compat-[0-9][^/]*\.(x86_64|noarch)\.rpm$' | head -1)
+compat=$(printf '%s\n' "${rpms[@]}" \
+  | grep -E '/rustd-fedora-compat-[0-9][^/]*\.(x86_64|noarch)\.rpm$' \
+  | sed -n '1p')
 [[ -n $compat ]] || fail 'RustD RPM compatibility provider is missing (rustd-fedora-compat)'
-resolved=$(printf '%s\n' "${rpms[@]}" | grep -E '/rustd-resolved-[0-9][^/]*\.x86_64\.rpm$' | head -1)
+resolved=$(printf '%s\n' "${rpms[@]}" \
+  | grep -E '/rustd-resolved-[0-9][^/]*\.x86_64\.rpm$' \
+  | sed -n '1p')
 [[ -n $resolved ]] || fail 'rustd-resolved binary RPM is missing'
 mapfile -t compat_files < <(rpm -qpl "$compat") \
   || fail "cannot read file list from $(basename "$compat")"
 for path in /usr/sbin/init /usr/bin/systemctl /usr/bin/systemd-tmpfiles \
             /usr/bin/systemd-sysusers /usr/lib/systemd/systemd-udevd; do
-  printf '%s\n' "${compat_files[@]}" | grep -Fxq "$path" \
+  printf '%s\n' "${compat_files[@]}" | grep -Fx "$path" >/dev/null \
     || fail "compatibility RPM does not own $path"
 done
 udevd_mode=$(rpm -qp --qf '[%{filemodes:perms} %{filenames}\n]' "$compat" \
@@ -50,9 +58,11 @@ udevd_mode=$(rpm -qp --qf '[%{filemodes:perms} %{filenames}\n]' "$compat" \
 [[ $udevd_mode == -* ]] || fail 'udev compatibility path must be a regular executable file'
 mapfile -t resolved_files < <(rpm -qpl "$resolved") \
   || fail "cannot read file list from $(basename "$resolved")"
-printf '%s\n' "${resolved_files[@]}" | grep -Fxq /usr/lib/rustd/rustd-resolved \
+printf '%s\n' "${resolved_files[@]}" | grep -Fx /usr/lib/rustd/rustd-resolved >/dev/null \
   || fail 'resolver daemon is not installed at its native path'
-hermes=$(printf '%s\n' "${rpms[@]}" | grep -E '/hermes-gpu-stack-[0-9][^/]*\.(x86_64|noarch)\.rpm$' | head -1)
+hermes=$(printf '%s\n' "${rpms[@]}" \
+  | grep -E '/hermes-gpu-stack-[0-9][^/]*\.(x86_64|noarch)\.rpm$' \
+  | sed -n '1p')
 [[ -n $hermes ]] || fail 'Hermes GPU compatibility RPM is missing'
 mapfile -t hermes_files < <(rpm -qpl "$hermes") \
   || fail "cannot read file list from $(basename "$hermes")"
@@ -63,10 +73,12 @@ for path in /usr/bin/hermes-ctl /usr/bin/nvidia-smi \
             /usr/lib64/libnvidia-ml.so.1 /usr/lib64/libcuda.so.1 \
             /usr/lib64/libcudart.so.12 /usr/lib64/libGLX_nvidia.so.0 \
             /usr/lib64/libEGL_nvidia.so.0; do
-  printf '%s\n' "${hermes_files[@]}" | grep -Fxq "$path" \
+  printf '%s\n' "${hermes_files[@]}" | grep -Fx "$path" >/dev/null \
     || fail "Hermes RPM does not own $path"
 done
-branding=$(printf '%s\n' "${rpms[@]}" | grep -E '/arachos-release-[0-9][^/]*\.noarch\.rpm$' | head -1)
+branding=$(printf '%s\n' "${rpms[@]}" \
+  | grep -E '/arachos-release-[0-9][^/]*\.noarch\.rpm$' \
+  | sed -n '1p')
 [[ -n $branding ]] || fail 'ArachOS branding RPM is missing'
 grep -Eq '^system-release = [^[:space:]]+$' <(rpm -qp --provides "$branding") \
   || fail 'branding RPM does not provide the ArachOS system-release capability'
@@ -77,11 +89,11 @@ mapfile -t branding_files < <(rpm -qpl "$branding") \
 for path in /etc/arachos-release /etc/anaconda/profile.d/z-arachos.conf \
             /etc/issue.d/20-arachos.issue /usr/share/pixmaps/arachos.png \
             /usr/share/backgrounds/arachos/ArachOS.png; do
-  printf '%s\n' "${branding_files[@]}" | grep -Fxq "$path" \
+  printf '%s\n' "${branding_files[@]}" | grep -Fx "$path" >/dev/null \
     || fail "branding RPM does not own $path"
 done
 for archive in "${rpms[@]}"; do
-  rpm -qpl "$archive" | grep -Eq '^/usr/lib/systemd/system/|^/run/systemd/' \
+  rpm -qpl "$archive" | grep -E '^/usr/lib/systemd/system/|^/run/systemd/' >/dev/null \
     && fail "outgoing unit/runtime root found in $(basename "$archive")"
 done
 manifest="$repo/manifest.txt"
