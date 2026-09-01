@@ -319,9 +319,9 @@ if awk '$2 == "/boot/efi" {found = 1} END {exit found ? 0 : 1}' /etc/fstab; then
     test -x /usr/sbin/grub2-install
     /usr/sbin/grub2-install --target=x86_64-efi \
         --efi-directory=/boot/efi --bootloader-id=arachos \
-        --no-nvram --recheck
+        --no-nvram --recheck --force
     /usr/sbin/grub2-install --target=x86_64-efi \
-        --efi-directory=/boot/efi --removable --no-nvram --recheck
+        --efi-directory=/boot/efi --removable --no-nvram --recheck --force
 fi
 if test -d /boot/efi/EFI/fedora; then
     find /boot/efi/EFI/fedora -depth \( -type f -o -type l \) -delete
