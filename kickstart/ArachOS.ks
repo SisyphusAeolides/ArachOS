@@ -215,6 +215,9 @@ restorecon -RF /etc /usr /var /boot
 kernel_version=$(find /lib/modules -mindepth 1 -maxdepth 1 -type d \
     -printf '%f\n' | sort -V | tail -n 1)
 test -n "$kernel_version"
+kernel_image=/lib/modules/$kernel_version/vmlinuz
+kernel_initrd=/boot/initramfs-$kernel_version.img
+test -s "$kernel_image"
 root_source=$(awk '$2 == "/" {print $1; exit}' /etc/fstab)
 test -n "$root_source"
 
@@ -283,9 +286,12 @@ if test -d /boot/default; then
     find /boot/default -depth -type d -empty -delete
 fi
 
-# Rebuild the target initramfs against the RustD dracut contract before the
-# first reboot.  This is separate from the Anaconda runtime image.
-dracut --regenerate-all --force
+# Rebuild the selected target initramfs against the RustD dracut contract
+# before the first reboot.  The explicit output path is important when an ESP
+# is mounted at /boot/efi: dracut's automatic BLS discovery otherwise chooses
+# an ESP path for a kernel that is stored under /lib/modules.
+dracut --force --no-uefi "$kernel_initrd" "$kernel_version"
+test -s "$kernel_initrd"
 
 machine_id=$(cat /etc/machine-id)
 test "${#machine_id}" -ge 32
@@ -296,11 +302,6 @@ machine_id=${machine_id:0:32}
 # the target bootable when a package transaction was interrupted before its
 # post-transaction hook ran and validates the RustD-owned BLS contract before
 # Anaconda reboots the machine.
-kernel_image=/lib/modules/$kernel_version/vmlinuz
-kernel_initrd=/boot/initramfs-$kernel_version.img
-test -s "$kernel_image"
-test -s "$kernel_initrd"
-
 # Replace any entry created before the target had its final identity, then
 # add the native RustD entry with the normalized command line above.
 /usr/bin/kernel-install --verbose --boot-path=/boot remove "$kernel_version"
