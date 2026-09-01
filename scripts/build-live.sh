@@ -238,6 +238,7 @@ iso="$ISO_OUTPUT/ArachOS-${ARACHOS_VERSION}-${ARACHOS_RELEASE}-installer-${ARACH
 mkksiso \
     --ks "$rendered_ks" \
     --add "$custom_repo" \
+    --cmdline 'inst.graphical' \
     --volid "$volid" \
     -R "$source_label" "$volid" \
     -R 'set default="1"' 'set default="0"' \
@@ -277,6 +278,8 @@ for cfg in "$uefi_cfg" "$bios_cfg"; do
         || fail "$(basename "$cfg") has no ArachOS GRUB class"
     grep -Fq 'set default="0"' "$cfg" \
         || fail "$(basename "$cfg") does not default to Install ArachOS"
+    grep -Fq 'inst.graphical' "$cfg" \
+        || fail "$(basename "$cfg") does not force graphical Anaconda"
     ! grep -Fq -- '--class fedora' "$cfg" \
         || fail "$(basename "$cfg") retains the generic GRUB class"
     ! grep -Fq 'Fedora' "$cfg" \
