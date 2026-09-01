@@ -1,10 +1,10 @@
 schema=arachos-sources-v1
-rustd https://github.com/SisyphusAeolides/rustd.git eff2f23eabfbf6fc54283ebc1956e09a48c1888e
+rustd https://github.com/SisyphusAeolides/rustd.git 3666392e4f102673f6b39d65b8e7a16fd3ddff8e
 rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 74694fea704b362c701dba01e37d897df093241e
 arach-kernel https://github.com/SisyphusAeolides/Arach-Kernel.git e1d75eadaa51e5017b3ab88ae974d1dd9a25aed6
 iwchaos https://github.com/SisyphusAeolides/iwchaos.git 6617379c6754d4340cbb481127e6ed07017d5acc
-tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git 4190d8154b9a1b7a02775fb8c84b129234f66b01
+tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git a2e20ef5ecfbd5b443f5963687391666d63af152
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 878838aad6e5df64968d77a3cb9bac331b0b38cf
-blerust https://github.com/SisyphusAeolides/blerust.git 0d28fd0af5d019d2cb83b158d4fdc4ce0adaaf55
+blerust https://github.com/SisyphusAeolides/blerust.git ff984f54b349c50742960eb12f0f9656a522482f
 ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 51cb08d20e33fb8cb45762db293a9405f9c62cbf
 hermes https://github.com/SisyphusAeolides/Hermes.git df6dc7e69e07656ffffbc8092a8d94af4a5d5c4c
