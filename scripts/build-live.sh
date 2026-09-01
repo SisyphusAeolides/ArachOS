@@ -240,6 +240,7 @@ mkksiso \
     --add "$custom_repo" \
     --volid "$volid" \
     -R "$source_label" "$volid" \
+    -R 'set default="1"' 'set default="0"' \
     -R "Install Fedora $ARACHOS_BOOTSTRAP_RELEASE" "Install ArachOS $ARACHOS_VERSION" \
     -R "Test this media & install Fedora $ARACHOS_BOOTSTRAP_RELEASE" \
        "Test this media & install ArachOS $ARACHOS_VERSION" \
@@ -274,6 +275,8 @@ for cfg in "$uefi_cfg" "$bios_cfg"; do
         || fail "$(basename "$cfg") has no ArachOS installer entry"
     grep -Fq -- '--class arachos' "$cfg" \
         || fail "$(basename "$cfg") has no ArachOS GRUB class"
+    grep -Fq 'set default="0"' "$cfg" \
+        || fail "$(basename "$cfg") does not default to Install ArachOS"
     ! grep -Fq -- '--class fedora' "$cfg" \
         || fail "$(basename "$cfg") retains the generic GRUB class"
     ! grep -Fq 'Fedora' "$cfg" \
