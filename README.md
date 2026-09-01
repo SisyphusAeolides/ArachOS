@@ -162,7 +162,11 @@ in `sources.lock`; DKMS then rebuilds the same modules for later installed
 kernels. This keeps the first installed system independent of network access
 to a source host. A later kernel with a different upstream API must provide a
 matching source tree or an explicit `IWCHAOS_LINUX_REF` before it is activated.
-It then rebuilds the target initramfs and checks that:
+RustD also owns the native `kernel-install` compatibility path: each target
+kernel receives a BLS entry containing a copied kernel and initramfs, with the
+installed root UUID and configured console/LVM options. The post-install audit
+reconciles and validates those boot artifacts before reboot. It then rebuilds
+the target initramfs and checks that:
 
 - `/etc/os-release` reports `ID=arachos`;
 - `/usr/sbin/init` and `/proc/1/exe` resolve to RustD;

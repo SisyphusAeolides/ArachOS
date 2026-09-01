@@ -38,6 +38,16 @@ done
 printf '%s\n' "${iwchaos_files[@]}" | grep -Fx /usr/share/licenses/iwchaos/LICENSE >/dev/null \
   || fail 'iwchaos RPM does not own its license'
 
+rustd=$(printf '%s\n' "${rpms[@]}" \
+  | grep -E '/rustd-[0-9][^/]*\.x86_64\.rpm$' \
+  | grep -Ev '/rustd-(resolved|selinux|compat|fedora|cutover|devel)-' \
+  | sed -n '1p')
+[[ -n $rustd ]] || fail 'RustD native RPM is missing'
+mapfile -t rustd_files < <(rpm -qpl "$rustd") \
+  || fail "cannot read file list from $(basename "$rustd")"
+printf '%s\n' "${rustd_files[@]}" | grep -Fx /usr/bin/rustkernel-install >/dev/null \
+  || fail 'RustD native kernel installer is missing'
+
 compat=$(printf '%s\n' "${rpms[@]}" \
   | grep -E '/rustd-fedora-compat-[0-9][^/]*\.(x86_64|noarch)\.rpm$' \
   | sed -n '1p')

@@ -212,6 +212,47 @@ restorecon -RF /etc /usr /var /boot
 # first reboot.  This is separate from the Anaconda runtime image.
 dracut --regenerate-all --force
 
+# The kernel RPM invokes the standard kernel-install pathname during its
+# transaction. Reconcile the boot artifacts explicitly as well: this keeps
+# the target bootable when a package transaction was interrupted before its
+# post-transaction hook ran and validates the RustD-owned BLS contract before
+# Anaconda reboots the machine.
+kernel_version=$(find /lib/modules -mindepth 1 -maxdepth 1 -type d \
+    -printf '%f\n' | sort -V | tail -n 1)
+test -n "$kernel_version"
+kernel_image=/lib/modules/$kernel_version/vmlinuz
+kernel_initrd=/boot/initramfs-$kernel_version.img
+test -s "$kernel_image"
+test -s "$kernel_initrd"
+
+boot_artifacts_valid() {
+    local entry linux_path initrd_path
+    entry=
+    for candidate in /boot/loader/entries/*-"$kernel_version".conf; do
+        test -f "$candidate" || continue
+        entry=$candidate
+        break
+    done
+    test -n "$entry" || return 1
+    linux_path=$(awk '$1 == "linux" {print $2; exit}' "$entry")
+    initrd_path=$(awk '$1 == "initrd" {print $2; exit}' "$entry")
+    case "$linux_path:$initrd_path" in
+        /*:/*)
+            case "$linux_path:$initrd_path" in
+                *..*) return 1 ;;
+            esac
+            test -s "/boot${linux_path}" && test -s "/boot${initrd_path}"
+            ;;
+        *) return 1 ;;
+    esac
+}
+
+if ! boot_artifacts_valid; then
+    /usr/bin/kernel-install --verbose add "$kernel_version" \
+        "$kernel_image" "$kernel_initrd"
+fi
+boot_artifacts_valid
+
 rpm -qa --qf '%{NAME}\n' | awk '
     $0 == "udev" ||
     $0 == "systemd" ||
