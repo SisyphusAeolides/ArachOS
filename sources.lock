@@ -1,5 +1,5 @@
 schema=arachos-sources-v1
-rustd https://github.com/SisyphusAeolides/rustd.git 3666392e4f102673f6b39d65b8e7a16fd3ddff8e
+rustd https://github.com/SisyphusAeolides/rustd.git b7a366bc181a17bcde210a431fb4ac099f561066
 rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 74694fea704b362c701dba01e37d897df093241e
 arach-kernel https://github.com/SisyphusAeolides/Arach-Kernel.git 7509a92994d9f51c1270fe844282b110d1086256
 iwchaos https://github.com/SisyphusAeolides/iwchaos.git 6617379c6754d4340cbb481127e6ed07017d5acc
