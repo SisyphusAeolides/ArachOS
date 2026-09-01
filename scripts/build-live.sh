@@ -80,7 +80,7 @@ find_binary_rpm() {
 
 for package in rustd rustd-resolved rustd-fedora-compat rustd-compat-libs \
               rustd-cutover-tools rustd-selinux rustd-resolved-nss tuned-rs \
-              libinput-rs blerust ccze-rs hermes-gpu-stack arachos-release; do
+              libinput-rs blerust ccze-rs iwchaos hermes-gpu-stack arachos-release; do
     package_rpm=$(find_binary_rpm "$package-[0-9]*.rpm")
     [[ -n $package_rpm ]] || fail "custom repository is missing $package"
 done

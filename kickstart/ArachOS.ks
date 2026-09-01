@@ -97,6 +97,7 @@ packages=(
     libinput-rs
     blerust
     ccze-rs
+    iwchaos
     hermes-gpu-stack
     # ARACHOS_KERNEL_PACKAGE_BEGIN
     kernel

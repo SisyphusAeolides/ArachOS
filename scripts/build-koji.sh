@@ -85,7 +85,7 @@ if [[ $KOJI_BUILD_RPMS == 1 ]]; then
         case $name in
             kernel|kernel-clk6.18|kernel-clk6.12|rustd|rustd-selinux|\
             rustd-fedora-compat|rustd-compat-libs|rustd-resolved|tuned-rs|\
-            libinput-rs|blerust|ccze-rs|hermes-gpu-stack|arachos-release)
+            libinput-rs|blerust|ccze-rs|iwchaos|hermes-gpu-stack|arachos-release)
                 [[ -z ${source_rpms[$name]+x} ]] || fail "duplicate SRPM for $name"
                 source_rpms[$name]=$srpm
                 ;;
@@ -119,6 +119,7 @@ if [[ $KOJI_BUILD_RPMS == 1 ]]; then
         libinput-rs
         blerust
         ccze-rs
+        iwchaos
         hermes-gpu-stack
     )
     for name in "${build_order[@]}"; do
@@ -147,6 +148,7 @@ koji_build_packages=(
     libinput-rs
     blerust
     ccze-rs
+    iwchaos
     hermes-gpu-stack
 )
 for name in "${koji_build_packages[@]}"; do

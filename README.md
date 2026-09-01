@@ -37,7 +37,7 @@ validation.
 | libinput-rs | `../libinput-rs` | libinput ABI, tools, udev helpers, and input quirks |
 | blerust | `../blerust` | Rust line editor |
 | ccze-rs | `../ccze-rs` | Streaming log colorizer and bounded analytics |
-| iwchaos | `../iwchaos` | Chaos-math validation and wireless integration inputs |
+| iwchaos | `../iwchaos` | Chaos-math validation and target-kernel Intel Wi-Fi DKMS modules |
 | Hermes | `../Hermes` | Multi-vendor GPU/GSP, CUDA/NVML/Mesa surfaces and kernel-module shims |
 
 Every component revision is recorded in [`sources.lock`](sources.lock), and
@@ -83,7 +83,8 @@ make validate-rpms
 ```
 
 `build-rpms` creates a repository containing the RustD stack, ArachOS release
-identity, Hermes, and all pinned companion packages. It also writes a manifest
+identity, Hermes, the iwchaos target-kernel DKMS source package, and all pinned
+companion packages. It also writes a manifest
 with source revisions, the exact bootstrap systemd capability used for RPM
 dependency compatibility, and SHA-256 digests. Sign the repository and enable
 GPG verification before publishing a production mirror; local preflight builds
@@ -154,7 +155,10 @@ separate runtime gates until their BIOS and UEFI tests pass.
 
 The target transaction installs the ArachOS release package, RustD, the
 RustD-resolved service and NSS module, RustD-owned compatibility libraries and
-commands, SELinux policy, tuned-rs, libinput-rs, blerust, ccze-rs, and Hermes.
+commands, SELinux policy, tuned-rs, libinput-rs, blerust, ccze-rs, iwchaos, and
+Hermes. The iwchaos package registers its target-kernel DKMS source and builds
+the four Intel Wi-Fi modules for each installed kernel when the matching
+kernel-development package and toolchain are available.
 It then rebuilds the target initramfs and checks that:
 
 - `/etc/os-release` reports `ID=arachos`;

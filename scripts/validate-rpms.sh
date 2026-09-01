@@ -14,10 +14,25 @@ mapfile -t rpms < <(find "$repo" -maxdepth 1 -type f -name '*.rpm' \
 # bootstrap repositories; this repository supplies the ArachOS integration.
 for package in rustd rustd-resolved rustd-fedora-compat rustd-compat-libs \
               rustd-cutover-tools rustd-selinux rustd-resolved-nss tuned-rs \
-              libinput-rs blerust ccze-rs hermes-gpu-stack arachos-release; do
+              libinput-rs blerust ccze-rs iwchaos hermes-gpu-stack arachos-release; do
   printf '%s\n' "${rpms[@]}" | grep -Eq "/${package}-[^/]+\.rpm$" \
     || fail "required package is missing: $package"
 done
+
+iwchaos=$(printf '%s\n' "${rpms[@]}" | grep -E '/iwchaos-[0-9][^/]*\.(x86_64|noarch)\.rpm$' | head -1)
+[[ -n $iwchaos ]] || fail 'iwchaos DKMS source RPM is missing'
+mapfile -t iwchaos_files < <(rpm -qpl "$iwchaos") \
+  || fail "cannot read file list from $(basename "$iwchaos")"
+for pattern in \
+    '^/usr/src/iwchaos-[^/]+/dkms\.conf$' \
+    '^/usr/src/iwchaos-[^/]+/Makefile$' \
+    '^/usr/src/iwchaos-[^/]+/scripts/prepare-source\.sh$' \
+    '^/usr/src/iwchaos-[^/]+/rust/Cargo\.lock$'; do
+  printf '%s\n' "${iwchaos_files[@]}" | grep -Eq "$pattern" \
+    || fail "iwchaos RPM does not own a required source path matching $pattern"
+done
+printf '%s\n' "${iwchaos_files[@]}" | grep -Fxq /usr/share/licenses/iwchaos/LICENSE \
+  || fail 'iwchaos RPM does not own its license'
 
 compat=$(printf '%s\n' "${rpms[@]}" | grep -E '/rustd-fedora-compat-[0-9][^/]*\.(x86_64|noarch)\.rpm$' | head -1)
 [[ -n $compat ]] || fail 'RustD RPM compatibility provider is missing (rustd-fedora-compat)'

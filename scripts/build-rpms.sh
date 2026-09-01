@@ -17,6 +17,7 @@ RPMBUILD_TMPDIR=${RPMBUILD_TMPDIR:-}
 SOURCE_ROOT=${RUSTD_SOURCE_ROOT:-$ROOT/../rustd}
 RESOLVED_ROOT=${RESOLVED_SOURCE_ROOT:-$ROOT/../rustd-resolved}
 HERMES_ROOT=${HERMES_SOURCE_ROOT:-$ROOT/../Hermes}
+IWCHAOS_ROOT=${IWCHAOS_SOURCE_ROOT:-$ROOT/../iwchaos}
 
 # The shared Rustup installation is read-only for build users. Pinning the
 # already-installed ArachOS nightly through the environment also overrides a
@@ -28,7 +29,7 @@ fi
 
 fail() { printf 'RPM build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
-for command in git cargo rpmbuild rpm tar gzip sha256sum python3 dnf; do need "$command"; done
+for command in git cargo rpmbuild rpm tar gzip sha256sum python3 dnf createrepo_c; do need "$command"; done
 
 bash "$ROOT/scripts/verify-sources.sh"
 rm -rf "$RPM_OUTPUT" "$TOPDIR"
@@ -86,6 +87,17 @@ make_source() {
     -C "$TOPDIR/work" -czf "$dest" "$name-$version"
 }
 
+make_source_tree() {
+  local name=$1 repo=$2 sha=$3 version=$4 dest=$5
+  local work=$TOPDIR/work/$name-$version
+  local timestamp
+  timestamp=$(git -C "$repo" show -s --format=%ct "$sha")
+  mkdir -p "$work"
+  git -C "$repo" archive "$sha" | tar -xf - -C "$work"
+  tar --sort=name --mtime="@$timestamp" --owner=0 --group=0 --numeric-owner \
+    -C "$TOPDIR/work" -czf "$dest" "$name-$version"
+}
+
 version_from_cargo() {
   awk '/^\[package\]/{in_package=1; next} in_package && /^version = /{gsub(/[" ]/,"",$3); print $3; exit}' "$1/Cargo.toml"
 }
@@ -114,6 +126,12 @@ hermes_version=$(awk '
 make_source hermes "$HERMES_ROOT" "$hermes_sha" "$hermes_version" \
   "$TOPDIR/SOURCES/hermes-$hermes_version.tar.gz"
 
+iwchaos_sha=$(awk -v key="iwchaos" '$1 == key {print $3}' "$ROOT/sources.lock")
+iwchaos_version=$(awk '$1 == "Version:" {print $2; exit}' "$IWCHAOS_ROOT/iwchaos.spec")
+[[ -n "$iwchaos_version" ]] || fail "iwchaos version is missing: $IWCHAOS_ROOT/iwchaos.spec"
+make_source_tree iwchaos "$IWCHAOS_ROOT" "$iwchaos_sha" "$iwchaos_version" \
+  "$TOPDIR/SOURCES/iwchaos-$iwchaos_version.tar.gz"
+
 cp "$ROOT"/packaging/rpm/*.spec "$TOPDIR/SPECS/"
 cp "$ROOT"/packaging/branding/*.spec "$TOPDIR/SPECS/"
 cp "$ROOT/docs/ArachOS.png" "$TOPDIR/SOURCES/ArachOS.png"
@@ -139,9 +157,12 @@ rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/libinput-rs.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/blerust.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/ccze-rs.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/hermes-gpu-stack.spec"
+rpmbuild -ba "${common[@]}" \
+  --define "iwchaos_version $iwchaos_version" "$TOPDIR/SPECS/iwchaos.spec"
 rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/arachos-release.spec"
 find "$TOPDIR/RPMS" -type f -name '*.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 find "$TOPDIR/SRPMS" -type f -name '*.src.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
+createrepo_c --update "$RPM_OUTPUT"
 
 {
   printf 'schema=arachos-rpm-set-v1\n'
