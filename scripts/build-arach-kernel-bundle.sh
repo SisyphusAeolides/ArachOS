@@ -25,6 +25,7 @@ for command in git cargo readelf sha256sum rpm rpm2cpio cpio install; do need "$
 [[ -d $kernel_root/.git ]] || fail "Arach-Kernel checkout is missing: $kernel_root"
 [[ -d $rustd_root/.git ]] || fail "RustD checkout is missing: $rustd_root"
 [[ -d $rpm_repo ]] || fail "RPM repository is missing: $rpm_repo; run make build-rpms first"
+rpm_repo=$(cd "$rpm_repo" && pwd)
 
 RUSTD_SOURCE_ROOT="$rustd_root" \
 RESOLVED_SOURCE_ROOT="${RESOLVED_SOURCE_ROOT:-$root/../rustd-resolved}" \
@@ -48,7 +49,10 @@ fi
 
 kernel_target=$kernel_root/x86_64-arach.json
 [[ -f $kernel_target ]] || fail "kernel target specification is missing: $kernel_target"
-mkdir -p "$build_root" "$bundle_root"
+mkdir -p "$build_root" "$bundle_root" "$rustd_static_root"
+build_root=$(cd "$build_root" && pwd)
+bundle_root=$(cd "$bundle_root" && pwd)
+rustd_static_root=$(cd "$rustd_static_root" && pwd)
 
 extract_rpm_file() {
     local package=$1 path=$2 destination=$3
