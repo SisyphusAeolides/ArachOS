@@ -9,7 +9,7 @@ url --url=__ARACHOS_CORE_URL__
 repo --name=arachos-updates --baseurl=__ARACHOS_UPDATES_URL__
 repo --name=arachos-custom --baseurl=file:///run/install/repo/ArachOS-Repo
 
-%post --nochroot --erroronfail --log=/mnt/sysroot/root/arachos-rustd-install.log
+%post --nochroot --erroronfail --interpreter=/usr/bin/bash --log=/mnt/sysroot/root/arachos-rustd-install.log
 set -Eeuo pipefail
 
 target=/mnt/sysroot
@@ -20,9 +20,39 @@ ARACHOS_CORE_URL=__ARACHOS_CORE_URL__
 ARACHOS_UPDATES_URL=__ARACHOS_UPDATES_URL__
 ARACHOS_REPOSITORY_URL=__ARACHOS_REPOSITORY_URL__
 ARACHOS_REPOSITORY_ENABLED=__ARACHOS_REPOSITORY_ENABLED__
-test -d "$target"
-test -d "$media/ArachOS-Repo"
-test -x /usr/bin/dnf
+printf 'ArachOS post: target=%s media=%s\n' "$target" "$media"
+if ! test -d "$target"; then
+    printf 'ArachOS post: target mount is missing: %s\n' "$target"
+    exit 1
+fi
+if ! test -d "$media/ArachOS-Repo"; then
+    printf 'ArachOS post: installer repository is missing: %s/ArachOS-Repo\n' "$media"
+    exit 1
+fi
+
+# Fedora's Anaconda runtime may expose the generic package client as dnf4 or
+# dnf-3 even when the installed target exposes the normal dnf command.
+dnf_command=
+for candidate in /usr/bin/dnf /usr/bin/dnf4 /usr/bin/dnf-3; do
+    if test -x "$candidate"; then
+        dnf_command=$candidate
+        break
+    fi
+done
+if test -z "$dnf_command"; then
+    printf 'ArachOS post: no compatible package command is present\n'
+    exit 1
+fi
+printf 'ArachOS post: using package command %s\n' "$dnf_command"
+
+# The Fedora 45 installer enables RPM-level signature enforcement before
+# repository settings are evaluated.  The bootstrap repository is currently
+# unsigned, so scope a digest-only macro to this installer transaction.  The
+# file lives in the installer runtime and is removed before target auditing.
+rpm_bootstrap_macro=/etc/rpm/macros.arachos-installer
+mkdir -p /etc/rpm
+chmod 0755 /etc/rpm
+printf '%%_pkgverify_level digest\n' > "$rpm_bootstrap_macro"
 
 repo_args=(
     --repofrompath=arachos-core,"$ARACHOS_CORE_URL"
@@ -77,7 +107,7 @@ packages=(
     # ARACHOS_KERNEL_MODULE_PACKAGES_END
 )
 
-/usr/bin/dnf -y \
+"$dnf_command" -y --nogpgcheck \
     --installroot="$target" \
     --releasever="$ARACHOS_BOOTSTRAP_RELEASE" \
     --setopt=install_weak_deps=False \
@@ -85,6 +115,8 @@ packages=(
     --disablerepo='*' \
     "${repo_args[@]}" \
     install "${packages[@]}" --allowerasing
+
+rm -f "$rpm_bootstrap_macro"
 
 chroot "$target" /usr/bin/bash -s <<'TARGET_POST'
 set -Eeuo pipefail

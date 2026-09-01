@@ -11,6 +11,21 @@ Provides:       system-release = %{version}-%{release}
 Provides:       system-release(releasever) = %{?arachos_releasever}%{!?arachos_releasever:1}
 Provides:       system-logos = %{version}-%{release}
 
+# Replace the bootstrap release packages as one transaction.  Keeping these
+# packages installed would leave the target with conflicting identity files
+# and Fedora release metadata after the ArachOS package is installed.
+Obsoletes:      fedora-release
+Obsoletes:      fedora-release-common
+Obsoletes:      fedora-release-identity-basic
+Obsoletes:      fedora-release-identity-cloud
+Obsoletes:      fedora-release-identity-container
+Obsoletes:      fedora-release-identity-coreos
+Obsoletes:      fedora-release-identity-iot
+Obsoletes:      fedora-release-identity-kde
+Obsoletes:      fedora-release-identity-server
+Obsoletes:      fedora-release-identity-silverblue
+Obsoletes:      fedora-release-identity-workstation
+
 %description
 ArachOS release metadata, graphical installer profile, and product artwork.
 The package owns the operating-system identity and provides the generic RPM
