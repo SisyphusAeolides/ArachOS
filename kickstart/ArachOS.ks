@@ -22,7 +22,7 @@ ARACHOS_REPOSITORY_URL=__ARACHOS_REPOSITORY_URL__
 ARACHOS_REPOSITORY_ENABLED=__ARACHOS_REPOSITORY_ENABLED__
 test -d "$target"
 test -d "$media/ArachOS-Repo"
-test -x /usr/bin/dnf5
+test -x /usr/bin/dnf
 
 repo_args=(
     --repofrompath=arachos-core,"$ARACHOS_CORE_URL"
@@ -39,8 +39,7 @@ packages=(
     dbus
     dbus-daemon
     dbus-tools
-    dnf5
-    dnf5-plugins
+    dnf
     rpm
     dracut
     dracut-config-generic
@@ -78,7 +77,7 @@ packages=(
     # ARACHOS_KERNEL_MODULE_PACKAGES_END
 )
 
-/usr/bin/dnf5 -y \
+/usr/bin/dnf -y \
     --installroot="$target" \
     --releasever="$ARACHOS_BOOTSTRAP_RELEASE" \
     --setopt=install_weak_deps=False \
