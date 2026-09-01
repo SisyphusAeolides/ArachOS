@@ -303,8 +303,8 @@ test -s "$kernel_initrd"
 
 # Replace any entry created before the target had its final identity, then
 # add the native RustD entry with the normalized command line above.
-/usr/bin/kernel-install --verbose remove "$kernel_version"
-/usr/bin/kernel-install --verbose add "$kernel_version" \
+/usr/bin/kernel-install --verbose --boot-path=/boot remove "$kernel_version"
+/usr/bin/kernel-install --verbose --boot-path=/boot add "$kernel_version" \
     "$kernel_image" "$kernel_initrd"
 
 install -d -m 0755 /boot/grub2
