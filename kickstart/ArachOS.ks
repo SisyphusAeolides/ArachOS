@@ -118,7 +118,12 @@ packages=(
 
 rm -f "$rpm_bootstrap_macro"
 
-chroot "$target" /usr/bin/bash -s <<'TARGET_POST'
+chroot "$target" /usr/bin/env \
+    ARACHOS_REPOSITORY_URL="$ARACHOS_REPOSITORY_URL" \
+    ARACHOS_REPOSITORY_ENABLED="$ARACHOS_REPOSITORY_ENABLED" \
+    ARACHOS_CORE_URL="$ARACHOS_CORE_URL" \
+    ARACHOS_UPDATES_URL="$ARACHOS_UPDATES_URL" \
+    /usr/bin/bash -s <<'TARGET_POST'
 set -Eeuo pipefail
 
 test -x /usr/lib/rustd/rustd
