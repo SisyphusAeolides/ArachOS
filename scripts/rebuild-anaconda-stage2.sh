@@ -128,6 +128,29 @@ if [[ -d $stage2_root/usr/share/fedora-logos ]]; then
     find "$stage2_root/usr/share/fedora-logos" -depth -delete
 fi
 
+# Remove bootstrap repository and desktop-integration defaults as well. These
+# are not required by Anaconda's module ABI and would otherwise make the
+# installer advertise or contact Fedora before the ArachOS kickstart selects
+# its configured package sources. Keep the upstream Anaconda D-Bus names and
+# the RPM-GPG keys: those are implementation and verification inputs, not
+# displayed product identity.
+for path in \
+    "$stage2_root/usr/share/dnf5/libdnf.conf.d/20-fedora-defaults.conf" \
+    "$stage2_root/usr/lib/systemd/system/flatpak-add-fedora-repos.service" \
+    "$stage2_root/usr/share/libreport/workflows/workflow_AnacondaFedora.xml" \
+    "$stage2_root/usr/lib/bootc/fedora-bootc-destructive-cleanup"; do
+    if [[ -e $path || -L $path ]]; then
+        unlink "$path"
+    fi
+done
+find "$stage2_root/etc/yum.repos.d" "$stage2_root/usr/share/dnf5/repos.d" \
+    -type f -iname '*fedora*' -delete 2>/dev/null || true
+find "$stage2_root/etc/fonts/conf.d" "$stage2_root/usr/share/crypto-policies/policies" \
+    -type f -iname '*fedora*' -delete 2>/dev/null || true
+find "$stage2_root/usr/lib/swidtag" "$stage2_root/usr/lib/systemd/oci-registry" \
+    "$stage2_root/usr/share/metainfo" -depth -iname '*fedora*' \
+    -delete 2>/dev/null || true
+
 # Preserve the bootstrap license/source-availability notice, but do not leave
 # a distribution-branded filename in the ArachOS stage2.  Its text remains
 # unchanged and explicitly identifies the third-party bootstrap material.
@@ -221,6 +244,16 @@ grep -Fxq 'flatpak_remote =' "$verify_root/etc/anaconda/conf.d/10-arachos.conf" 
 ! find "$verify_root/usr/share/licenses" -iname '*fedora*' -print -quit \
     | grep -q . \
     || fail 'rebuilt stage2 retains a Fedora-branded license filename'
+! find "$verify_root/etc/yum.repos.d" "$verify_root/usr/share/dnf5/repos.d" \
+    -type f -iname '*fedora*' -print -quit 2>/dev/null \
+    | grep -q . \
+    || fail 'rebuilt stage2 retains a Fedora repository definition'
+! find "$verify_root/usr/share/metainfo" "$verify_root/usr/lib/swidtag" \
+    -iname '*fedora*' -print -quit 2>/dev/null \
+    | grep -q . \
+    || fail 'rebuilt stage2 retains Fedora identity metadata'
+! [[ -e $verify_root/usr/share/libreport/workflows/workflow_AnacondaFedora.xml ]] \
+    || fail 'rebuilt stage2 retains the Fedora Anaconda report workflow'
 grep -Fxq 'product=ArachOS' "$verify_root/usr/share/arachos/installer-stage2" \
     || fail 'rebuilt stage2 has no ArachOS ownership marker'
 

@@ -581,6 +581,16 @@ grep -Fxq 'flatpak_remote =' "$final_stage2_root/etc/anaconda/conf.d/10-arachos.
 ! find "$final_stage2_root/usr/share/licenses" -iname '*fedora*' -print -quit \
     | grep -q . \
     || fail 'ISO Anaconda stage2 retains a Fedora-branded license filename'
+! find "$final_stage2_root/etc/yum.repos.d" "$final_stage2_root/usr/share/dnf5/repos.d" \
+    -type f -iname '*fedora*' -print -quit 2>/dev/null \
+    | grep -q . \
+    || fail 'ISO Anaconda stage2 retains a Fedora repository definition'
+! find "$final_stage2_root/usr/share/metainfo" "$final_stage2_root/usr/lib/swidtag" \
+    -iname '*fedora*' -print -quit 2>/dev/null \
+    | grep -q . \
+    || fail 'ISO Anaconda stage2 retains Fedora identity metadata'
+! [[ -e $final_stage2_root/usr/share/libreport/workflows/workflow_AnacondaFedora.xml ]] \
+    || fail 'ISO Anaconda stage2 retains the Fedora Anaconda report workflow'
 for path in /.discinfo /images/install.img /images/pxeboot/vmlinuz \
             /images/pxeboot/initrd.img /EFI/BOOT/grub.cfg \
             /EFI/BOOT/BOOT.conf /boot/grub2/grub.cfg; do

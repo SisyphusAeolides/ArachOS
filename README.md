@@ -102,7 +102,9 @@ stage2 with the ArachOS release payload, replaces the stage2 `os-release` and
 profile set, and injects an ArachOS `product.img` (buildstamp, profile,
 stylesheet, splash, header, task-bar icon, and logo artwork). The stage2 patch
 also makes the Anaconda window title, icon, release metadata, and fallback
-logo assets ArachOS-owned. It requires a separately qualified
+logo assets ArachOS-owned, and removes bootstrap repository, Flatpak, SWID, and
+report-workflow identity files that could leak the source distribution. It
+requires a separately qualified
 Arach-Kernel Linux boot image and a RustD-owned initramfs; a stock Fedora
 kernel or systemd initramfs is rejected before `mkksiso` runs. Every BIOS/UEFI
 boot label passes `inst.profile=arachos` to Anaconda. The result is ArachOS
