@@ -8,9 +8,35 @@ topdir=${ARACH_KERNEL_RPM_TOPDIR:-$root/build/rpmbuild-arach-kernel}
 version=${ARACHOS_VERSION:-1.0}
 release=${ARACHOS_RELEASE:-1}
 dist=${ARACHOS_RPM_DIST:-.arachos}
+keep_build_work=${ARACHOS_KEEP_BUILD_WORK:-0}
+build_started=0
 
 fail() { printf 'Arach Kernel RPM: %s\n' "$*" >&2; exit 1; }
-for command in rpmbuild rpm sha256sum install; do
+
+remove_tree() {
+    local path=$1
+    [[ -e $path ]] || return 0
+    if find "$path" -depth -delete 2>/dev/null; then
+        return 0
+    fi
+    if sudo -n true >/dev/null 2>&1; then
+        sudo -n find "$path" -depth -delete 2>/dev/null || :
+    else
+        printf 'warning: cannot clean Arach Kernel RPM tree without privilege: %s\n' "$path" >&2
+    fi
+}
+
+cleanup_rpm_build() {
+    local status=$?
+    if [[ $build_started == 1 && $keep_build_work != 1 ]]; then
+        remove_tree "$topdir"
+    fi
+    trap - EXIT
+    exit "$status"
+}
+trap cleanup_rpm_build EXIT
+
+for command in rpmbuild rpm sha256sum install find; do
     command -v "$command" >/dev/null 2>&1 || fail "missing command: $command"
 done
 [[ -d $bundle_root ]] || fail "bundle directory is missing: $bundle_root"
@@ -19,7 +45,8 @@ for file in arach rustd rustd-resolved manifest.txt install-manifest.txt; do
     [[ -s $bundle_root/$file ]] || fail "bundle artifact is missing: $bundle_root/$file"
 done
 
-rm -rf -- "$topdir"
+build_started=1
+remove_tree "$topdir"
 mkdir -p "$topdir"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 install -m 0644 "$bundle_root/arach" "$topdir/SOURCES/arach"
 install -m 0644 "$bundle_root/rustd" "$topdir/SOURCES/rustd"

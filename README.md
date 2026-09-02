@@ -84,6 +84,10 @@ make build-rpms
 make validate-rpms
 ```
 
+RPM source/build trees are removed after a successful or failed build so a
+large interrupted vendor tree is not left behind. Set
+`ARACHOS_KEEP_BUILD_WORK=1` only when preserving a scoped tree for diagnosis.
+
 `build-rpms` creates a repository containing the RustD stack, ArachOS release
 identity, Hermes, the iwchaos target-kernel DKMS source package, and all pinned
 companion packages. It also writes a manifest
@@ -180,6 +184,10 @@ qualification image:
 ```sh
 make build-arach-kernel-bundle
 ```
+
+The disposable Cargo/kernel and RPM trees are cleaned when this target exits;
+set `ARACHOS_KEEP_BUILD_WORK=1` when an explicit post-failure forensic tree is
+needed.
 
 The bundle is a qualification artifact, not a claim that every Linux driver,
 filesystem, graphical stack, or installed-system path already runs on Arach

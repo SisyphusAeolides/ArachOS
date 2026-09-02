@@ -8,6 +8,12 @@ build_root=${ARACH_KERNEL_BUILD_ROOT:-$root/build/arach-kernel}
 rustd_static_root=${ARACH_RUSTD_STATIC_BUILD_ROOT:-$root/build/rustd-static}
 bundle_root=${ARACH_KERNEL_BUNDLE_ROOT:-$root/build/kernel-bundle}
 rpm_repo=${RPM_REPO:-$root/build/repo}
+keep_build_work=${ARACHOS_KEEP_BUILD_WORK:-0}
+build_root_default=0
+rustd_static_root_default=0
+build_started=0
+[[ -n ${ARACH_KERNEL_BUILD_ROOT+x} ]] || build_root_default=1
+[[ -n ${ARACH_RUSTD_STATIC_BUILD_ROOT+x} ]] || rustd_static_root_default=1
 arachos_version=${ARACHOS_VERSION:-1.0}
 arachos_release=${ARACHOS_RELEASE:-1}
 arachos_arch=${ARACHOS_ARCH:-x86_64}
@@ -20,6 +26,34 @@ fi
 fail() { printf 'ArachOS kernel bundle: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 for command in git cargo readelf sha256sum rpm rpm2cpio cpio install; do need "$command"; done
+
+# Kernel and static-RustD compilation trees are disposable and can consume
+# many gigabytes. The durable bundle (artifacts and qualification manifests)
+# is kept; only default, script-owned work roots are removed unless an
+# operator explicitly requests retention for diagnosis.
+remove_tree() {
+    local path=$1
+    [[ -e $path ]] || return 0
+    if find "$path" -depth -delete 2>/dev/null; then
+        return 0
+    fi
+    if sudo -n true >/dev/null 2>&1; then
+        sudo -n find "$path" -depth -delete 2>/dev/null || :
+    else
+        printf 'warning: cannot clean kernel build path without privilege: %s\n' "$path" >&2
+    fi
+}
+
+cleanup_kernel_build() {
+    local status=$?
+    if [[ $build_started == 1 && $keep_build_work != 1 ]]; then
+        [[ $build_root_default == 1 ]] && remove_tree "$build_root"
+        [[ $rustd_static_root_default == 1 ]] && remove_tree "$rustd_static_root"
+    fi
+    trap - EXIT
+    exit "$status"
+}
+trap cleanup_kernel_build EXIT
 
 [[ $arachos_arch == x86_64 ]] || fail 'the kernel bundle currently supports x86_64 only'
 [[ -d $kernel_root/.git ]] || fail "Arach-Kernel checkout is missing: $kernel_root"
@@ -49,6 +83,7 @@ fi
 
 kernel_target=$kernel_root/x86_64-arach.json
 [[ -f $kernel_target ]] || fail "kernel target specification is missing: $kernel_target"
+build_started=1
 mkdir -p "$build_root" "$bundle_root" "$rustd_static_root"
 build_root=$(cd "$build_root" && pwd)
 bundle_root=$(cd "$bundle_root" && pwd)

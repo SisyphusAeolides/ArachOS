@@ -15,6 +15,8 @@ ARACHOS_SELINUX_POLICY_EVR=${ARACHOS_SELINUX_POLICY_EVR:-}
 ARACHOS_RPM_DIST=${ARACHOS_RPM_DIST:-.arachos}
 RPMBUILD_DBPATH=${RPMBUILD_DBPATH:-}
 RPMBUILD_TMPDIR=${RPMBUILD_TMPDIR:-}
+ARACHOS_KEEP_BUILD_WORK=${ARACHOS_KEEP_BUILD_WORK:-0}
+build_initialized=0
 SOURCE_ROOT=${RUSTD_SOURCE_ROOT:-$ROOT/../rustd}
 RESOLVED_ROOT=${RESOLVED_SOURCE_ROOT:-$ROOT/../rustd-resolved}
 HERMES_ROOT=${HERMES_SOURCE_ROOT:-$ROOT/../Hermes}
@@ -34,11 +36,45 @@ fi
 
 fail() { printf 'RPM build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
+
+# RPM source archives and build roots can be large, especially after Cargo
+# vendoring. Keep only the signed repository output by default. An operator
+# may set ARACHOS_KEEP_BUILD_WORK=1 to retain the exact build tree for a
+# forensic retry; cleanup is restricted to the two paths this invocation
+# owns and never touches a caller's checkout.
+remove_tree() {
+  local path=$1
+  [[ -e $path ]] || return 0
+  if find "$path" -depth -delete 2>/dev/null; then
+    return 0
+  fi
+  if sudo -n true >/dev/null 2>&1; then
+    sudo -n find "$path" -depth -delete 2>/dev/null || :
+  else
+    printf 'warning: cannot clean build path without privilege: %s\n' "$path" >&2
+  fi
+}
+
+cleanup_build() {
+  local status=$?
+  if [[ $build_initialized == 1 && $ARACHOS_KEEP_BUILD_WORK != 1 ]]; then
+    remove_tree "$TOPDIR"
+  fi
+  if [[ $status -ne 0 && $build_initialized == 1 && $ARACHOS_KEEP_BUILD_WORK != 1 ]]; then
+    remove_tree "$RPM_OUTPUT"
+  fi
+  trap - EXIT
+  exit "$status"
+}
+trap cleanup_build EXIT
+
 for command in git cargo rpmbuild rpm tar gzip sha256sum python3 dnf createrepo_c gpg; do need "$command"; done
 
 bash "$ROOT/scripts/verify-sources.sh"
-rm -rf "$RPM_OUTPUT" "$TOPDIR"
+remove_tree "$RPM_OUTPUT"
+remove_tree "$TOPDIR"
 mkdir -p "$RPM_OUTPUT" "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,work}
+build_initialized=1
 
 [[ $ARACHOS_BOOTSTRAP_RELEASE =~ ^[0-9]+$ ]] || fail \
   "bootstrap release must be numeric: $ARACHOS_BOOTSTRAP_RELEASE"
@@ -107,7 +143,7 @@ RUSTD_FEDORA_RPM_OUTPUT="$rustd_output" \
 RUSTD_FEDORA_RPM_TOPDIR="$TOPDIR/core" \
   bash "$SOURCE_ROOT/scripts/build-fedora-rpms.sh"
 find "$rustd_output" -maxdepth 1 -type f -name '*.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
-rm -rf "$rustd_output"
+remove_tree "$rustd_output"
 
 make_source() {
   local name=$1 repo=$2 sha=$3 version=$4 dest=$5
