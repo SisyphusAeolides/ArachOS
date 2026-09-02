@@ -429,19 +429,23 @@ xorriso -osirrox on -indev "$iso" -extract /images/product.img "$final_product_i
 cmp -s "$product_img" "$final_product_img" \
     || fail 'ISO product image differs from the ArachOS branding payload'
 for path in /.discinfo /images/install.img /images/pxeboot/vmlinuz \
-            /images/pxeboot/initrd.img /EFI/BOOT/grub.cfg /boot/grub2/grub.cfg; do
+            /images/pxeboot/initrd.img /EFI/BOOT/grub.cfg \
+            /EFI/BOOT/BOOT.conf /boot/grub2/grub.cfg; do
     xorriso -indev "$iso" -ls "$path" >/dev/null 2>&1 \
         || fail "standalone installer is missing $path"
 done
 
 uefi_cfg="$WORK/uefi-grub.cfg"
+uefi_boot_cfg="$WORK/uefi-boot.cfg"
 bios_cfg="$WORK/bios-grub.cfg"
 xorriso -osirrox on -indev "$iso" -extract /EFI/BOOT/grub.cfg "$uefi_cfg" \
     >/dev/null 2>&1 || fail 'cannot extract the UEFI GRUB configuration'
+xorriso -osirrox on -indev "$iso" -extract /EFI/BOOT/BOOT.conf "$uefi_boot_cfg" \
+    >/dev/null 2>&1 || fail 'cannot extract the UEFI fallback GRUB configuration'
 xorriso -osirrox on -indev "$iso" -extract /boot/grub2/grub.cfg "$bios_cfg" \
     >/dev/null 2>&1 || fail 'cannot extract the BIOS GRUB configuration'
 
-for cfg in "$uefi_cfg" "$bios_cfg"; do
+for cfg in "$uefi_cfg" "$uefi_boot_cfg" "$bios_cfg"; do
     grep -Fq "Install ArachOS $ARACHOS_VERSION" "$cfg" \
         || fail "$(basename "$cfg") has no ArachOS installer entry"
     grep -Fq -- '--class arachos' "$cfg" \
