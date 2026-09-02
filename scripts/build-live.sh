@@ -75,6 +75,13 @@ manifest_value() { sed -n "s/^$1=//p" "$ARACH_KERNEL_INSTALL_MANIFEST" | head -n
     'Arach-Kernel install qualification is not release-green'
 [[ $(manifest_value kernel_package) == "$KERNEL_PACKAGE" ]] || fail \
     'Arach-Kernel install qualification names a different kernel package'
+for source in rustd rustd-resolved arach-kernel; do
+    locked=$(awk -v key="$source" '$1 == key {print $3; exit}' "$ROOT/sources.lock")
+    [[ $locked =~ ^[0-9a-f]{40}$ ]] || fail \
+        "ArachOS source lock has no full $source revision"
+    [[ $(manifest_value "$source") == "$locked" ]] || fail \
+        "Arach-Kernel install qualification is for a different $source revision"
+done
 for gate in persistent_root anaconda_target bios uefi rustd_pid1 rustd_resolved; do
     [[ $(manifest_value "$gate") == pass ]] || fail \
         "Arach-Kernel install qualification gate is not pass: $gate"
@@ -91,6 +98,11 @@ hermes_manifest_value() {
 }
 [[ $(hermes_manifest_value schema) == hermes-release-v1 ]] || fail \
     'Hermes release qualification manifest has the wrong schema'
+hermes_locked_revision=$(awk '$1 == "hermes" {print $3; exit}' "$ROOT/sources.lock")
+[[ $hermes_locked_revision =~ ^[0-9a-f]{40}$ ]] || fail \
+    'ArachOS source lock has no full Hermes revision'
+[[ $(hermes_manifest_value source_revision) == "$hermes_locked_revision" ]] || fail \
+    'Hermes release qualification is for a different source revision'
 [[ $(hermes_manifest_value status) == pass ]] || fail \
     'Hermes release qualification is not release-green'
 for gate in cargo_fmt cargo_clippy cargo_tests formal_strict dropin_catalog \
@@ -99,6 +111,9 @@ for gate in cargo_fmt cargo_clippy cargo_tests formal_strict dropin_catalog \
     [[ $(hermes_manifest_value "$gate") == pass ]] || fail \
         "Hermes release qualification gate is not pass: $gate"
 done
+hermes_evidence=$(hermes_manifest_value hardware_evidence)
+[[ -n $hermes_evidence && $hermes_evidence != missing && -r $hermes_evidence ]] || fail \
+    'Hermes release qualification has no readable physical hardware evidence'
 
 case "$ARACHOS_CORE_URL$ARACHOS_UPDATES_URL$ARACHOS_REPOSITORY_URL" in
     *"'"*|*$'\n'*|*$'\r'*) fail 'repository URLs may not contain quotes or newlines' ;;

@@ -6,6 +6,6 @@ iwchaos https://github.com/SisyphusAeolides/iwchaos.git 2755eff222c59f2818caa5f5
 iwchaos-linux https://github.com/gregkh/linux.git 8d3ae59288f1e7d58d76558a6ee96d533bc5019f
 tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git a2e20ef5ecfbd5b443f5963687391666d63af152
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 878838aad6e5df64968d77a3cb9bac331b0b38cf
-blerust https://github.com/SisyphusAeolides/blerust.git ff984f54b349c50742960eb12f0f9656a522482f
+blerust https://github.com/SisyphusAeolides/blerust.git 3ede7cef4409105ec42d121cce4e8f190df410c9
 ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 51cb08d20e33fb8cb45762db293a9405f9c62cbf
 hermes https://github.com/SisyphusAeolides/Hermes.git 61b959d4b88efdce770126f2d8cff39a49f98dff

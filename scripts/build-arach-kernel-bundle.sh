@@ -198,6 +198,9 @@ cat > "$bundle_root/install-manifest.txt" <<EOF
 schema=arachos-kernel-install-v1
 status=qualification-only
 kernel_package=arach-kernel
+rustd=$(awk '$1 == "rustd" {print $3}' "$root/sources.lock")
+rustd-resolved=$(awk '$1 == "rustd-resolved" {print $3}' "$root/sources.lock")
+arach-kernel=$(awk '$1 == "arach-kernel" {print $3}' "$root/sources.lock")
 persistent_root=pending
 anaconda_target=pending
 bios=pending
