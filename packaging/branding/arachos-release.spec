@@ -19,6 +19,7 @@ Provides:       system-logos = %{version}-%{release}
 # and Fedora release metadata after the ArachOS package is installed.
 Obsoletes:      fedora-release
 Obsoletes:      fedora-release-common
+Obsoletes:      fedora-logos
 Obsoletes:      fedora-release-identity-basic
 Obsoletes:      fedora-release-identity-cloud
 Obsoletes:      fedora-release-identity-container
