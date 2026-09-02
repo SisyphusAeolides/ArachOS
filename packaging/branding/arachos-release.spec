@@ -48,6 +48,8 @@ install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/sidebar-log
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/anaconda_header.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/sidebar-bg.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/topbar-bg.png
+install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/org.arachos.ArachOSInstaller.png
+install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/system-logo-icon.png
 
 install -d -m0755 %{buildroot}%{_sysconfdir}/anaconda/profile.d
@@ -88,10 +90,18 @@ enable_closest_mirror = False
 default_source = CLOSEST_MIRROR
 default_environment = custom-environment
 updates_repositories =
+flatpak_remote =
 default_rpm_gpg_keys =
 
 [License]
 eula = /usr/share/licenses/arachos-release/LICENSE
+EOF
+
+install -Dpm0644 /dev/stdin %{buildroot}%{_sysconfdir}/anaconda/conf.d/10-arachos.conf <<'EOF'
+# ArachOS installer overrides.  The bootstrap Anaconda default Flatpak remote
+# is intentionally disabled until ArachOS publishes its own signed catalog.
+[Payload]
+flatpak_remote =
 EOF
 
 install -Dpm0644 /dev/stdin %{buildroot}%{_usr}/share/anaconda/pixmaps/arachos.css <<'EOF'
@@ -192,6 +202,7 @@ EOF
 %license %{_licensedir}/%{name}/LICENSE
 %config(noreplace) %{_sysconfdir}/arachos-release
 %config(noreplace) %{_sysconfdir}/anaconda/profile.d/z-arachos.conf
+%config(noreplace) %{_sysconfdir}/anaconda/conf.d/10-arachos.conf
 %config(noreplace) %{_sysconfdir}/issue.d/20-arachos.issue
 %config(noreplace) %{_sysconfdir}/os-release
 %{_sysconfdir}/redhat-release
@@ -205,7 +216,9 @@ EOF
 %{_usr}/share/anaconda/pixmaps/sidebar-bg.png
 %{_usr}/share/anaconda/pixmaps/sidebar-logo.png
 %{_usr}/share/anaconda/pixmaps/topbar-bg.png
+%{_usr}/share/anaconda/pixmaps/org.arachos.ArachOSInstaller.png
 %{_usr}/share/backgrounds/arachos/ArachOS.png
+%{_usr}/share/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png
 %{_usr}/share/icons/hicolor/48x48/apps/system-logo-icon.png
 %{_usr}/share/pixmaps/arachos.png
 %{_usr}/share/pixmaps/bootloader/bootlogo_128.png

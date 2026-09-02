@@ -16,6 +16,11 @@ ARACHOS_BOOTSTRAP_ISO=${ARACHOS_BOOTSTRAP_ISO:-/home/Sisyphus/Downloads/Fedora-E
 ARACHOS_BOOTSTRAP_ISO_SHA256=${ARACHOS_BOOTSTRAP_ISO_SHA256:-523f17169f6012c8a9f04b1b1ceb330428a8fb1cf72e076de71dd396ffd9c40d}
 ARACHOS_REPOSITORY_URL=${ARACHOS_REPOSITORY_URL:-}
 ARACHOS_SYSTEMD_EVR=${ARACHOS_SYSTEMD_EVR:-}
+ARACHOS_INSTALLER_KERNEL=${ARACHOS_INSTALLER_KERNEL:-$ROOT/build/kernel-bundle/installer-kernel}
+ARACHOS_INSTALLER_INITRD=${ARACHOS_INSTALLER_INITRD:-$ROOT/build/kernel-bundle/installer-initrd.img}
+ARACHOS_LIVE_RUNTIME_MANIFEST=${ARACHOS_LIVE_RUNTIME_MANIFEST:-$ROOT/build/kernel-bundle/live-manifest.txt}
+LIVE_MEDIA_KEEP_WORK=${LIVE_MEDIA_KEEP_WORK:-0}
+media_started=0
 BOOTSTRAP_GPG_FINGERPRINT=${ARACHOS_BOOTSTRAP_GPG_FINGERPRINT:-4F50A6114CD5C6976A7F1179655A4B02F577861E}
 KERNEL_PACKAGE=${KERNEL_PACKAGE:-arach-kernel}
 ARACH_KERNEL_INSTALL_MANIFEST=${ARACH_KERNEL_INSTALL_MANIFEST:-$ROOT/build/kernel-bundle/install-manifest.txt}
@@ -31,10 +36,28 @@ fi
 fail() { printf 'ArachOS installer media build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 
-for command in mkksiso createrepo_c sha256sum awk rpm rpm2cpio cpio gzip dnf xorriso grep sed gpg cmp; do
+# Stage2 extraction creates several gigabytes of root-owned files. Remove that
+# scoped work tree on both success and failure unless an operator explicitly
+# asks to retain it for diagnosis. The ISO output directory is preserved on a
+# successful build and is never part of this cleanup path.
+cleanup_work() {
+    local status=$?
+    if [[ $LIVE_MEDIA_KEEP_WORK != 1 && -d $WORK ]]; then
+        find "$WORK" -depth -delete 2>/dev/null || :
+    fi
+    if [[ $status -ne 0 && $media_started == 1 && -e $ISO_OUTPUT ]]; then
+        find "$ISO_OUTPUT" -depth -delete 2>/dev/null || :
+    fi
+    trap - EXIT
+    exit "$status"
+}
+
+for command in mkksiso createrepo_c sha256sum awk rpm rpm2cpio cpio gzip dnf xorriso grep sed gpg cmp \
+              unsquashfs mksquashfs lsinitrd file install; do
     need "$command"
 done
 [[ $EUID -eq 0 ]] || fail 'mkksiso must run as root'
+trap cleanup_work EXIT
 [[ $ARACHOS_ARCH == x86_64 ]] || fail 'the installer builder currently supports x86_64 only'
 [[ $ARACHOS_BOOTSTRAP_RELEASE =~ ^[0-9]+$ ]] || fail \
     "bootstrap release must be numeric: $ARACHOS_BOOTSTRAP_RELEASE"
@@ -115,6 +138,52 @@ hermes_evidence=$(hermes_manifest_value hardware_evidence)
 [[ -n $hermes_evidence && $hermes_evidence != missing && -r $hermes_evidence ]] || fail \
     'Hermes release qualification has no readable physical hardware evidence'
 
+# The installer runtime is a product component, not an unmodified bootstrap
+# initramfs. Require a separately qualified ArachOS live contract before any
+# bytes from the Fedora netinst are allowed to boot. This prevents a branded
+# menu from masking a systemd/Fedora runtime underneath it.
+[[ -r $ARACHOS_LIVE_RUNTIME_MANIFEST ]] || fail \
+    "ArachOS live-runtime manifest is missing: $ARACHOS_LIVE_RUNTIME_MANIFEST"
+live_manifest_value() {
+    sed -n "s/^$1=//p" "$ARACHOS_LIVE_RUNTIME_MANIFEST" | head -n 1
+}
+[[ $(live_manifest_value schema) == arachos-live-runtime-v1 ]] || fail \
+    'ArachOS live-runtime manifest has the wrong schema'
+[[ $(live_manifest_value status) == pass ]] || fail \
+    'ArachOS live-runtime qualification is not release-green'
+[[ $(live_manifest_value product) == ArachOS ]] || fail \
+    'ArachOS live-runtime qualification names a different product'
+[[ $(live_manifest_value pid1) == rustd ]] || fail \
+    'ArachOS live runtime is not qualified with RustD as PID 1'
+[[ $(live_manifest_value kernel) == arach-kernel ]] || fail \
+    'ArachOS live runtime is not qualified with Arach-Kernel'
+[[ $(live_manifest_value kernel_format) == linux-bzimage ]] || fail \
+    'ArachOS live runtime does not provide a bootable Linux Arach-Kernel image'
+[[ $(live_manifest_value initrd_format) == rustd-cpio ]] || fail \
+    'ArachOS live runtime does not provide a RustD-owned initramfs'
+for source in rustd rustd-resolved arach-kernel; do
+    locked=$(awk -v key="$source" '$1 == key {print $3; exit}' "$ROOT/sources.lock")
+    [[ $(live_manifest_value "$source") == "$locked" ]] || fail \
+        "ArachOS live-runtime qualification is for a different $source revision"
+done
+[[ -r $ARACHOS_INSTALLER_KERNEL ]] || fail \
+    "qualified Arach-Kernel installer image is missing: $ARACHOS_INSTALLER_KERNEL"
+[[ -r $ARACHOS_INSTALLER_INITRD ]] || fail \
+    "qualified RustD installer initramfs is missing: $ARACHOS_INSTALLER_INITRD"
+file "$ARACHOS_INSTALLER_KERNEL" | grep -Eiq 'Linux kernel|bzImage' || fail \
+    'qualified Arach-Kernel installer image is not a Linux boot image'
+lsinitrd -m "$ARACHOS_INSTALLER_INITRD" >/dev/null 2>&1 || fail \
+    'qualified RustD installer initramfs is not inspectable by lsinitrd'
+live_initrd_modules=$(lsinitrd -m "$ARACHOS_INSTALLER_INITRD")
+! grep -Eiq '(^|[[:space:]])(systemd|dracut-systemd|systemd-[^[:space:]]*)($|[[:space:]])' \
+    <<<"$live_initrd_modules" || fail \
+    'qualified RustD installer initramfs still selects a systemd implementation module'
+live_initrd_listing=$(lsinitrd "$ARACHOS_INSTALLER_INITRD")
+grep -Eq '(^|[[:space:]])(usr/)?lib/rustd/rustd($|[[:space:]])' <<<"$live_initrd_listing" \
+    || fail 'qualified RustD installer initramfs has no native rustd PID 1 payload'
+! grep -Eq '(^|[[:space:]])(usr/)?lib/systemd/systemd($|[[:space:]])' <<<"$live_initrd_listing" \
+    || fail 'qualified RustD installer initramfs contains the systemd PID 1 executable'
+
 case "$ARACHOS_CORE_URL$ARACHOS_UPDATES_URL$ARACHOS_REPOSITORY_URL" in
     *"'"*|*$'\n'*|*$'\r'*) fail 'repository URLs may not contain quotes or newlines' ;;
 esac
@@ -192,8 +261,12 @@ kernel_signature=$(rpm -qp --qf '%{RSAHEADER}' "$kernel_rpm")
 [[ -n $kernel_signature && $kernel_signature != '(none)' ]] || fail \
     "Arach-Kernel package is unsigned: $(basename "$kernel_rpm")"
 
-if [[ -e $ISO_OUTPUT || -e $WORK ]]; then
-    rm -rf -- "$ISO_OUTPUT" "$WORK"
+media_started=1
+if [[ -e $ISO_OUTPUT ]]; then
+    find "$ISO_OUTPUT" -depth -delete
+fi
+if [[ -e $WORK ]]; then
+    find "$WORK" -depth -delete
 fi
 mkdir -p "$ISO_OUTPUT" "$WORK"
 
@@ -232,12 +305,13 @@ mkdir -p "$custom_repo"
 cp -a "$RPM_REPO"/. "$custom_repo"/
 
 # The bootstrap ISO contains a complete Anaconda stage2, but its product
-# identity and artwork belong to the bootstrap distribution.  The release RPM
-# already carries the canonical ArachOS artwork/profile; overlay that exact
-# package in Anaconda's supported product.img format so the installer itself
-# presents ArachOS while the bootstrap package pool remains an implementation
-# detail.  The buildstamp is stage2 metadata and is deliberately generated for
-# this release rather than added to the installed release RPM.
+# identity and artwork belong to the bootstrap distribution. The release RPM
+# carries the canonical ArachOS artwork/profile; it is overlaid into the
+# supported product.img format and into the rebuilt stage2 below so the
+# installer itself presents ArachOS while the bootstrap package pool remains
+# an implementation detail. The buildstamp is stage2 metadata and is
+# deliberately generated for this release rather than added to the installed
+# release RPM.
 product_root="$WORK/product"
 product_images="$WORK/images"
 mkdir -p "$product_root" "$product_images"
@@ -270,24 +344,49 @@ product_img="$product_images/product.img"
 product_listing="$WORK/product.img.list"
 gzip -dc "$product_img" | cpio -it --quiet > "$product_listing"
 for path in .buildstamp etc/anaconda/profile.d/z-arachos.conf \
+            etc/anaconda/conf.d/10-arachos.conf \
             usr/share/anaconda/pixmaps/arachos.css \
             usr/share/anaconda/boot/splash.png \
             usr/share/anaconda/pixmaps/anaconda_header.png \
             usr/share/anaconda/pixmaps/sidebar-logo.png \
             usr/share/anaconda/pixmaps/sidebar-bg.png \
             usr/share/anaconda/pixmaps/topbar-bg.png \
+            usr/share/anaconda/pixmaps/org.arachos.ArachOSInstaller.png \
+            usr/share/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png \
             usr/share/pixmaps/arachos.png; do
     grep -Fxq "$path" "$product_listing" \
         || fail "ArachOS product image is missing $path"
 done
 grep -Fxq 'Product=ArachOS' "$product_root/.buildstamp" \
     || fail 'ArachOS product image has no ArachOS buildstamp'
+grep -Fxq 'Variant=ArachOS' "$product_root/.buildstamp" \
+    || fail 'ArachOS product image has no ArachOS variant'
 grep -Fxq 'profile_id = arachos' \
     "$product_root/etc/anaconda/profile.d/z-arachos.conf" \
     || fail 'ArachOS product image has no ArachOS Anaconda profile'
 ! grep -Eiq 'base_profile[[:space:]]*=[[:space:]]*fedora' \
     "$product_root/etc/anaconda/profile.d/z-arachos.conf" \
     || fail 'ArachOS Anaconda profile still inherits Fedora identity'
+
+# Rebuild Anaconda's squashfs stage2 with the same release payload. product.img
+# is the supported Anaconda chrome override; rebuilding stage2 additionally
+# makes os-release, profile detection, and the launch environment ArachOS
+# owned even if anaconda is started without product.img.
+source_install_img="$WORK/source-install.img"
+xorriso -osirrox on -indev "$ARACHOS_BOOTSTRAP_ISO" \
+    -extract /images/install.img "$source_install_img" >/dev/null 2>&1 \
+    || fail 'bootstrap installer ISO has no Anaconda stage2 image'
+stage2_images="$WORK/stage2-images"
+mkdir -p "$stage2_images"
+ARACHOS_VERSION="$ARACHOS_VERSION" \
+    bash "$ROOT/scripts/rebuild-anaconda-stage2.sh" \
+    "$source_install_img" "$stage2_images/install.img" "$product_root" \
+    "$WORK/stage2-work"
+
+boot_images="$WORK/boot-images/images/pxeboot"
+mkdir -p "$boot_images"
+install -m0644 "$ARACHOS_INSTALLER_KERNEL" "$boot_images/vmlinuz"
+install -m0644 "$ARACHOS_INSTALLER_INITRD" "$boot_images/initrd.img"
 
 if [[ -n $ARACHOS_REPOSITORY_URL ]]; then
     repository_url=$ARACHOS_REPOSITORY_URL
@@ -390,6 +489,8 @@ mkksiso \
     --ks "$rendered_ks" \
     --add "$custom_repo" \
     --add "$product_images" \
+    --add "$stage2_images" \
+    --add "$WORK/boot-images" \
     --add "$discinfo" \
     --cmdline 'inst.graphical inst.profile=arachos' \
     --volid "$volid" \
@@ -423,11 +524,63 @@ xorriso -indev "$iso" -ls /ArachOS-Repo/repodata/repomd.xml >/dev/null 2>&1 \
     || fail 'ArachOS RPM repository was not added to the ISO'
 xorriso -indev "$iso" -ls /images/product.img >/dev/null 2>&1 \
     || fail 'ArachOS Anaconda product image was not added to the ISO'
+xorriso -indev "$iso" -ls /images/pxeboot/vmlinuz >/dev/null 2>&1 \
+    || fail 'qualified Arach-Kernel installer image was not added to the ISO'
+xorriso -indev "$iso" -ls /images/pxeboot/initrd.img >/dev/null 2>&1 \
+    || fail 'qualified RustD installer initramfs was not added to the ISO'
 final_product_img="$WORK/final-product.img"
 xorriso -osirrox on -indev "$iso" -extract /images/product.img "$final_product_img" \
     >/dev/null 2>&1 || fail 'cannot extract the ArachOS Anaconda product image'
 cmp -s "$product_img" "$final_product_img" \
     || fail 'ISO product image differs from the ArachOS branding payload'
+final_kernel="$WORK/final-vmlinuz"
+final_initrd="$WORK/final-initrd.img"
+xorriso -osirrox on -indev "$iso" -extract /images/pxeboot/vmlinuz "$final_kernel" \
+    >/dev/null 2>&1 || fail 'cannot extract the Arach-Kernel installer image'
+xorriso -osirrox on -indev "$iso" -extract /images/pxeboot/initrd.img "$final_initrd" \
+    >/dev/null 2>&1 || fail 'cannot extract the RustD installer initramfs'
+cmp -s "$ARACHOS_INSTALLER_KERNEL" "$final_kernel" \
+    || fail 'ISO kernel differs from the qualified Arach-Kernel installer image'
+cmp -s "$ARACHOS_INSTALLER_INITRD" "$final_initrd" \
+    || fail 'ISO initramfs differs from the qualified RustD installer initramfs'
+final_install_img="$WORK/final-install.img"
+xorriso -osirrox on -indev "$iso" -extract /images/install.img "$final_install_img" \
+    >/dev/null 2>&1 || fail 'cannot extract the rebuilt ArachOS Anaconda stage2'
+final_stage2_root="$WORK/final-stage2"
+unsquashfs -quiet -d "$final_stage2_root" "$final_install_img" \
+    || fail 'cannot inspect the rebuilt ArachOS Anaconda stage2 in the ISO'
+grep -Fxq 'ID=arachos' "$final_stage2_root/etc/os-release" \
+    || fail 'ISO Anaconda stage2 is not ArachOS-owned'
+grep -Fxq 'product=ArachOS' "$final_stage2_root/usr/share/arachos/installer-stage2" \
+    || fail 'ISO Anaconda stage2 has no ArachOS ownership marker'
+grep -Fxq 'Product=ArachOS' "$final_stage2_root/.buildstamp" \
+    || fail 'ISO Anaconda stage2 buildstamp is not ArachOS-owned'
+grep -Fxq 'Variant=ArachOS' "$final_stage2_root/.buildstamp" \
+    || fail 'ISO Anaconda stage2 variant is not ArachOS-owned'
+final_anaconda_constants=$(find "$final_stage2_root/usr" -type f \
+    -path '*/pyanaconda/core/constants.py' -print -quit)
+final_anaconda_gui=$(find "$final_stage2_root/usr" -type f \
+    -path '*/pyanaconda/ui/gui/__init__.py' -print -quit)
+grep -Fxq 'WINDOW_TITLE_TEXT = N_("ArachOS Installer")' "$final_anaconda_constants" \
+    || fail 'ISO Anaconda window title is not branded ArachOS'
+grep -Fq 'set_icon_name("org.arachos.ArachOSInstaller")' "$final_anaconda_gui" \
+    || fail 'ISO Anaconda task-bar icon is not branded ArachOS'
+grep -Fxq 'flatpak_remote =' "$final_stage2_root/etc/anaconda/conf.d/10-arachos.conf" \
+    || fail 'ISO Anaconda stage2 leaves the bootstrap Flatpak remote enabled'
+! grep -Eiq 'fedora|red[[:space:]]+hat' "$final_stage2_root/etc/os-release" \
+    || fail 'ISO Anaconda stage2 os-release retains bootstrap branding'
+! grep -Eiq 'fedora|red[[:space:]]+hat' \
+    "$final_stage2_root/etc/anaconda/profile.d/z-arachos.conf" \
+    || fail 'ISO Anaconda stage2 profile retains bootstrap branding'
+! find "$final_stage2_root/usr/share" -type f -iname '*fedora*' \
+    \( -path '*/anaconda/pixmaps/*' -o -path '*/pixmaps/*' \
+       -o -path '*/icons/*' -o -path '*/oxygen/*' -o -path '*/fedora-logos/*' \) \
+    -print -quit \
+    | grep -q . \
+    || fail 'ISO Anaconda stage2 retains a Fedora-branded logo asset'
+! find "$final_stage2_root/usr/share/licenses" -iname '*fedora*' -print -quit \
+    | grep -q . \
+    || fail 'ISO Anaconda stage2 retains a Fedora-branded license filename'
 for path in /.discinfo /images/install.img /images/pxeboot/vmlinuz \
             /images/pxeboot/initrd.img /EFI/BOOT/grub.cfg \
             /EFI/BOOT/BOOT.conf /boot/grub2/grub.cfg; do
@@ -458,9 +611,9 @@ for cfg in "$uefi_cfg" "$uefi_boot_cfg" "$bios_cfg"; do
         || fail "$(basename "$cfg") does not select the ArachOS Anaconda profile"
     ! grep -Fq -- '--class fedora' "$cfg" \
         || fail "$(basename "$cfg") retains the generic GRUB class"
-    ! grep -Fq 'Fedora' "$cfg" \
+    ! grep -Eiq 'fedora|red[[:space:]]+hat|rocky[[:space:]]+linux|alma[[:space:]]+linux|centos' "$cfg" \
         || fail "$(basename "$cfg") retains the bootstrap product name"
-    ! grep -Eiq 'Rocky Linux|Fedora' "$cfg" \
+    ! grep -Eiq 'fedora|red[[:space:]]+hat|rocky[[:space:]]+linux|alma[[:space:]]+linux|centos' "$cfg" \
         || fail "$(basename "$cfg") retains a retired product identity"
     ! grep -Fq 'rd.live.image' "$cfg" \
         || fail "$(basename "$cfg") requests a live root instead of Anaconda stage2"

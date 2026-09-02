@@ -54,6 +54,7 @@ supported; the reproducible RustD path defaults to the system-wide
 ```sh
 sudo dnf install \
   mkksiso xorriso createrepo_c rpm-build rpmdevtools \
+  squashfs-tools \
   cargo rust rustfmt clippy gcc gcc-c++ gcc-gfortran make meson ninja-build \
   patch openssl-devel liburing-devel libevdev-devel mtdev-devel json-c-devel \
   dbus-devel pam-devel polkit-devel selinux-policy-devel python3 clang kmod
@@ -95,17 +96,25 @@ during installation. An unsigned repository is rejected.
 
 ## Graphical Anaconda installer
 
-The installer uses the supplied Everything netinst image only as the initial
-Anaconda runtime payload while the ArachOS media composition is built. The
-resulting ISO replaces the media descriptor and every BIOS/UEFI boot label,
-injects an ArachOS `product.img` (buildstamp, profile, stylesheet, splash,
-header, and logo artwork), and passes `inst.profile=arachos` to Anaconda. It
-is therefore an ArachOS installer media, not a bootstrap-branded boot or
-desktop session. The installer
-boots from the configured core/update repositories; it is not a desktop live
-session. The kickstart supplies repository sources and the RustD post-install
-transition but intentionally leaves disk selection and optional desktop
-selection to the graphical Anaconda UI.
+The installer uses the supplied Everything netinst image only as an initial
+Anaconda source. The release build unpacks and rebuilds its Anaconda squashfs
+stage2 with the ArachOS release payload, replaces the stage2 `os-release` and
+profile set, and injects an ArachOS `product.img` (buildstamp, profile,
+stylesheet, splash, header, task-bar icon, and logo artwork). The stage2 patch
+also makes the Anaconda window title, icon, release metadata, and fallback
+logo assets ArachOS-owned. It requires a separately qualified
+Arach-Kernel Linux boot image and a RustD-owned initramfs; a stock Fedora
+kernel or systemd initramfs is rejected before `mkksiso` runs. Every BIOS/UEFI
+boot label passes `inst.profile=arachos` to Anaconda. The result is ArachOS
+installer media, not a bootstrap-branded boot or desktop session. The
+installer boots from the configured core/update repositories; it is not a
+desktop live session. The kickstart supplies repository sources and the RustD
+post-install transition but intentionally leaves disk selection and optional
+desktop selection to the graphical Anaconda UI.
+
+Anaconda's `org.fedoraproject.Anaconda.*` D-Bus names are retained as the
+upstream module ABI; they are not the displayed distribution identity and are
+not replaced, because changing them would disconnect Anaconda's own modules.
 
 The current bootstrap input is:
 
@@ -135,10 +144,23 @@ build/iso/ArachOS-1.0-1-installer-x86_64.iso
 
 The ISO contains the graphical Anaconda runtime, BIOS and UEFI boot entries,
 the ArachOS kickstart, and the ArachOS RPM repository. The upstream installer
-license notice remains on the bootstrap media; the installed target is checked
-for ArachOS identity and absence of the bootstrap release package. `build-live`
-and `build-live-existing` are retained as compatible make targets for the same
-netinst composition path, and both reject the generic `kernel*` package family.
+license notice remains as a legal attribution for the bootstrap input; it is
+not an operating-system identity. The installed target is checked for ArachOS
+identity and absence of the bootstrap release package. `build-live` and
+`build-live-existing` are retained as compatible make targets for the same
+Anaconda composition path, and both reject the generic `kernel*` package family
+and any unqualified live kernel/initramfs. Set these release inputs only after
+the live-runtime campaign has passed:
+
+```sh
+export ARACHOS_INSTALLER_KERNEL=/path/to/arach-kernel-linux-bzimage
+export ARACHOS_INSTALLER_INITRD=/path/to/rustd-live-initramfs.img
+export ARACHOS_LIVE_RUNTIME_MANIFEST=/path/to/live-manifest.txt
+```
+
+The manifest must report `status=pass`, `kernel=arach-kernel`, and
+`pid1=rustd`; it must also bind the exact revisions in `sources.lock`. A
+pending or missing manifest intentionally produces no ISO.
 `build-installer` also builds the pinned Arach-Kernel qualification bundle and
 requires its install-qualification manifest before composing media. The current
 bundle records `status=qualification-only`, because the persistent root,
@@ -245,6 +267,7 @@ packaging/koji/                     Optional ArachOS Koji build-farm setup
 packaging/rustd/                    RustD-native companion service units
 scripts/build-rpms.sh               Pinned source and RPM assembly
 scripts/build-live.sh               Netinst and Anaconda ISO composition
+scripts/rebuild-anaconda-stage2.sh Rebuild the branded Anaconda squashfs
 scripts/build-arach-kernel-bundle.sh Arach Kernel/RustD qualification build
 scripts/build-koji.sh               Ordered optional Koji RPM pipeline
 scripts/validate-rpms.sh            RPM ownership and capability validation

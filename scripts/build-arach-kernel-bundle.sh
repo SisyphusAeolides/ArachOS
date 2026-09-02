@@ -208,6 +208,23 @@ uefi=pending
 rustd_pid1=pending
 rustd_resolved=pending
 EOF
+# The installer has a separate live-runtime contract from the Multiboot2
+# qualification bundle above. Keep a manifest beside the bundle even while
+# the Linux Arach-Kernel boot image and RustD-owned initramfs are unfinished;
+# build-live refuses this pending state instead of silently falling back to
+# the Fedora kernel/initramfs from the bootstrap ISO.
+cat > "$bundle_root/live-manifest.txt" <<EOF
+schema=arachos-live-runtime-v1
+status=pending
+product=ArachOS
+pid1=rustd
+kernel=arach-kernel
+kernel_format=pending
+initrd_format=pending
+rustd=$(awk '$1 == "rustd" {print $3}' "$root/sources.lock")
+rustd-resolved=$(awk '$1 == "rustd-resolved" {print $3}' "$root/sources.lock")
+arach-kernel=$(awk '$1 == "arach-kernel" {print $3}' "$root/sources.lock")
+EOF
 printf 'ArachOS Arach Kernel bundle: %s\n' "$output_iso"
 
 # The installer transaction consumes an actual arach-kernel RPM.  Build it
