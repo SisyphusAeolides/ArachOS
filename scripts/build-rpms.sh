@@ -22,6 +22,7 @@ IWCHAOS_ROOT=${IWCHAOS_SOURCE_ROOT:-$ROOT/../iwchaos}
 IWCHAOS_LINUX_REPO=${IWCHAOS_LINUX_REPO:-https://github.com/gregkh/linux.git}
 BOOTSTRAP_GPG_KEY=${ARACHOS_BOOTSTRAP_GPG_KEY:-$ROOT/packaging/keys/RPM-GPG-KEY-fedora-${ARACHOS_BOOTSTRAP_RELEASE}-primary}
 BOOTSTRAP_GPG_FINGERPRINT=${ARACHOS_BOOTSTRAP_GPG_FINGERPRINT:-4F50A6114CD5C6976A7F1179655A4B02F577861E}
+BOOTSTRAP_GPG_KEY_NAME="RPM-GPG-KEY-ARACHOS-BOOTSTRAP-${ARACHOS_BOOTSTRAP_RELEASE}-PRIMARY"
 
 # The shared Rustup installation is read-only for build users. Pinning the
 # already-installed ArachOS nightly through the environment also overrides a
@@ -236,7 +237,7 @@ rpmbuild -ba "${common[@]}" "$TOPDIR/SPECS/arachos-release.spec"
 find "$TOPDIR/RPMS" -type f -name '*.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 find "$TOPDIR/SRPMS" -type f -name '*.src.rpm' -exec cp -a {} "$RPM_OUTPUT/" \;
 install -D -m 0644 "$BOOTSTRAP_GPG_KEY" \
-  "$RPM_OUTPUT/RPM-GPG-KEY-FEDORA-${ARACHOS_BOOTSTRAP_RELEASE}-PRIMARY"
+  "$RPM_OUTPUT/$BOOTSTRAP_GPG_KEY_NAME"
 if [[ -n ${ARACHOS_GPG_KEY_ID:-} || -n ${ARACHOS_GPG_HOME:-} ]]; then
   ARACHOS_GPG_KEY_ID="${ARACHOS_GPG_KEY_ID:-}" \
   ARACHOS_GPG_HOME="${ARACHOS_GPG_HOME:-}" \
@@ -274,7 +275,8 @@ fi
     printf 'rpm_signing_key_sha256=absent\n'
   fi
   printf 'bootstrap_signing_key_fingerprint=%s\n' "$bootstrap_gpg_fingerprint"
-  printf 'bootstrap_signing_key_sha256=%s\n' "$(sha256sum "$RPM_OUTPUT/RPM-GPG-KEY-FEDORA-${ARACHOS_BOOTSTRAP_RELEASE}-PRIMARY" | awk '{print $1}')"
+  printf 'bootstrap_signing_key_filename=%s\n' "$BOOTSTRAP_GPG_KEY_NAME"
+  printf 'bootstrap_signing_key_sha256=%s\n' "$(sha256sum "$RPM_OUTPUT/$BOOTSTRAP_GPG_KEY_NAME" | awk '{print $1}')"
   for name in rustd rustd-resolved arach-kernel iwchaos tuned-rs libinput-rs blerust ccze-rs hermes; do
     printf '%s=%s\n' "$name" "$(awk -v key="$name" '$1 == key {print $3}' "$ROOT/sources.lock")"
   done

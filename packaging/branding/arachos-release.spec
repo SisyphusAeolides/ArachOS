@@ -42,7 +42,9 @@ install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/pixmaps/system-logo-white.pn
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/pixmaps/bootloader/bootlogo_128.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/pixmaps/bootloader/bootlogo_256.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/boot/syslinux-splash.png
+install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/boot/splash.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/sidebar-logo.png
+install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/anaconda_header.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/sidebar-bg.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/topbar-bg.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/system-logo-icon.png
@@ -92,9 +94,42 @@ eula = /usr/share/licenses/arachos-release/LICENSE
 EOF
 
 install -Dpm0644 /dev/stdin %{buildroot}%{_usr}/share/anaconda/pixmaps/arachos.css <<'EOF'
-/* ArachOS installer palette. */
+/* ArachOS installer palette and product artwork. */
+@define-color arachos #10131f;
+@define-color arachos-accent #7148ff;
+
+/* Keep the complete Anaconda sidebar contract in the product image. The
+ * bootstrap stylesheet is deliberately not inherited: these selectors own
+ * the visible installer chrome and all point at ArachOS artwork. */
+.logo-sidebar {
+    background-image: url('/usr/share/anaconda/pixmaps/sidebar-bg.png');
+    background-color: @arachos;
+    background-repeat: no-repeat;
+}
+
+.logo {
+    background-image: url('/usr/share/anaconda/pixmaps/sidebar-logo.png');
+    background-position: 50% 20px;
+    background-repeat: no-repeat;
+    background-color: transparent;
+}
+
+.product-logo {
+    background-image: url('/usr/share/pixmaps/system-logo-white.png');
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    background-color: transparent;
+}
+
+AnacondaSpokeWindow #nav-box {
+    background-color: @arachos;
+    background-image: url('/usr/share/anaconda/pixmaps/topbar-bg.png');
+    background-repeat: no-repeat;
+    color: #ffffff;
+}
+
 window, dialog {
-    background-color: #10131f;
+    background-color: @arachos;
     color: #e9ecff;
 }
 
@@ -104,7 +139,7 @@ headerbar {
 }
 
 button.suggested-action {
-    background-color: #7148ff;
+    background-color: @arachos-accent;
     color: #ffffff;
 }
 EOF
@@ -159,7 +194,9 @@ EOF
 %{_sysconfdir}/system-release-cpe
 %{_usr}/lib/os-release
 %{_usr}/share/anaconda/pixmaps/arachos.css
+%{_usr}/share/anaconda/boot/splash.png
 %{_usr}/share/anaconda/boot/syslinux-splash.png
+%{_usr}/share/anaconda/pixmaps/anaconda_header.png
 %{_usr}/share/anaconda/pixmaps/sidebar-bg.png
 %{_usr}/share/anaconda/pixmaps/sidebar-logo.png
 %{_usr}/share/anaconda/pixmaps/topbar-bg.png

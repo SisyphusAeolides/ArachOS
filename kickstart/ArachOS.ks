@@ -1,7 +1,7 @@
 # ArachOS interactive installer kickstart.
 #
-# The Fedora 45 netinst image supplies the graphical Anaconda runtime.  This
-# file supplies only repository sources and the installed-system transition.
+# The bootstrap netinst image supplies the graphical Anaconda runtime. This
+# file supplies only ArachOS repository sources and the installed transition.
 # It deliberately contains no clearpart, autopart, or forced desktop
 # selection; disk layout and optional graphical packages remain Anaconda
 # decisions.
@@ -31,8 +31,8 @@ if ! test -d "$media/ArachOS-Repo"; then
     exit 1
 fi
 
-# Fedora's Anaconda runtime may expose the generic package client as dnf4 or
-# dnf-3 even when the installed target exposes the normal dnf command.
+# The Anaconda runtime may expose the generic package client as dnf4 or dnf-3
+# even when the installed target exposes the normal dnf command.
 dnf_command=
 for candidate in /usr/bin/dnf /usr/bin/dnf4 /usr/bin/dnf-3; do
     if test -x "$candidate"; then
@@ -50,19 +50,20 @@ arachos_key="$media/ArachOS-Repo/RPM-GPG-KEY-ARACHOS"
 test -s "$arachos_key"
 install -D -m 0644 "$arachos_key" \
     "$target/etc/pki/rpm-gpg/RPM-GPG-KEY-ARACHOS"
-bootstrap_key="$media/ArachOS-Repo/RPM-GPG-KEY-FEDORA-45-PRIMARY"
+bootstrap_key_name="RPM-GPG-KEY-ARACHOS-BOOTSTRAP-${ARACHOS_BOOTSTRAP_RELEASE}-PRIMARY"
+bootstrap_key="$media/ArachOS-Repo/$bootstrap_key_name"
 test -s "$bootstrap_key"
 install -D -m 0644 "$bootstrap_key" \
-    "$target/etc/pki/rpm-gpg/RPM-GPG-KEY-FEDORA-45-PRIMARY"
+    "$target/etc/pki/rpm-gpg/$bootstrap_key_name"
 
 repo_args=(
     --repofrompath=arachos-core,"$ARACHOS_CORE_URL"
     --repofrompath=arachos-updates,"$ARACHOS_UPDATES_URL"
     --repofrompath=arachos-custom,file:///run/install/repo/ArachOS-Repo
     --setopt=arachos-core.gpgcheck=1
-    --setopt=arachos-core.gpgkey=file:///run/install/repo/ArachOS-Repo/RPM-GPG-KEY-FEDORA-45-PRIMARY
+    --setopt=arachos-core.gpgkey=file:///run/install/repo/ArachOS-Repo/$bootstrap_key_name
     --setopt=arachos-updates.gpgcheck=1
-    --setopt=arachos-updates.gpgkey=file:///run/install/repo/ArachOS-Repo/RPM-GPG-KEY-FEDORA-45-PRIMARY
+    --setopt=arachos-updates.gpgkey=file:///run/install/repo/ArachOS-Repo/$bootstrap_key_name
     --setopt=arachos-custom.gpgcheck=1
     --setopt=arachos-custom.gpgkey=file:///run/install/repo/ArachOS-Repo/RPM-GPG-KEY-ARACHOS
 )
@@ -75,7 +76,6 @@ packages=(
     dbus-tools
     dnf
     rpm
-    fedora-gpg-keys
     dracut
     dracut-config-generic
     dracut-network
@@ -200,14 +200,14 @@ name=ArachOS bootstrap core
 baseurl=$ARACHOS_CORE_URL
 enabled=1
 gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-FEDORA-45-PRIMARY
+gpgkey=file:///etc/pki/rpm-gpg/$bootstrap_key_name
 
 [arachos-updates]
 name=ArachOS bootstrap updates
 baseurl=$ARACHOS_UPDATES_URL
 enabled=1
 gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-FEDORA-45-PRIMARY
+gpgkey=file:///etc/pki/rpm-gpg/$bootstrap_key_name
 REPO
 
 command -v restorecon >/dev/null

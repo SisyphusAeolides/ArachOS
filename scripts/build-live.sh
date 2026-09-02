@@ -47,7 +47,7 @@ done
     'ArachOS RPM repository is unsigned; provide ARACHOS_GPG_HOME and ARACHOS_GPG_KEY_ID to build-rpms'
 gpg --show-keys --with-colons "$RPM_REPO/RPM-GPG-KEY-ARACHOS" \
     | grep -Eq '^pub:' || fail 'ArachOS RPM signing key is invalid'
-bootstrap_key="$RPM_REPO/RPM-GPG-KEY-FEDORA-${ARACHOS_BOOTSTRAP_RELEASE}-PRIMARY"
+bootstrap_key="$RPM_REPO/RPM-GPG-KEY-ARACHOS-BOOTSTRAP-${ARACHOS_BOOTSTRAP_RELEASE}-PRIMARY"
 [[ -s $bootstrap_key ]] || fail \
     "bootstrap repository signing key is missing: $bootstrap_key"
 bootstrap_key_fingerprint=$(gpg --show-keys --with-colons "$bootstrap_key" \
@@ -271,9 +271,12 @@ product_listing="$WORK/product.img.list"
 gzip -dc "$product_img" | cpio -it --quiet > "$product_listing"
 for path in .buildstamp etc/anaconda/profile.d/z-arachos.conf \
             usr/share/anaconda/pixmaps/arachos.css \
+            usr/share/anaconda/boot/splash.png \
+            usr/share/anaconda/pixmaps/anaconda_header.png \
             usr/share/anaconda/pixmaps/sidebar-logo.png \
             usr/share/anaconda/pixmaps/sidebar-bg.png \
-            usr/share/anaconda/pixmaps/topbar-bg.png; do
+            usr/share/anaconda/pixmaps/topbar-bg.png \
+            usr/share/pixmaps/arachos.png; do
     grep -Fxq "$path" "$product_listing" \
         || fail "ArachOS product image is missing $path"
 done
