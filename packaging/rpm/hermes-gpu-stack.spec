@@ -151,7 +151,7 @@ fi
 
 %files
 %license LICENSE
-%doc README.md docs/DROP_IN.md docs/DRM_MESA.md docs/CCCL_CUDA.md
+%doc README.md docs/OPEN_SOURCE.md docs/CHAOS.md docs/DROP_IN.md docs/DRM_MESA.md docs/CCCL_CUDA.md
 %{_bindir}/hermes-ctl
 %{_bindir}/nvidia-smi
 %{_bindir}/nvidia-modprobe
