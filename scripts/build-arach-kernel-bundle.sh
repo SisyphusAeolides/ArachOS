@@ -25,7 +25,7 @@ fi
 
 fail() { printf 'ArachOS kernel bundle: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
-for command in git cargo readelf sha256sum rpm rpm2cpio cpio install; do need "$command"; done
+for command in git cargo readelf sha256sum rpm rpm2cpio cpio install find; do need "$command"; done
 
 # Kernel and static-RustD compilation trees are disposable and can consume
 # many gigabytes. The durable bundle (artifacts and qualification manifests)
