@@ -69,6 +69,20 @@ if [[ -e $stage2_root/etc/fedora-release || -L $stage2_root/etc/fedora-release ]
     unlink "$stage2_root/etc/fedora-release"
 fi
 
+# Neutralize network defaults that belong to the bootstrap distribution.  The
+# ArachOS profile overrides these values when selected, but keeping the base
+# configuration neutral prevents a direct Anaconda launch or a profile-load
+# failure from contacting Fedora's Flatpak registry or GeoIP service.
+anaconda_conf="$stage2_root/etc/anaconda/anaconda.conf"
+if [[ -f $anaconda_conf ]]; then
+    sed -i \
+        -e 's@^[[:space:]]*fedora[[:space:]]\+oci+https://registry\.fedoraproject\.org[[:space:]]*$@    # no default Flatpak remote@' \
+        -e 's@^[[:space:]]*geolocation_provider[[:space:]]*=.*$@geolocation_provider =@' \
+        -e 's@^[[:space:]]*use_geolocation[[:space:]]*=.*$@use_geolocation = False@' \
+        -e 's@geoip\.fedoraproject\.org@geoip.disabled.arachos@g' \
+        "$anaconda_conf"
+fi
+
 # Only the selected profile is allowed to participate in stage2 detection.
 # Leaving Fedora/Alma/CentOS profile fragments in the rebuilt image makes the
 # installer a vendor multiplexer rather than an ArachOS installer.
@@ -233,6 +247,18 @@ grep -Fq 'set_icon_name("org.arachos.ArachOSInstaller")' \
     || fail 'rebuilt stage2 Anaconda icon is not ArachOS'
 grep -Fxq 'flatpak_remote =' "$verify_root/etc/anaconda/conf.d/10-arachos.conf" \
     || fail 'rebuilt stage2 leaves the bootstrap Flatpak remote enabled'
+if [[ -f $verify_root/etc/anaconda/anaconda.conf ]]; then
+    ! grep -Fq 'registry.fedoraproject.org' "$verify_root/etc/anaconda/anaconda.conf" \
+        || fail 'rebuilt stage2 retains the bootstrap Flatpak registry'
+    ! grep -Fq 'geoip.fedoraproject.org' "$verify_root/etc/anaconda/anaconda.conf" \
+        || fail 'rebuilt stage2 retains the bootstrap GeoIP endpoint'
+    grep -Eq '^[[:space:]]*geolocation_provider[[:space:]]*=[[:space:]]*$' \
+        "$verify_root/etc/anaconda/anaconda.conf" \
+        || fail 'rebuilt stage2 has no neutral GeoIP setting'
+    grep -Eq '^[[:space:]]*use_geolocation[[:space:]]*=[[:space:]]*False[[:space:]]*$' \
+        "$verify_root/etc/anaconda/anaconda.conf" \
+        || fail 'rebuilt stage2 still enables GeoIP lookup'
+fi
 ! [[ -e $verify_root/etc/fedora-release || -L $verify_root/etc/fedora-release ]] \
     || fail 'rebuilt stage2 retains /etc/fedora-release'
 ! find "$verify_root/usr/share" -type f -iname '*fedora*' \
