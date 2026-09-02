@@ -17,6 +17,7 @@ ARACHOS_INSTALLER_KERNEL=${ARACHOS_INSTALLER_KERNEL:-$ROOT/build/kernel-bundle/i
 ARACHOS_INSTALLER_INITRD=${ARACHOS_INSTALLER_INITRD:-$ROOT/build/kernel-bundle/installer-initrd.img}
 ARACHOS_LIVE_RUNTIME_MANIFEST=${ARACHOS_LIVE_RUNTIME_MANIFEST:-$ROOT/build/kernel-bundle/live-manifest.txt}
 LIVE_MEDIA_KEEP_WORK=${LIVE_MEDIA_KEEP_WORK:-0}
+ARACHOS_KEEP_BUILD_WORK=${ARACHOS_KEEP_BUILD_WORK:-0}
 KERNEL_PACKAGE=${KERNEL_PACKAGE:-arach-kernel}
 KERNEL_MODULE_PACKAGES=${KERNEL_MODULE_PACKAGES:-}
 ARACH_KERNEL_INSTALL_MANIFEST=${ARACH_KERNEL_INSTALL_MANIFEST:-$ROOT/build/kernel-bundle/install-manifest.txt}
@@ -97,6 +98,7 @@ printf 'Container build root: %s\n' "$build_root"
     --env "ARACHOS_INSTALLER_INITRD=/input/arachos-installer-initrd.img" \
     --env "ARACHOS_LIVE_RUNTIME_MANIFEST=/input/arachos-live-runtime-manifest.txt" \
     --env "LIVE_MEDIA_KEEP_WORK=$LIVE_MEDIA_KEEP_WORK" \
+    --env "ARACHOS_KEEP_BUILD_WORK=$ARACHOS_KEEP_BUILD_WORK" \
     --env "KERNEL_PACKAGE=$KERNEL_PACKAGE" \
     --env "KERNEL_MODULE_PACKAGES=$KERNEL_MODULE_PACKAGES" \
     --env "ARACH_KERNEL_INSTALL_MANIFEST=/input/arach-kernel-install-manifest.txt" \
