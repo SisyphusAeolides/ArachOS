@@ -97,10 +97,11 @@ during installation. An unsigned repository is rejected.
 
 The installer uses the supplied Everything netinst image only as the initial
 Anaconda runtime payload while the ArachOS media composition is built. The
-resulting ISO replaces the media descriptor and boot labels, injects an
-ArachOS `product.img` (buildstamp, profile, stylesheet, and artwork), and
-passes `inst.profile=arachos` to Anaconda. It is therefore an ArachOS
-installer media, not a Fedora-branded boot or desktop session. The installer
+resulting ISO replaces the media descriptor and every BIOS/UEFI boot label,
+injects an ArachOS `product.img` (buildstamp, profile, stylesheet, splash,
+header, and logo artwork), and passes `inst.profile=arachos` to Anaconda. It
+is therefore an ArachOS installer media, not a bootstrap-branded boot or
+desktop session. The installer
 boots from the configured core/update repositories; it is not a desktop live
 session. The kickstart supplies repository sources and the RustD post-install
 transition but intentionally leaves disk selection and optional desktop
