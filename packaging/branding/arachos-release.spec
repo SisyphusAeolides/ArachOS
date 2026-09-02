@@ -106,6 +106,7 @@ install -Dpm0644 /dev/stdin %{buildroot}%{_usr}/share/anaconda/pixmaps/arachos.c
     background-image: url('/usr/share/anaconda/pixmaps/sidebar-bg.png');
     background-color: @arachos;
     background-repeat: no-repeat;
+    background-size: 100% 100%;
 }
 
 .logo {
@@ -113,6 +114,7 @@ install -Dpm0644 /dev/stdin %{buildroot}%{_usr}/share/anaconda/pixmaps/arachos.c
     background-position: 50% 20px;
     background-repeat: no-repeat;
     background-color: transparent;
+    background-size: 96px 96px;
 }
 
 .product-logo {
@@ -120,12 +122,14 @@ install -Dpm0644 /dev/stdin %{buildroot}%{_usr}/share/anaconda/pixmaps/arachos.c
     background-position: 50% 50%;
     background-repeat: no-repeat;
     background-color: transparent;
+    background-size: 96px 96px;
 }
 
 AnacondaSpokeWindow #nav-box {
     background-color: @arachos;
     background-image: url('/usr/share/anaconda/pixmaps/topbar-bg.png');
     background-repeat: no-repeat;
+    background-size: 132px 132px;
     color: #ffffff;
 }
 
