@@ -13,8 +13,10 @@ ARACHOS_UPDATES_URL=${ARACHOS_UPDATES_URL:-https://dl.fedoraproject.org/pub/fedo
 ARACHOS_BOOTSTRAP_ISO=${ARACHOS_BOOTSTRAP_ISO:-/home/Sisyphus/Downloads/Fedora-Everything-netinst-x86_64-45-20260831.n.0.iso}
 ARACHOS_BOOTSTRAP_ISO_SHA256=${ARACHOS_BOOTSTRAP_ISO_SHA256:-523f17169f6012c8a9f04b1b1ceb330428a8fb1cf72e076de71dd396ffd9c40d}
 ARACHOS_REPOSITORY_URL=${ARACHOS_REPOSITORY_URL:-}
-KERNEL_PACKAGE=${KERNEL_PACKAGE:-kernel}
+KERNEL_PACKAGE=${KERNEL_PACKAGE:-arach-kernel}
 KERNEL_MODULE_PACKAGES=${KERNEL_MODULE_PACKAGES:-}
+ARACH_KERNEL_INSTALL_MANIFEST=${ARACH_KERNEL_INSTALL_MANIFEST:-$ROOT/build/kernel-bundle/install-manifest.txt}
+ARACHOS_HERMES_INSTALL_MANIFEST=${ARACHOS_HERMES_INSTALL_MANIFEST:-$ROOT/build/hermes-qualification/release-manifest.txt}
 BUILDER_IMAGE=${ARACHOS_BUILDER_IMAGE:-localhost/arachos-build:fedora45}
 
 fail() { printf 'ArachOS container installer build: %s\n' "$*" >&2; exit 1; }
@@ -24,6 +26,10 @@ need podman
 [[ $ARACHOS_ARCH == x86_64 ]] || fail 'the container installer builder currently supports x86_64 only'
 [[ -f $ARACHOS_BOOTSTRAP_ISO ]] || fail \
     "bootstrap installer ISO is missing: $ARACHOS_BOOTSTRAP_ISO"
+[[ -r $ARACH_KERNEL_INSTALL_MANIFEST ]] || fail \
+    "Arach-Kernel install qualification manifest is missing: $ARACH_KERNEL_INSTALL_MANIFEST"
+[[ -r $ARACHOS_HERMES_INSTALL_MANIFEST ]] || fail \
+    "Hermes release qualification manifest is missing: $ARACHOS_HERMES_INSTALL_MANIFEST"
 
 if [[ $EUID -eq 0 ]]; then
     podman_cmd=(podman)
@@ -60,7 +66,11 @@ printf 'Container build root: %s\n' "$build_root"
     --env "ARACHOS_REPOSITORY_URL=$ARACHOS_REPOSITORY_URL" \
     --env "KERNEL_PACKAGE=$KERNEL_PACKAGE" \
     --env "KERNEL_MODULE_PACKAGES=$KERNEL_MODULE_PACKAGES" \
+    --env "ARACH_KERNEL_INSTALL_MANIFEST=/input/arach-kernel-install-manifest.txt" \
+    --env "ARACHOS_HERMES_INSTALL_MANIFEST=/input/hermes-release-manifest.txt" \
     --volume "$ARACHOS_BOOTSTRAP_ISO:/input/arachos-bootstrap.iso:ro,rprivate" \
+    --volume "$ARACH_KERNEL_INSTALL_MANIFEST:/input/arach-kernel-install-manifest.txt:ro,rprivate" \
+    --volume "$ARACHOS_HERMES_INSTALL_MANIFEST:/input/hermes-release-manifest.txt:ro,rprivate" \
     "$BUILDER_IMAGE" \
     bash -lc '
         set -Eeuo pipefail

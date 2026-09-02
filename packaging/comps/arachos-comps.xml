@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<comps>
+  <!-- Override the bootstrap repository's custom environment identity while
+       retaining its core group and optional package groups. -->
+  <environment>
+    <id>custom-environment</id>
+    <name>ArachOS Operating System</name>
+    <name xml:lang="en_GB">ArachOS Operating System</name>
+    <description>ArachOS base installation environment.</description>
+    <description xml:lang="en_GB">ArachOS base installation environment.</description>
+    <display_order>1</display_order>
+    <grouplist>
+      <groupid>core</groupid>
+    </grouplist>
+    <optionlist>
+      <groupid>guest-agents</groupid>
+      <groupid>networkmanager-submodules</groupid>
+      <groupid>standard</groupid>
+    </optionlist>
+  </environment>
+</comps>

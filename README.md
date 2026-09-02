@@ -86,9 +86,11 @@ make validate-rpms
 identity, Hermes, the iwchaos target-kernel DKMS source package, and all pinned
 companion packages. It also writes a manifest
 with source revisions, the exact bootstrap systemd capability used for RPM
-dependency compatibility, and SHA-256 digests. Sign the repository and enable
-GPG verification before publishing a production mirror; local preflight builds
-keep verification disabled because no project signing key is committed.
+dependency compatibility, and SHA-256 digests. The installer builder requires
+every ArachOS RPM to be signed by an operator-controlled key. Set
+`ARACHOS_GPG_HOME` and `ARACHOS_GPG_KEY_ID` when running `make build-rpms`; the
+public key is embedded in the ISO repository and the kickstart verifies it
+during installation. An unsigned repository is rejected.
 
 ## Graphical Anaconda installer
 
@@ -130,12 +132,17 @@ the ArachOS kickstart, and the ArachOS RPM repository. The upstream installer
 license notice remains on the bootstrap media; the installed target is checked
 for ArachOS identity and absence of the bootstrap release package. `build-live`
 and `build-live-existing` are retained as compatible make targets for the same
-netinst composition path.
+netinst composition path, and both reject the generic `kernel*` package family.
+`build-installer` also builds the pinned Arach-Kernel qualification bundle and
+requires its install-qualification manifest before composing media. The current
+bundle records `status=qualification-only`, because the persistent root,
+Anaconda-target, and BIOS/UEFI installed-boot gates are not complete; the build
+therefore stops instead of installing a generic Fedora kernel.
 
 ## Arach Kernel qualification bundle
 
 Arach Kernel is developed and measured independently from the generic Linux
-kernel used to bootstrap Anaconda. The bundle builder builds RustD as a
+kernel used only to bootstrap Anaconda. The bundle builder builds RustD as a
 loader-free static PIE from the pinned RustD checkout, builds the measured C0
 Linux-ABI probe and Arach Kernel, and packages them into a GRUB Multiboot2
 qualification image:
@@ -149,7 +156,12 @@ filesystem, graphical stack, or installed-system path already runs on Arach
 Kernel. Its manifest records every measured artifact and source revision.
 Persistent storage, the complete Linux ABI, external-module lifecycle,
 RustD/RustD-resolved service startup, and graphical desktop paths remain
-separate runtime gates until their BIOS and UEFI tests pass.
+separate runtime gates until their BIOS and UEFI tests pass. A target is not
+release-ready until an `arach-kernel` package provides `/boot/arach`, the RustD
+and RustD-resolved boot payloads, and `/usr/sbin/arach-kernel-install`; that
+helper must verify the Multiboot2 image and install both BIOS and UEFI entries
+for the persistent ArachOS root. The kickstart rejects residual Fedora
+`kernel*` RPMs and refuses a conventional Linux BLS/dracut path.
 
 ## Installed-system transition
 
@@ -162,11 +174,12 @@ in `sources.lock`; DKMS then rebuilds the same modules for later installed
 kernels. This keeps the first installed system independent of network access
 to a source host. A later kernel with a different upstream API must provide a
 matching source tree or an explicit `IWCHAOS_LINUX_REF` before it is activated.
-RustD also owns the native `kernel-install` compatibility path: each target
-kernel receives a BLS entry containing a copied kernel and initramfs, with the
-installed root UUID and configured console/LVM options. The post-install audit
-reconciles and validates those boot artifacts before reboot. It then rebuilds
-the target initramfs and checks that:
+The Arach-Kernel package, not RustD or the Fedora bootstrap payload, owns the
+installed boot image and bootloader entries through
+`/usr/sbin/arach-kernel-install`. The post-install audit invokes that helper
+and refuses to continue unless it verifies the Multiboot2 kernel, measured
+RustD/RustD-resolved payloads, persistent root, and both BIOS and UEFI entries.
+It then checks that:
 
 - `/etc/os-release` reports `ID=arachos`;
 - `/usr/sbin/init` and `/proc/1/exe` resolve to RustD;
@@ -179,6 +192,28 @@ These checks are necessary but not sufficient for a production release. Run
 the full disposable-VM boot, networking, storage, graphical, suspend/resume,
 shutdown, fault-recovery, and long-running soak campaign before installing on
 hardware without a recovery path.
+
+## Hermes release qualification
+
+Hermes is an evidence-driven GPU stack, not a release switch that can be
+declared complete by compiling its Rust crates or loading a kernel module. Run
+the qualification harness from the pinned Hermes checkout:
+
+```sh
+make qualify-hermes
+```
+
+It records `build/hermes-qualification/release-manifest.txt` and its scoped
+logs. The harness requires strict Rust/formal checks, a clean GCC kmod build,
+the advertised drop-in tests, a clean source revision, the Hermes
+open-source-boundary audit, shared-chaos coverage, an audit with no placeholder
+runtime surfaces, and a physical NVIDIA/AMD/Intel hardware report. Missing
+firmware, a
+simulation-only result, an incomplete DRM/CUDA/NVML/Mesa/MPS/UVM path, or a
+missing fault-recovery/soak result leaves the manifest `status=blocked`.
+`build-live`, `build-live-existing`, and `build-live-container` refuse every
+Hermes manifest other than `status=pass`; no ISO can therefore ship a
+compatibility shell as if it were a complete GPU implementation.
 
 ## Containerized media build
 

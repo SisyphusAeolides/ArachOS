@@ -15,6 +15,8 @@ ARACHOS_BOOTSTRAP_ISO_SHA256 ?= 523f17169f6012c8a9f04b1b1ceb330428a8fb1cf72e076d
 ARACHOS_SYSTEMD_EVR ?=
 ARACHOS_REPOSITORY_URL ?=
 ARACHOS_RPM_DIST ?= .arachos
+ARACHOS_GPG_HOME ?=
+ARACHOS_GPG_KEY_ID ?=
 RPMBUILD_DBPATH ?=
 RPMBUILD_TMPDIR ?=
 KOJI_PROFILE ?= arachos
@@ -27,8 +29,10 @@ KOJI_TOPURL ?=
 KOJI_EXPORT_ARCH ?= x86_64
 CHAOS_KERNEL_PACKAGE ?= kernel-clk6.18
 CHAOS_KERNEL_SRPM ?=
-KERNEL_PACKAGE ?= kernel
+KERNEL_PACKAGE ?= arach-kernel
 KERNEL_MODULE_PACKAGES ?=
+ARACH_KERNEL_INSTALL_MANIFEST ?= $(BUILD_DIR)/kernel-bundle/install-manifest.txt
+ARACHOS_HERMES_INSTALL_MANIFEST ?= $(BUILD_DIR)/hermes-qualification/release-manifest.txt
 RUSTD_SOURCE_ROOT ?= $(PROJECT_ROOT)/rustd
 RESOLVED_SOURCE_ROOT ?= $(PROJECT_ROOT)/rustd-resolved
 ARACH_KERNEL_SOURCE_ROOT ?= $(PROJECT_ROOT)/Arach-Kernel
@@ -47,7 +51,7 @@ ARACH_BOOTSTRAP_IMAGE ?=
 ARACH_RESOLVED_IMAGE ?=
 ARACH_BOOTSTRAP_ABI ?= linux
 
-.PHONY: verify-sources check-chaos build-rpms build-arach-kernel-bundle \
+.PHONY: verify-sources check-chaos qualify-hermes build-rpms build-arach-kernel-bundle \
 	validate-rpms build-installer build-live build-live-existing build-live-container \
 	koji-build validate clean
 
@@ -83,6 +87,8 @@ build-rpms: verify-sources
 	ARACHOS_BOOTSTRAP_ISO_SHA256="$(ARACHOS_BOOTSTRAP_ISO_SHA256)" \
 	ARACHOS_SYSTEMD_EVR="$(ARACHOS_SYSTEMD_EVR)" \
 	ARACHOS_RPM_DIST="$(ARACHOS_RPM_DIST)" \
+	ARACHOS_GPG_HOME="$(ARACHOS_GPG_HOME)" \
+	ARACHOS_GPG_KEY_ID="$(ARACHOS_GPG_KEY_ID)" \
 	RPMBUILD_DBPATH="$(RPMBUILD_DBPATH)" \
 	RPMBUILD_TMPDIR="$(RPMBUILD_TMPDIR)" \
 	RPM_OUTPUT="$(BUILD_DIR)/repo" \
@@ -90,6 +96,11 @@ build-rpms: verify-sources
 
 check-chaos: verify-sources
 	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" bash scripts/check-chaos.sh
+
+qualify-hermes: verify-sources
+	HERMES_QUALIFICATION_DIR="$(BUILD_DIR)/hermes-qualification" \
+	HERMES_RELEASE_MANIFEST="$(ARACHOS_HERMES_INSTALL_MANIFEST)" \
+	bash "$(HERMES_SOURCE_ROOT)/scripts/qualify-release.sh"
 
 build-arach-kernel-bundle: build-rpms
 	ARACH_KERNEL_SOURCE_ROOT="$(ARACH_KERNEL_SOURCE_ROOT)" \
@@ -117,7 +128,7 @@ build-arach-kernel-bundle: build-rpms
 validate-rpms:
 	RPM_REPO="$(RPM_REPO)" bash scripts/validate-rpms.sh
 
-build-installer: build-rpms validate-rpms
+build-installer: qualify-hermes build-rpms validate-rpms build-arach-kernel-bundle
 	RPM_REPO="$(RPM_REPO)" ISO_OUTPUT="$(BUILD_DIR)/iso" \
 	ARACHOS_VERSION="$(ARACHOS_VERSION)" ARACHOS_RELEASE="$(ARACHOS_RELEASE)" \
 	ARACHOS_RELEASEVER="$(ARACHOS_RELEASEVER)" \
@@ -128,14 +139,18 @@ build-installer: build-rpms validate-rpms
 	ARACHOS_BOOTSTRAP_ISO="$(ARACHOS_BOOTSTRAP_ISO)" \
 	ARACHOS_BOOTSTRAP_ISO_SHA256="$(ARACHOS_BOOTSTRAP_ISO_SHA256)" \
 	ARACHOS_REPOSITORY_URL="$(ARACHOS_REPOSITORY_URL)" \
+	ARACHOS_GPG_HOME="$(ARACHOS_GPG_HOME)" \
+	ARACHOS_GPG_KEY_ID="$(ARACHOS_GPG_KEY_ID)" \
 	KERNEL_PACKAGE="$(KERNEL_PACKAGE)" \
-		KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
-		RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
+	KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
+	ARACH_KERNEL_INSTALL_MANIFEST="$(ARACH_KERNEL_INSTALL_MANIFEST)" \
+	ARACHOS_HERMES_INSTALL_MANIFEST="$(ARACHOS_HERMES_INSTALL_MANIFEST)" \
+	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
 		bash scripts/build-live.sh
 
 build-live: build-installer
 
-build-live-existing: validate-rpms
+build-live-existing: qualify-hermes validate-rpms
 	RPM_REPO="$(RPM_REPO)" ISO_OUTPUT="$(BUILD_DIR)/iso" \
 	ARACHOS_VERSION="$(ARACHOS_VERSION)" ARACHOS_RELEASE="$(ARACHOS_RELEASE)" \
 	ARACHOS_RELEASEVER="$(ARACHOS_RELEASEVER)" \
@@ -148,9 +163,11 @@ build-live-existing: validate-rpms
 	ARACHOS_REPOSITORY_URL="$(ARACHOS_REPOSITORY_URL)" \
 	KERNEL_PACKAGE="$(KERNEL_PACKAGE)" \
 	KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
-		bash scripts/build-live.sh
+	ARACH_KERNEL_INSTALL_MANIFEST="$(ARACH_KERNEL_INSTALL_MANIFEST)" \
+	ARACHOS_HERMES_INSTALL_MANIFEST="$(ARACHOS_HERMES_INSTALL_MANIFEST)" \
+	bash scripts/build-live.sh
 
-build-live-container: validate-rpms
+build-live-container: qualify-hermes validate-rpms
 	RPM_REPO="$(RPM_REPO)" \
 	ARACHOS_VERSION="$(ARACHOS_VERSION)" ARACHOS_RELEASE="$(ARACHOS_RELEASE)" \
 	ARACHOS_RELEASEVER="$(ARACHOS_RELEASEVER)" \
@@ -162,8 +179,10 @@ build-live-container: validate-rpms
 	ARACHOS_BOOTSTRAP_ISO_SHA256="$(ARACHOS_BOOTSTRAP_ISO_SHA256)" \
 	ARACHOS_REPOSITORY_URL="$(ARACHOS_REPOSITORY_URL)" \
 	KERNEL_PACKAGE="$(KERNEL_PACKAGE)" \
-		KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
-		bash scripts/build-live-container.sh
+	KERNEL_MODULE_PACKAGES="$(KERNEL_MODULE_PACKAGES)" \
+	ARACH_KERNEL_INSTALL_MANIFEST="$(ARACH_KERNEL_INSTALL_MANIFEST)" \
+	ARACHOS_HERMES_INSTALL_MANIFEST="$(ARACHOS_HERMES_INSTALL_MANIFEST)" \
+	bash scripts/build-live-container.sh
 
 koji-build:
 	ARACHOS_VERSION="$(ARACHOS_VERSION)" \

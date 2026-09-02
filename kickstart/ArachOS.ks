@@ -20,6 +20,7 @@ ARACHOS_CORE_URL=__ARACHOS_CORE_URL__
 ARACHOS_UPDATES_URL=__ARACHOS_UPDATES_URL__
 ARACHOS_REPOSITORY_URL=__ARACHOS_REPOSITORY_URL__
 ARACHOS_REPOSITORY_ENABLED=__ARACHOS_REPOSITORY_ENABLED__
+ARACHOS_KERNEL_PACKAGE=__ARACHOS_KERNEL_PACKAGE__
 printf 'ArachOS post: target=%s media=%s\n' "$target" "$media"
 if ! test -d "$target"; then
     printf 'ArachOS post: target mount is missing: %s\n' "$target"
@@ -45,22 +46,25 @@ if test -z "$dnf_command"; then
 fi
 printf 'ArachOS post: using package command %s\n' "$dnf_command"
 
-# The Fedora 45 installer enables RPM-level signature enforcement before
-# repository settings are evaluated.  The bootstrap repository is currently
-# unsigned, so scope a digest-only macro to this installer transaction.  The
-# file lives in the installer runtime and is removed before target auditing.
-rpm_bootstrap_macro=/etc/rpm/macros.arachos-installer
-mkdir -p /etc/rpm
-chmod 0755 /etc/rpm
-printf '%%_pkgverify_level digest\n' > "$rpm_bootstrap_macro"
+arachos_key="$media/ArachOS-Repo/RPM-GPG-KEY-ARACHOS"
+test -s "$arachos_key"
+install -D -m 0644 "$arachos_key" \
+    "$target/etc/pki/rpm-gpg/RPM-GPG-KEY-ARACHOS"
+bootstrap_key="$media/ArachOS-Repo/RPM-GPG-KEY-FEDORA-45-PRIMARY"
+test -s "$bootstrap_key"
+install -D -m 0644 "$bootstrap_key" \
+    "$target/etc/pki/rpm-gpg/RPM-GPG-KEY-FEDORA-45-PRIMARY"
 
 repo_args=(
     --repofrompath=arachos-core,"$ARACHOS_CORE_URL"
     --repofrompath=arachos-updates,"$ARACHOS_UPDATES_URL"
     --repofrompath=arachos-custom,file:///run/install/repo/ArachOS-Repo
-    --setopt=arachos-core.gpgcheck=0
-    --setopt=arachos-updates.gpgcheck=0
-    --setopt=arachos-custom.gpgcheck=0
+    --setopt=arachos-core.gpgcheck=1
+    --setopt=arachos-core.gpgkey=file:///run/install/repo/ArachOS-Repo/RPM-GPG-KEY-FEDORA-45-PRIMARY
+    --setopt=arachos-updates.gpgcheck=1
+    --setopt=arachos-updates.gpgkey=file:///run/install/repo/ArachOS-Repo/RPM-GPG-KEY-FEDORA-45-PRIMARY
+    --setopt=arachos-custom.gpgcheck=1
+    --setopt=arachos-custom.gpgkey=file:///run/install/repo/ArachOS-Repo/RPM-GPG-KEY-ARACHOS
 )
 
 packages=(
@@ -71,6 +75,7 @@ packages=(
     dbus-tools
     dnf
     rpm
+    fedora-gpg-keys
     dracut
     dracut-config-generic
     dracut-network
@@ -101,15 +106,13 @@ packages=(
     iwchaos
     hermes-gpu-stack
     # ARACHOS_KERNEL_PACKAGE_BEGIN
-    kernel
+    arach-kernel
     # ARACHOS_KERNEL_PACKAGE_END
     # ARACHOS_KERNEL_MODULE_PACKAGES_BEGIN
-    kernel-modules
-    kernel-modules-extra
     # ARACHOS_KERNEL_MODULE_PACKAGES_END
 )
 
-"$dnf_command" -y --nogpgcheck \
+"$dnf_command" -y \
     --installroot="$target" \
     --releasever="$ARACHOS_BOOTSTRAP_RELEASE" \
     --setopt=install_weak_deps=False \
@@ -118,13 +121,12 @@ packages=(
     "${repo_args[@]}" \
     install "${packages[@]}" --allowerasing
 
-rm -f "$rpm_bootstrap_macro"
-
 chroot "$target" /usr/bin/env \
     ARACHOS_REPOSITORY_URL="$ARACHOS_REPOSITORY_URL" \
     ARACHOS_REPOSITORY_ENABLED="$ARACHOS_REPOSITORY_ENABLED" \
     ARACHOS_CORE_URL="$ARACHOS_CORE_URL" \
     ARACHOS_UPDATES_URL="$ARACHOS_UPDATES_URL" \
+    ARACHOS_KERNEL_PACKAGE="$ARACHOS_KERNEL_PACKAGE" \
     /usr/bin/bash -s <<'TARGET_POST'
 set -Eeuo pipefail
 
@@ -189,147 +191,49 @@ cat > /etc/yum.repos.d/arachos.repo <<REPO
 name=ArachOS packages
 baseurl=$ARACHOS_REPOSITORY_URL
 enabled=$ARACHOS_REPOSITORY_ENABLED
-gpgcheck=0
+gpgcheck=1
 repo_gpgcheck=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ARACHOS
 
 [arachos-core]
 name=ArachOS bootstrap core
 baseurl=$ARACHOS_CORE_URL
 enabled=1
-gpgcheck=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-FEDORA-45-PRIMARY
 
 [arachos-updates]
 name=ArachOS bootstrap updates
 baseurl=$ARACHOS_UPDATES_URL
 enabled=1
-gpgcheck=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-FEDORA-45-PRIMARY
 REPO
 
 command -v restorecon >/dev/null
 test -s /etc/selinux/targeted/contexts/files/file_contexts
 restorecon -RF /etc /usr /var /boot
 
-# Establish the installed boot contract before generating any BLS entry.
-# Anaconda's bootstrap kernel transaction can run before the ArachOS release
-# package is configured, which otherwise leaves a temporary bootstrap entry
-# token and LVM command line behind.
-kernel_version=$(find /lib/modules -mindepth 1 -maxdepth 1 -type d \
-    -printf '%f\n' | sort -V | tail -n 1)
-test -n "$kernel_version"
-kernel_image=/lib/modules/$kernel_version/vmlinuz
-kernel_initrd=/boot/initramfs-$kernel_version.img
-test -s "$kernel_image"
-root_source=$(awk '$2 == "/" {print $1; exit}' /etc/fstab)
-test -n "$root_source"
-
-grub_cmdline=
-if test -f /etc/default/grub; then
-    grub_cmdline=$(awk '
-        /^[[:space:]]*GRUB_CMDLINE_LINUX(_DEFAULT)?=/ {
-            value = $0
-            sub(/^[^=]*=/, "", value)
-            gsub(/"/, "", value)
-            gsub(/\047/, "", value)
-            printf "%s%s", separator, value
-            separator = " "
-        }
-    ' /etc/default/grub)
+# Anaconda's Fedora kernel is allowed to execute the installer only.  It must
+# never be present in the installed target.  The Arach-Kernel package owns the
+# Multiboot2 image and its installer helper; a conventional Linux kernel/BLS
+# reconciliation here would silently violate the ArachOS boot contract.
+test "$ARACHOS_KERNEL_PACKAGE" = arach-kernel
+rpm -q "$ARACHOS_KERNEL_PACKAGE" >/dev/null
+if rpm -qa --qf '%{NAME}\n' | grep -Eq '^kernel($|-)'; then
+    printf '%s\n' 'ArachOS post: a generic Fedora kernel remains in the target' >&2
+    rpm -qa --qf '%{NAME}-%{EVR}.%{ARCH}\n' | grep -E '^kernel($|-)' >&2 || true
+    exit 1
 fi
-
-kernel_cmdline="root=$root_source"
-for option in $grub_cmdline; do
-    case "$option" in
-        root=*|rd.lvm.lv=*|BOOT_IMAGE=*|inst.*|ro|rw)
-            ;;
-        *)
-            kernel_cmdline="$kernel_cmdline $option"
-            ;;
-    esac
-done
-kernel_cmdline="$kernel_cmdline ro"
-
-install -d -m 0755 /etc/kernel
-printf '%s\n' "$kernel_cmdline" > /etc/kernel/cmdline
-chmod 0644 /etc/kernel/cmdline
-
-test -f /etc/default/grub
-grub_config=$(mktemp /etc/default/grub.XXXXXX)
-awk -v cmdline="$kernel_cmdline" '
-    BEGIN { distributor = 0; cmdline_seen = 0 }
-    /^[[:space:]]*GRUB_DISTRIBUTOR=/ {
-        print "GRUB_DISTRIBUTOR=\"ArachOS\""
-        distributor = 1
-        next
-    }
-    /^[[:space:]]*GRUB_CMDLINE_LINUX=/ {
-        print "GRUB_CMDLINE_LINUX=\"" cmdline "\""
-        cmdline_seen = 1
-        next
-    }
-    { print }
-    END {
-        if (!distributor) print "GRUB_DISTRIBUTOR=\"ArachOS\""
-        if (!cmdline_seen) print "GRUB_CMDLINE_LINUX=\"" cmdline "\""
-    }
-' /etc/default/grub > "$grub_config"
-install -m 0644 "$grub_config" /etc/default/grub
-rm -f "$grub_config"
-
-# Remove the temporary default-token artifacts created while Anaconda was
-# installing the bootstrap kernel. The paths are deliberately exact so a
-# separately installed kernel entry cannot be removed here.
-for candidate in /boot/loader/entries/default-*.conf; do
-    test -e "$candidate" || continue
-    rm -f -- "$candidate"
-done
-if test -d /boot/default; then
-    find /boot/default -depth \( -type f -o -type l \) -delete
-    find /boot/default -depth -type d -empty -delete
-fi
-
-# Rebuild the selected target initramfs against the RustD dracut contract
-# before the first reboot.  The explicit output path is important when an ESP
-# is mounted at /boot/efi: dracut's automatic BLS discovery otherwise chooses
-# an ESP path for a kernel that is stored under /lib/modules.
-dracut --force --no-uefi "$kernel_initrd" "$kernel_version"
-test -s "$kernel_initrd"
-
-machine_id=$(cat /etc/machine-id)
-test "${#machine_id}" -ge 32
-machine_id=${machine_id:0:32}
-
-# The kernel RPM invokes the standard kernel-install pathname during its
-# transaction. Reconcile the boot artifacts explicitly as well: this keeps
-# the target bootable when a package transaction was interrupted before its
-# post-transaction hook ran and validates the RustD-owned BLS contract before
-# Anaconda reboots the machine.
-# Replace any entry created before the target had its final identity, then
-# add the native RustD entry with the normalized command line above. The
-# explicit dracut and GRUB steps below own this reconciliation, so skip the
-# package plugin pass that would rebuild DKMS and boot artifacts a second time.
-/usr/bin/kernel-install --verbose --skip-plugins --boot-path=/boot remove "$kernel_version"
-/usr/bin/kernel-install --verbose --skip-plugins --boot-path=/boot add "$kernel_version" \
-    "$kernel_image" "$kernel_initrd"
-
-install -d -m 0755 /boot/grub2
-test -x /usr/sbin/grub2-mkconfig
-/usr/sbin/grub2-mkconfig -o /boot/grub2/grub.cfg
-
-# Anaconda may have provisioned an ESP even when firmware boot was not used.
-# Install both the named and removable ArachOS EFI paths without touching
-# firmware variables from the chroot. Remove only the bootstrap vendor tree.
-if awk '$2 == "/boot/efi" {found = 1} END {exit found ? 0 : 1}' /etc/fstab; then
-    test -x /usr/sbin/grub2-install
-    /usr/sbin/grub2-install --target=x86_64-efi \
-        --efi-directory=/boot/efi --bootloader-id=arachos \
-        --no-nvram --recheck --force
-    /usr/sbin/grub2-install --target=x86_64-efi \
-        --efi-directory=/boot/efi --removable --no-nvram --recheck --force
-fi
-if test -d /boot/efi/EFI/fedora; then
-    find /boot/efi/EFI/fedora -depth \( -type f -o -type l \) -delete
-    find /boot/efi/EFI/fedora -depth -type d -empty -delete
-fi
+test -x /usr/sbin/arach-kernel-install
+test -s /boot/arach
+test -s /boot/rustd
+test -s /boot/rustd-resolved
+/usr/sbin/arach-kernel-install --root=/ --verify \
+    --kernel=/boot/arach --rustd=/boot/rustd \
+    --resolved=/boot/rustd-resolved
+test -s /boot/grub2/grub.cfg
+grep -Fq 'Arach Kernel' /boot/grub2/grub.cfg
 
 if test -d /boot/loader; then
     if grep -RInE --include='*.conf' -i 'fedora|red[[:space:]]+hat' \
@@ -356,31 +260,6 @@ if test -d /boot/efi/EFI; then
         exit 1
     fi
 fi
-
-boot_artifacts_valid() {
-    local entry linux_path initrd_path
-    entry=/boot/loader/entries/"$machine_id-$kernel_version.conf"
-    test -f "$entry" || return 1
-    linux_path=$(awk '$1 == "linux" {print $2; exit}' "$entry")
-    initrd_path=$(awk '$1 == "initrd" {print $2; exit}' "$entry")
-    case "$linux_path:$initrd_path" in
-        /*:/*)
-            case "$linux_path:$initrd_path" in
-                *..*) return 1 ;;
-            esac
-            test -s "/boot${linux_path}" && test -s "/boot${initrd_path}"
-            ;;
-        *) return 1 ;;
-    esac
-}
-
-boot_artifacts_valid
-
-for candidate in /boot/loader/entries/default-*.conf; do
-    test -e "$candidate" || continue
-    printf 'ArachOS post: unexpected default-token BLS entry: %s\n' "$candidate" >&2
-    exit 1
-done
 
 rpm -qa --qf '%{NAME}\n' | awk '
     $0 == "udev" ||

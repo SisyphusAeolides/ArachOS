@@ -1,7 +1,7 @@
 Name:           hermes-gpu-stack
 Version:        0.1.0
 Release:        1%{?dist}
-Summary:        Fail-closed multi-vendor GPU and GSP compatibility stack
+Summary:        Hardware-qualified multi-vendor GPU and GSP compatibility stack
 License:        MIT
 URL:            https://github.com/SisyphusAeolides/Hermes
 Source0:        hermes-%{version}.tar.gz
@@ -10,7 +10,6 @@ Source1:        hermes-gpu.service
 BuildRequires:  cargo >= 1.85
 BuildRequires:  rust >= 1.85
 BuildRequires:  gcc
-BuildRequires:  clang
 BuildRequires:  gawk
 BuildRequires:  make
 Requires:       rustd >= 0.1.2
@@ -31,9 +30,11 @@ Provides:       libEGL_nvidia.so.0()(64bit)
 %description
 Hermes is the ArachOS GPU/GSP compatibility layer. It packages the Rust
 control and management tools, NVIDIA-compatible CUDA/NVML/Mesa library
-surfaces, and the source for the fail-closed Linux kernel-module shims.
-Firmware remains an operator-staged input and is never shipped in this RPM.
-The Hermes service is installed in RustD's native unit namespace.
+surfaces, and the source for its Linux kernel modules. Firmware remains an
+operator-staged input and is never shipped in this RPM. The Hermes service is
+installed in RustD's native unit namespace. This package is release-qualified
+only when the physical-GPU and runtime-surface qualification manifest passes;
+unit tests and simulation do not certify a production GPU stack.
 
 %prep
 %autosetup -n hermes-%{version}
@@ -113,7 +114,7 @@ target/release/hermes-ctl dropin-catalog \
 cat > %{buildroot}%{_datadir}/hermes/DROPIN_MANIFEST.txt <<EOF
 Hermes GPU compatibility stack
 named_surfaces=30
-gsp_online=hardware-and-firmware-gated
+gsp_online=hardware-and-firmware-qualified
 firmware=operator-staged; not included in this RPM
 kmod_source=%{_prefix}/src/hermes-gpu-kmod-%{version}
 service=%{_prefix}/lib/rustd/system/hermes-gpu.service
@@ -139,6 +140,7 @@ done
 %check
 export CARGO_NET_OFFLINE=true
 cargo test --frozen --locked --workspace
+make -C linux/kmod CC=gcc all
 make -C linux/kmod host-test
 make -C formal/fortran check
 

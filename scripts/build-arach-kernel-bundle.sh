@@ -189,4 +189,20 @@ install -m 0644 "$resolved_image" "$bundle_root/rustd-resolved"
     printf 'toolchain=%s\n' "$($cargo_bin --version)"
 } > "$bundle_root/manifest.txt"
 sha256sum "$output_iso" > "$output_iso.sha256"
+# Keep the qualification bundle usable for C0 regression work without making
+# it look like an installable kernel.  The Anaconda builder consumes this
+# separate contract and refuses every value other than status=pass; the
+# persistent-root, Anaconda-target, and BIOS/UEFI gates are intentionally
+# recorded as pending until Arach-Kernel implements them.
+cat > "$bundle_root/install-manifest.txt" <<EOF
+schema=arachos-kernel-install-v1
+status=qualification-only
+kernel_package=arach-kernel
+persistent_root=pending
+anaconda_target=pending
+bios=pending
+uefi=pending
+rustd_pid1=pending
+rustd_resolved=pending
+EOF
 printf 'ArachOS Arach Kernel bundle: %s\n' "$output_iso"

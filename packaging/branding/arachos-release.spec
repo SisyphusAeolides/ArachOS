@@ -53,7 +53,6 @@ cat > %{buildroot}%{_sysconfdir}/anaconda/profile.d/z-arachos.conf <<'EOF'
 
 [Profile]
 profile_id = arachos
-base_profile = fedora
 
 [Profile Detection]
 os_id = arachos
@@ -79,10 +78,14 @@ default_partitioning =
 [User Interface]
 custom_stylesheet = /usr/share/anaconda/pixmaps/arachos.css
 show_kernel_options = True
+webui_web_engine = firefox
 
 [Payload]
 enable_closest_mirror = False
 default_source = CLOSEST_MIRROR
+default_environment = custom-environment
+updates_repositories =
+default_rpm_gpg_keys =
 
 [License]
 eula = /usr/share/licenses/arachos-release/LICENSE
