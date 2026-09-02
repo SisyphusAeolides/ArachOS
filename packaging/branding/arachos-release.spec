@@ -94,8 +94,8 @@ flatpak_remote =
 default_rpm_gpg_keys =
 
 [Timezone]
-# The bootstrap image ships a Fedora GeoIP service as its default.  ArachOS
-# does not contact a distribution-owned endpoint during installation.
+# The bootstrap image ships a GeoIP service as its default.  ArachOS does not
+# contact a distribution-owned endpoint during installation.
 geolocation_provider =
 use_geolocation = False
 

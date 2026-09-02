@@ -569,9 +569,14 @@ grep -Fxq 'flatpak_remote =' "$final_stage2_root/etc/anaconda/conf.d/10-arachos.
     || fail 'ISO Anaconda stage2 leaves the bootstrap Flatpak remote enabled'
 ! grep -Eiq 'fedora|red[[:space:]]+hat' "$final_stage2_root/etc/os-release" \
     || fail 'ISO Anaconda stage2 os-release retains bootstrap branding'
-! grep -Eiq 'fedora|red[[:space:]]+hat' \
+# Anaconda's upstream D-Bus ABI retains the `org.fedoraproject.Anaconda`
+# namespace by design.  It is an implementation identifier, not a product
+# label; every other profile line must be free of bootstrap branding.
+if grep -Eiv 'org\.fedoraproject\.Anaconda' \
     "$final_stage2_root/etc/anaconda/profile.d/z-arachos.conf" \
-    || fail 'ISO Anaconda stage2 profile retains bootstrap branding'
+    | grep -Eiq 'fedora|red[[:space:]]+hat'; then
+    fail 'ISO Anaconda stage2 profile retains bootstrap branding'
+fi
 ! find "$final_stage2_root/usr/share" -type f -iname '*fedora*' \
     \( -path '*/anaconda/pixmaps/*' -o -path '*/pixmaps/*' \
        -o -path '*/icons/*' -o -path '*/oxygen/*' -o -path '*/fedora-logos/*' \) \
