@@ -114,6 +114,7 @@ build-arach-kernel-bundle: build-rpms
 	ARACH_BOOTSTRAP_ABI="$(ARACH_BOOTSTRAP_ABI)" \
 	ARACHOS_VERSION="$(ARACHOS_VERSION)" \
 	ARACHOS_RELEASE="$(ARACHOS_RELEASE)" \
+	ARACHOS_RPM_DIST="$(ARACHOS_RPM_DIST)" \
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
 	RESOLVED_SOURCE_ROOT="$(RESOLVED_SOURCE_ROOT)" \
 	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" \
@@ -122,13 +123,15 @@ build-arach-kernel-bundle: build-rpms
 	BLERUST_SOURCE_ROOT="$(BLERUST_SOURCE_ROOT)" \
 	CCZE_SOURCE_ROOT="$(CCZE_SOURCE_ROOT)" \
 	HERMES_SOURCE_ROOT="$(HERMES_SOURCE_ROOT)" \
+	ARACHOS_GPG_HOME="$(ARACHOS_GPG_HOME)" \
+	ARACHOS_GPG_KEY_ID="$(ARACHOS_GPG_KEY_ID)" \
 	RPM_REPO="$(RPM_REPO)" \
 	bash scripts/build-arach-kernel-bundle.sh
 
 validate-rpms:
 	RPM_REPO="$(RPM_REPO)" bash scripts/validate-rpms.sh
 
-build-installer: qualify-hermes build-rpms validate-rpms build-arach-kernel-bundle
+build-installer: qualify-hermes build-rpms build-arach-kernel-bundle validate-rpms
 	RPM_REPO="$(RPM_REPO)" ISO_OUTPUT="$(BUILD_DIR)/iso" \
 	ARACHOS_VERSION="$(ARACHOS_VERSION)" ARACHOS_RELEASE="$(ARACHOS_RELEASE)" \
 	ARACHOS_RELEASEVER="$(ARACHOS_RELEASEVER)" \

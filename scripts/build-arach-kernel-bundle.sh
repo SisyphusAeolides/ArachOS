@@ -209,3 +209,17 @@ rustd_pid1=pending
 rustd_resolved=pending
 EOF
 printf 'ArachOS Arach Kernel bundle: %s\n' "$output_iso"
+
+# The installer transaction consumes an actual arach-kernel RPM.  Build it
+# from these exact measured artifacts after the bundle exists; this keeps the
+# package from ever being assembled from an unpinned or generic kernel input.
+if [[ ${ARACH_BUILD_KERNEL_RPM:-1} == 1 ]]; then
+    ARACH_KERNEL_BUNDLE_ROOT="$bundle_root" \
+        RPM_REPO="$rpm_repo" \
+        ARACHOS_VERSION="$arachos_version" \
+        ARACHOS_RELEASE="$arachos_release" \
+        ARACHOS_RPM_DIST="${ARACHOS_RPM_DIST:-.arachos}" \
+        ARACHOS_GPG_HOME="${ARACHOS_GPG_HOME:-}" \
+        ARACHOS_GPG_KEY_ID="${ARACHOS_GPG_KEY_ID:-}" \
+        bash "$root/scripts/build-arach-kernel-rpm.sh"
+fi
