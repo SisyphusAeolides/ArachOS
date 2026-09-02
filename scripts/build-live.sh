@@ -31,7 +31,7 @@ fi
 fail() { printf 'ArachOS installer media build: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 
-for command in mkksiso createrepo_c sha256sum awk rpm rpm2cpio cpio gzip dnf xorriso grep sed gpg; do
+for command in mkksiso createrepo_c sha256sum awk rpm rpm2cpio cpio gzip dnf xorriso grep sed gpg cmp; do
     need "$command"
 done
 [[ $EUID -eq 0 ]] || fail 'mkksiso must run as root'
@@ -197,16 +197,27 @@ if [[ -e $ISO_OUTPUT || -e $WORK ]]; then
 fi
 mkdir -p "$ISO_OUTPUT" "$WORK"
 
-discinfo="$WORK/discinfo"
+source_discinfo="$WORK/source-discinfo"
 xorriso -osirrox on -indev "$ARACHOS_BOOTSTRAP_ISO" \
-    -extract /.discinfo "$discinfo" >/dev/null 2>&1 \
+    -extract /.discinfo "$source_discinfo" >/dev/null 2>&1 \
     || fail 'bootstrap installer ISO has no .discinfo metadata'
-iso_release=$(sed -n '2p' "$discinfo")
-iso_arch=$(sed -n '3p' "$discinfo")
+iso_release=$(sed -n '2p' "$source_discinfo")
+iso_arch=$(sed -n '3p' "$source_discinfo")
 [[ $iso_release == "$ARACHOS_BOOTSTRAP_RELEASE" ]] || fail \
     "bootstrap ISO release $iso_release does not match $ARACHOS_BOOTSTRAP_RELEASE"
 [[ $iso_arch == "$ARACHOS_ARCH" ]] || fail \
     "bootstrap ISO architecture $iso_arch does not match $ARACHOS_ARCH"
+
+# mkksiso preserves the bootstrap .discinfo unless an explicit replacement is
+# mapped into the image.  Keep the media descriptor owned by ArachOS as well;
+# Anaconda uses only the architecture field for install-media detection, while
+# the description is what is shown by media discovery tools.
+discinfo="$WORK/.discinfo"
+disc_timestamp=$(sed -n '1p' "$source_discinfo")
+printf '%s\nArachOS %s installer\n%s\n' \
+    "$disc_timestamp" "$ARACHOS_VERSION" "$ARACHOS_ARCH" > "$discinfo"
+! grep -Eiq 'fedora|red[[:space:]]+hat' "$discinfo" \
+    || fail 'ArachOS .discinfo retains the bootstrap product identity'
 
 source_grub="$WORK/source-grub.cfg"
 xorriso -osirrox on -indev "$ARACHOS_BOOTSTRAP_ISO" \
@@ -376,6 +387,7 @@ mkksiso \
     --ks "$rendered_ks" \
     --add "$custom_repo" \
     --add "$product_images" \
+    --add "$discinfo" \
     --cmdline 'inst.graphical inst.profile=arachos' \
     --volid "$volid" \
     -R "$source_label" "$volid" \
@@ -391,6 +403,16 @@ mkksiso \
 
 [[ -s $iso ]] || fail 'mkksiso did not produce an installer ISO'
 
+final_discinfo="$WORK/final-discinfo"
+xorriso -osirrox on -indev "$iso" -extract /.discinfo "$final_discinfo" \
+    >/dev/null 2>&1 || fail 'ArachOS ISO has no .discinfo metadata'
+grep -Fxq "ArachOS $ARACHOS_VERSION installer" <(sed -n '2p' "$final_discinfo") \
+    || fail 'ArachOS ISO .discinfo is not branded ArachOS'
+grep -Fxq "$ARACHOS_ARCH" <(sed -n '3p' "$final_discinfo") \
+    || fail 'ArachOS ISO .discinfo has the wrong architecture'
+! grep -Eiq 'fedora|red[[:space:]]+hat' "$final_discinfo" \
+    || fail 'ArachOS ISO .discinfo retains the bootstrap product identity'
+
 iso_ks=$(xorriso -indev "$iso" -find / -name ArachOS.ks \
     -exec lsdl 2>/dev/null | awk -F"'" 'NR == 1 {print $2}')
 [[ $iso_ks == /ArachOS.ks ]] || fail 'ArachOS kickstart was not added at ISO root'
@@ -398,6 +420,11 @@ xorriso -indev "$iso" -ls /ArachOS-Repo/repodata/repomd.xml >/dev/null 2>&1 \
     || fail 'ArachOS RPM repository was not added to the ISO'
 xorriso -indev "$iso" -ls /images/product.img >/dev/null 2>&1 \
     || fail 'ArachOS Anaconda product image was not added to the ISO'
+final_product_img="$WORK/final-product.img"
+xorriso -osirrox on -indev "$iso" -extract /images/product.img "$final_product_img" \
+    >/dev/null 2>&1 || fail 'cannot extract the ArachOS Anaconda product image'
+cmp -s "$product_img" "$final_product_img" \
+    || fail 'ISO product image differs from the ArachOS branding payload'
 for path in /.discinfo /images/install.img /images/pxeboot/vmlinuz \
             /images/pxeboot/initrd.img /EFI/BOOT/grub.cfg /boot/grub2/grub.cfg; do
     xorriso -indev "$iso" -ls "$path" >/dev/null 2>&1 \

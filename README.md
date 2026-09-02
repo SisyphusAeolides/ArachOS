@@ -7,9 +7,10 @@
 ArachOS is an independent x86-64 Linux distribution with its own release
 identity, RPM repository metadata, DNF configuration, graphical Anaconda
 installer, RustD service manager, RustD-resolved resolver, and Arach Kernel
-qualification path. The distribution is not a remaster or derivative release:
-the installed product reports ArachOS identity and the final installer is
-assembled by ArachOS tooling from a pinned bootstrap netinst image.
+qualification path. The distribution is not presented as a Fedora spin: the
+final media owns its volume metadata, boot menus, Anaconda product image,
+release files, artwork, and installed-system identity. The bootstrap netinst
+image is an implementation input only.
 
 ArachOS uses the Fedora 45 package pool represented by the supplied dated
 netinst image as a bootstrap ecosystem. That is build input, not the product
@@ -94,12 +95,16 @@ during installation. An unsigned repository is rejected.
 
 ## Graphical Anaconda installer
 
-The installer uses the supplied Fedora 45 Everything netinst image as its
-graphical Anaconda bootstrap and adds the ArachOS kickstart and RPM repository.
-The installer boots from the configured core/update repositories; it is not a
-desktop live session. The kickstart supplies repository sources and the RustD
-post-install transition but intentionally leaves disk selection and optional
-desktop selection to the graphical Anaconda UI.
+The installer uses the supplied Everything netinst image only as the initial
+Anaconda runtime payload while the ArachOS media composition is built. The
+resulting ISO replaces the media descriptor and boot labels, injects an
+ArachOS `product.img` (buildstamp, profile, stylesheet, and artwork), and
+passes `inst.profile=arachos` to Anaconda. It is therefore an ArachOS
+installer media, not a Fedora-branded boot or desktop session. The installer
+boots from the configured core/update repositories; it is not a desktop live
+session. The kickstart supplies repository sources and the RustD post-install
+transition but intentionally leaves disk selection and optional desktop
+selection to the graphical Anaconda UI.
 
 The current bootstrap input is:
 
