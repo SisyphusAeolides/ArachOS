@@ -16,7 +16,6 @@ sha256sums=('SKIP')
 
 build() {
   cd "$pkgbase"
-  export CARGO_NET_OFFLINE=true
   export RUSTFLAGS="${RUSTFLAGS:-} --cfg rustix_use_libc"
   make build nss
 }

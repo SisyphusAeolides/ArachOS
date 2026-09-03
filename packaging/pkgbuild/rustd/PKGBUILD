@@ -10,13 +10,12 @@ license=('LGPL-2.1-or-later')
 makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'python' 'pam' 'dbus' 'json-c')
 options=('!lto')
 
-_commit=RUSTD_COMMIT
+_commit=194cad016973226e1f99397645a41fb92d82b0d4
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
 build() {
   cd "$pkgbase"
-  export CARGO_NET_OFFLINE=true
   make build pam-module libs compat
 }
 
