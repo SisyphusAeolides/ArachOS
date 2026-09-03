@@ -81,6 +81,18 @@ cp "$ROOT/packaging/rustd/hermes-gpu.service" \
 cp "$ROOT/packaging/rustd/libinput-rs-elan-resume.service" \
   "$ROOT/packaging/pkgbuild/libinput-rs/libinput-rs-elan-resume.service"
 
+pkgs_order=(
+  "rustd"
+  "rustd-resolved"
+  "tuned-rs"
+  "hermes-gpu-stack"
+  "iwchaos"
+  "blerust"
+  "ccze-rs"
+  "libinput-rs"
+  "arachos-release"
+)
+
 declare -A pkgs=(
   [rustd]="$ROOT/packaging/pkgbuild/rustd"
   [rustd-resolved]="$ROOT/packaging/pkgbuild/rustd-resolved"
@@ -93,7 +105,7 @@ declare -A pkgs=(
   [arachos-release]="$ROOT/packaging/pkgbuild/arachos-release"
 )
 
-for name in "${!pkgs[@]}"; do
+for name in "${pkgs_order[@]}"; do
   pkgbuild="${pkgs[$name]}/PKGBUILD"
   # Patch commit placeholders dynamically
   if grep -q "$(echo $name | tr 'a-z-' 'A-Z_' )_COMMIT\|BLERUST_COMMIT\|CCZE_RS_COMMIT\|TUNED_RS_COMMIT\|HERMES_COMMIT\|IWCHAOS_COMMIT\|LIBINPUT_RS_COMMIT" "$pkgbuild" 2>/dev/null; then

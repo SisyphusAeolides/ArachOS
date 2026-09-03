@@ -1,0 +1,33 @@
+{
+  "logo": {
+    "type": "chafa",
+    "source": "/usr/share/pixmaps/arachos-chaos.png",
+    "width": 36,
+    "height": 18,
+    "padding": {
+      "right": 2
+    }
+  },
+  "display": {
+    "separator": "  ",
+    "color": {
+      "keys": "red",
+      "title": "red"
+    }
+  },
+  "modules": [
+    "title",
+    "separator",
+    "os",
+    "kernel",
+    "uptime",
+    "packages",
+    "shell",
+    "terminal",
+    "cpu",
+    "memory",
+    "disk",
+    "localip",
+    "break"
+  ]
+}
