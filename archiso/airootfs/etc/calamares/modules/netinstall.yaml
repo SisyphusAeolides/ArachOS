@@ -12,12 +12,16 @@
         - sddm
         - konsole
         - dolphin
+        - kate
+        - ark
+        - spectacle
     - name: "GNOME"
       description: "The GNOME desktop environment"
       selected: false
       packages:
         - gnome
         - gdm
+        - gnome-tweaks
     - name: "XFCE"
       description: "The XFCE desktop environment"
       selected: false
@@ -25,8 +29,78 @@
         - xfce4
         - xfce4-goodies
         - lightdm
+        - lightdm-gtk-greeter
+    - name: "Cinnamon"
+      description: "The Cinnamon desktop environment"
+      selected: false
+      packages:
+        - cinnamon
+        - lightdm
+        - lightdm-gtk-greeter
+    - name: "MATE"
+      description: "The MATE desktop environment"
+      selected: false
+      packages:
+        - mate
+        - mate-extra
+        - lightdm
+        - lightdm-gtk-greeter
+    - name: "LXQt"
+      description: "The LXQt desktop environment"
+      selected: false
+      packages:
+        - lxqt
+        - sddm
+    - name: "Deepin"
+      description: "The Deepin desktop environment"
+      selected: false
+      packages:
+        - deepin
+        - deepin-extra
+        - lightdm
+    - name: "Budgie"
+      description: "The Budgie desktop environment"
+      selected: false
+      packages:
+        - budgie
+        - budgie-desktop-view
+        - budgie-backgrounds
+        - lightdm
+        - lightdm-gtk-greeter
+
+- name: "Window Managers (Wayland & X11)"
+  description: "Select alternative Window Managers"
+  hidden: false
+  selected: false
+  critical: false
+  subgroups:
+    - name: "Hyprland"
+      description: "A highly customizable dynamic tiling Wayland compositor"
+      selected: false
+      packages:
+        - hyprland
+        - waybar
+        - rofi-wayland
+        - kitty
+    - name: "Sway"
+      description: "i3-compatible Wayland compositor"
+      selected: false
+      packages:
+        - sway
+        - swaybg
+        - waybar
+        - alacritty
+    - name: "i3-wm"
+      description: "Improved tiling wm"
+      selected: false
+      packages:
+        - i3-wm
+        - i3status
+        - dmenu
+        - alacritty
+
 - name: "Web Browsers"
-  description: "Select your preferred web browser"
+  description: "Select your preferred web browsers"
   hidden: false
   selected: true
   critical: false
@@ -39,3 +113,54 @@
       selected: false
       packages:
         - chromium
+    - name: "Brave"
+      selected: false
+      packages:
+        - brave-bin
+    - name: "Vivaldi"
+      selected: false
+      packages:
+        - vivaldi
+
+- name: "Office and Productivity"
+  description: "Select office suites and productivity tools"
+  hidden: false
+  selected: false
+  critical: false
+  subgroups:
+    - name: "LibreOffice (Fresh)"
+      selected: false
+      packages:
+        - libreoffice-fresh
+    - name: "LibreOffice (Still)"
+      selected: false
+      packages:
+        - libreoffice-still
+    - name: "Thunderbird"
+      selected: false
+      packages:
+        - thunderbird
+
+- name: "Development Tools"
+  description: "Select development environments and tools"
+  hidden: false
+  selected: false
+  critical: false
+  subgroups:
+    - name: "Visual Studio Code"
+      selected: false
+      packages:
+        - code
+    - name: "Vim"
+      selected: false
+      packages:
+        - vim
+    - name: "Neovim"
+      selected: false
+      packages:
+        - neovim
+    - name: "Git and Base Devel"
+      selected: true
+      packages:
+        - git
+        - base-devel

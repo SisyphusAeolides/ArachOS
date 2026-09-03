@@ -82,3 +82,17 @@ polkit
 kmod
 sudo
 man-db
+
+# Extended Filesystem Support for Calamares "Everything" options
+f2fs-tools
+ntfs-3g
+exfatprogs
+jfsutils
+reiserfsprogs
+nilfs-utils
+mdadm
+cryptsetup
+device-mapper
+
+# Extended Bootloader Options
+refind
