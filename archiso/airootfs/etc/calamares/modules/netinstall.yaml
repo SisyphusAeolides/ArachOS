@@ -9,7 +9,6 @@
       selected: true
       packages:
         - plasma-meta
-        - sddm
         - konsole
         - dolphin
         - kate
@@ -50,7 +49,6 @@
       selected: false
       packages:
         - lxqt
-        - sddm
     - name: "Deepin"
       description: "The Deepin desktop environment"
       selected: false
@@ -67,7 +65,6 @@
         - budgie-backgrounds
         - lightdm
         - lightdm-gtk-greeter
-
 - name: "Window Managers (Wayland & X11)"
   description: "Select alternative Window Managers"
   hidden: false
@@ -98,7 +95,6 @@
         - i3status
         - dmenu
         - alacritty
-
 - name: "Web Browsers"
   description: "Select your preferred web browsers"
   hidden: false
@@ -121,7 +117,6 @@
       selected: false
       packages:
         - vivaldi
-
 - name: "Office and Productivity"
   description: "Select office suites and productivity tools"
   hidden: false
@@ -140,7 +135,6 @@
       selected: false
       packages:
         - thunderbird
-
 - name: "Development Tools"
   description: "Select development environments and tools"
   hidden: false

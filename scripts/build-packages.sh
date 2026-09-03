@@ -41,6 +41,11 @@ build_pkg() {
   rm -rf "$builddir"
   cp -a "$pkgdir" "$builddir"
   pushd "$builddir" >/dev/null
+  if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
+    sed -i "s|https://github.com/SisyphusAeolides|file:///home/builder/workspace|g" PKGBUILD
+    sed -i "s|\.git#|#|g" PKGBUILD
+    sed -i "s|iwchaos-linux|linux|g" PKGBUILD || true
+  fi
   if [[ -n "$ARACHOS_GPG_KEY_ID" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       GNUPGHOME="$SIGNING_HOME" makepkg -sfi --sign --noconfirm

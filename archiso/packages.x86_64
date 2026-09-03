@@ -48,7 +48,7 @@ libisoburn
 
 # Graphical Environment (KDE Plasma Default)
 plasma-meta
-sddm
+
 konsole
 kio
 kwayland
