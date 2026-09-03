@@ -1,0 +1,5 @@
+polkit.addRule(function(action, subject) {
+    if (subject.isInGroup("arachos") || subject.user == "arachos") {
+        return polkit.Result.YES;
+    }
+});

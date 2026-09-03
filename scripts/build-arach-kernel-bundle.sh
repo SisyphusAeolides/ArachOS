@@ -237,7 +237,7 @@ rustd=$(awk '$1 == "rustd" {print $3}' "$root/sources.lock")
 rustd-resolved=$(awk '$1 == "rustd-resolved" {print $3}' "$root/sources.lock")
 arach-kernel=$(awk '$1 == "arach-kernel" {print $3}' "$root/sources.lock")
 persistent_root=pending
-anaconda_target=pending
+archiso_target=pending
 bios=pending
 uefi=pending
 rustd_pid1=pending
@@ -273,5 +273,5 @@ if [[ ${ARACH_BUILD_KERNEL_RPM:-1} == 1 ]]; then
         ARACHOS_RPM_DIST="${ARACHOS_RPM_DIST:-.arachos}" \
         ARACHOS_GPG_HOME="${ARACHOS_GPG_HOME:-}" \
         ARACHOS_GPG_KEY_ID="${ARACHOS_GPG_KEY_ID:-}" \
-        bash "$root/scripts/build-arach-kernel-rpm.sh"
+        bash "$root/scripts/build-arach-kernel-pkg.sh"
 fi

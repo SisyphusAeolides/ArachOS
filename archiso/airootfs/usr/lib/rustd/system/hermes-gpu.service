@@ -1,0 +1,12 @@
+[Unit]
+Description=Hermes GPU admission and compatibility surface
+After=rustd-udevd.service
+ConditionPathExists=/usr/bin/hermes-ctl
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/hermes-ctl kmod-status
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

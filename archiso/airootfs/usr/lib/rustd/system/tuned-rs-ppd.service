@@ -1,0 +1,16 @@
+[Unit]
+Description=RustD power-profile compatibility daemon
+Requires=tuned-rs.service
+After=tuned-rs.service
+Before=graphical.target
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.UPower.PowerProfiles
+BusName=net.hadess.PowerProfiles
+ExecStart=/usr/sbin/tuned-ppd
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target

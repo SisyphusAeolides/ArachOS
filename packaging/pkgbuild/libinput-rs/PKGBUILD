@@ -1,0 +1,31 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=libinput-rs
+pkgver=0.3.15
+pkgrel=1
+pkgdesc="Rust libinput implementation for ArachOS"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/libinput-rs"
+license=('MIT' 'Unicode-3.0')
+provides=('libinput')
+conflicts=('libinput')
+replaces=('libinput')
+depends=('rustd-compat-libs')
+makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'meson' 'ninja' 'patch' 'libevdev' 'mtdev' 'liburing' 'python')
+
+_commit=LIBINPUT_RS_COMMIT
+source=("git+${url}.git#commit=${_commit}"
+        "libinput-rs-elan-resume.service")
+sha256sums=('SKIP' 'SKIP')
+
+build() {
+  cd "$pkgname"
+  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --frozen --release --locked
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm0755 target/release/libinput-rs "$pkgdir/usr/bin/libinput-rs"
+  install -Dm0644 "$srcdir/libinput-rs-elan-resume.service" \
+    "$pkgdir/usr/lib/rustd/system/libinput-rs-elan-resume.service"
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

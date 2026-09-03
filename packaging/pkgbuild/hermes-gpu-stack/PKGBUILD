@@ -1,0 +1,43 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=hermes-gpu-stack
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Hardware-qualified multi-vendor GPU and GSP compatibility stack"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/Hermes"
+license=('MIT')
+depends=('rustd' 'kmod')
+makedepends=('cargo' 'git' 'gcc' 'gawk')
+
+_commit=HERMES_COMMIT
+source=("git+${url}.git#commit=${_commit}"
+        "hermes-gpu.service")
+sha256sums=('SKIP' 'SKIP')
+
+build() {
+  cd "Hermes"
+  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --frozen --release --locked
+}
+
+package() {
+  cd "Hermes"
+  install -Dm0755 target/release/hermes-ctl "$pkgdir/usr/bin/hermes-ctl"
+  install -Dm0755 target/release/nvidia-smi "$pkgdir/usr/bin/nvidia-smi"
+  install -Dm0755 target/release/nvidia-modprobe "$pkgdir/usr/bin/nvidia-modprobe"
+  install -Dm0755 target/release/nvidia-settings "$pkgdir/usr/bin/nvidia-settings"
+  install -Dm0644 "$srcdir/hermes-gpu.service" \
+    "$pkgdir/usr/lib/rustd/system/hermes-gpu.service"
+  install -Dm0644 DROPIN_CATALOG.txt \
+    "$pkgdir/usr/share/hermes/DROPIN_CATALOG.txt"
+  install -Dm0755 target/release/libnvidia-ml.so.1 \
+    "$pkgdir/usr/lib/libnvidia-ml.so.1"
+  install -Dm0755 target/release/libcuda.so.1 \
+    "$pkgdir/usr/lib/libcuda.so.1"
+  install -Dm0755 target/release/libcudart.so.12 \
+    "$pkgdir/usr/lib/libcudart.so.12"
+  install -Dm0755 target/release/libGLX_nvidia.so.0 \
+    "$pkgdir/usr/lib/libGLX_nvidia.so.0"
+  install -Dm0755 target/release/libEGL_nvidia.so.0 \
+    "$pkgdir/usr/lib/libEGL_nvidia.so.0"
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

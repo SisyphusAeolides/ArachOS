@@ -1,0 +1,65 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=arachos-release
+pkgver=1.0
+pkgrel=1
+pkgdesc="ArachOS release identity, branding, and OS metadata"
+arch=('any')
+url="https://github.com/SisyphusAeolides/ArachOS"
+license=('MIT')
+provides=('system-release' 'system-logos' 'os-release')
+conflicts=('archlinux-release')
+source=(
+  "arachos-branding.sh"
+  "arachos-fastfetch.jsonc"
+  "ArachOS.png"
+  "chaos.png"
+)
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+package() {
+  # OS identity
+  install -d "$pkgdir/usr/lib"
+  cat > "$pkgdir/usr/lib/os-release" << 'OSREL'
+NAME="ArachOS"
+ID=arachos
+VERSION="1.0"
+VERSION_ID="1.0"
+PLATFORM_ID="platform:arachos"
+PRETTY_NAME="ArachOS 1.0"
+ANSI_COLOR="0;35"
+LOGO=arachos
+HOME_URL="https://github.com/SisyphusAeolides/ArachOS"
+DOCUMENTATION_URL="https://github.com/SisyphusAeolides/ArachOS"
+SUPPORT_URL="https://github.com/SisyphusAeolides/ArachOS/issues"
+BUG_REPORT_URL="https://github.com/SisyphusAeolides/ArachOS/issues"
+OSREL
+  ln -s ../usr/lib/os-release "$pkgdir/etc/os-release" 2>/dev/null || true
+
+  install -Dm0644 /dev/stdin "$pkgdir/etc/arachos-release" << 'AREL'
+ArachOS 1.0
+Architecture: x86_64
+Package ecosystem: pacman
+AREL
+
+  install -Dm0644 /dev/stdin "$pkgdir/etc/issue.d/20-arachos.issue" << 'ISSUE'
+ArachOS 1.0\n
+Kernel \r on \m\n
+ISSUE
+
+  # Branding
+  install -Dm0644 "$srcdir/arachos-branding.sh" \
+    "$pkgdir/etc/profile.d/arachos-branding.sh"
+  install -Dm0644 "$srcdir/arachos-fastfetch.jsonc" \
+    "$pkgdir/usr/share/fastfetch/presets/arachos.jsonc"
+  install -Dm0644 "$srcdir/ArachOS.png" \
+    "$pkgdir/usr/share/backgrounds/arachos/ArachOS.png"
+  install -Dm0644 "$srcdir/ArachOS.png" \
+    "$pkgdir/usr/share/pixmaps/arachos.png"
+  install -Dm0644 "$srcdir/chaos.png" \
+    "$pkgdir/usr/share/pixmaps/arachos-chaos.png"
+
+  install -Dm0644 /dev/stdin "$pkgdir/usr/share/licenses/$pkgname/LICENSE" << 'LIC'
+ArachOS release metadata and artwork are distributed under the terms stated
+by the project and the licenses shipped with each upstream component.
+LIC
+}

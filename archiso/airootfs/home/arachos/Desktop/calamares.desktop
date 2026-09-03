@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install ArachOS
+Comment=Install ArachOS to disk
+Exec=sudo -E calamares
+Icon=calamares
+Terminal=false
+Categories=Qt;System;

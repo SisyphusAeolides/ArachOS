@@ -1,5 +1,17 @@
-/build/
-/tmp/
-*.iso
-*.log
-*.swp
+# Build artifacts
+build/
+
+# makepkg work directories
+src/
+pkg/
+*.pkg.tar.zst
+*.pkg.tar.zst.sig
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+
+# Python bytecode
+__pycache__/
+*.pyc

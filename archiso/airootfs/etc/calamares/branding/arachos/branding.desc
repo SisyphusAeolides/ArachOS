@@ -1,0 +1,33 @@
+---
+componentName:  arachos
+welcomeStyleCalamares:   false
+welcomeExpandingLogo:   true
+windowExpanding:    normal
+windowSize: 800px,520px
+windowPlacement: center
+
+strings:
+    productName:         ArachOS
+    shortProductName:    ArachOS
+    version:             1.0
+    shortVersion:        1.0
+    versionedName:       ArachOS 1.0
+    shortVersionedName:  ArachOS 1.0
+    bootloaderEntryName: ArachOS
+    productUrl:          https://github.com/SisyphusAeolides/ArachOS
+    supportUrl:          https://github.com/SisyphusAeolides/ArachOS/issues
+    knownIssuesUrl:      https://github.com/SisyphusAeolides/ArachOS/issues
+    releaseNotesUrl:     https://github.com/SisyphusAeolides/ArachOS/releases
+
+images:
+    productLogo:         "arachos-logo.png"
+    productIcon:         "arachos-logo.png"
+    productWelcome:      "welcome.png"
+
+slideshow:               "show.qml"
+
+style:
+   sidebarBackground:    "#10131f"
+   sidebarText:          "#FFFFFF"
+   sidebarTextSelect:    "#7148ff"
+   sidebarTextHighlight: "#7148ff"

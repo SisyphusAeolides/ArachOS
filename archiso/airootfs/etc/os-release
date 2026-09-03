@@ -1,0 +1,12 @@
+NAME="ArachOS"
+ID=arachos
+VERSION="1.0"
+VERSION_ID="1.0"
+PLATFORM_ID="platform:arachos"
+PRETTY_NAME="ArachOS 1.0"
+ANSI_COLOR="0;35"
+LOGO=arachos
+HOME_URL="https://github.com/SisyphusAeolides/ArachOS"
+DOCUMENTATION_URL="https://github.com/SisyphusAeolides/ArachOS"
+SUPPORT_URL="https://github.com/SisyphusAeolides/ArachOS/issues"
+BUG_REPORT_URL="https://github.com/SisyphusAeolides/ArachOS/issues"

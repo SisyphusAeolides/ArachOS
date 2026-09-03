@@ -1,0 +1,21 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=iwchaos
+pkgver=0.2.4
+pkgrel=1
+pkgdesc="Target-kernel Intel Wi-Fi modules with a bounded rate policy (DKMS)"
+arch=('any')
+url="https://github.com/SisyphusAeolides/iwchaos"
+license=('GPL-2.0-only')
+depends=('dkms' 'linux-headers' 'cargo' 'gcc' 'make' 'python' 'git' 'curl' 'binutils')
+makedepends=('git')
+
+_commit=IWCHAOS_COMMIT
+source=("git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+package() {
+  cd "$pkgname"
+  install -d "$pkgdir/usr/src/$pkgname-$pkgver"
+  cp -a . "$pkgdir/usr/src/$pkgname-$pkgver/"
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

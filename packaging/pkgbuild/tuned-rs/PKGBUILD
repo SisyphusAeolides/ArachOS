@@ -1,0 +1,34 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=tuned-rs
+pkgver=0.3.0
+pkgrel=1
+pkgdesc="Rust TuneD and power-profile services in the RustD unit namespace"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/tuned-rs"
+license=('GPL-2.0-or-later' 'MIT' 'Apache-2.0')
+provides=('tuned' 'tuned-ppd' 'power-profiles-daemon')
+conflicts=('tuned' 'power-profiles-daemon')
+replaces=('tuned' 'power-profiles-daemon')
+depends=('dbus' 'polkit' 'rustd')
+makedepends=('cargo' 'git' 'gcc')
+
+_commit=TUNED_RS_COMMIT
+source=("git+${url}.git#commit=${_commit}"
+        "tuned-rs.service"
+        "tuned-rs-ppd.service")
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+build() {
+  cd "$pkgname"
+  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --frozen --release --locked
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm0755 target/release/tuned-rs "$pkgdir/usr/bin/tuned-rs"
+  install -Dm0644 "$srcdir/tuned-rs.service" \
+    "$pkgdir/usr/lib/rustd/system/tuned-rs.service"
+  install -Dm0644 "$srcdir/tuned-rs-ppd.service" \
+    "$pkgdir/usr/lib/rustd/system/tuned-rs-ppd.service"
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -1,0 +1,41 @@
+- name: "Desktop Environments"
+  description: "Select the desktop environment you want to use"
+  hidden: false
+  selected: true
+  critical: true
+  subgroups:
+    - name: "KDE Plasma (Default)"
+      description: "The default KDE Plasma desktop"
+      selected: true
+      packages:
+        - plasma-meta
+        - sddm
+        - konsole
+        - dolphin
+    - name: "GNOME"
+      description: "The GNOME desktop environment"
+      selected: false
+      packages:
+        - gnome
+        - gdm
+    - name: "XFCE"
+      description: "The XFCE desktop environment"
+      selected: false
+      packages:
+        - xfce4
+        - xfce4-goodies
+        - lightdm
+- name: "Web Browsers"
+  description: "Select your preferred web browser"
+  hidden: false
+  selected: true
+  critical: false
+  subgroups:
+    - name: "Firefox"
+      selected: true
+      packages:
+        - firefox
+    - name: "Chromium"
+      selected: false
+      packages:
+        - chromium

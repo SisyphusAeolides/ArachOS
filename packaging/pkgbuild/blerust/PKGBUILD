@@ -1,0 +1,33 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=blerust
+pkgver=0.1.16
+pkgrel=1
+pkgdesc="Blazing fast and robust line editor installed without shell-profile mutation"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/blerust"
+license=('MIT')
+provides=('blesh')
+conflicts=('blesh')
+replaces=('blesh')
+makedepends=('cargo' 'git')
+
+_commit=BLERUST_COMMIT
+source=("git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgname"
+  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --frozen --release --locked
+}
+
+check() {
+  cd "$pkgname"
+  cargo test --frozen --locked --all-targets
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm0755 target/release/blerust "$pkgdir/usr/bin/blerust"
+  install -Dm0644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -1,0 +1,84 @@
+# ArachOS live/install medium package list
+# Base system
+base
+bash
+coreutils
+util-linux
+procps-ng
+grep
+sed
+gawk
+findutils
+diffutils
+less
+tar
+gzip
+bzip2
+xz
+zstd
+file
+
+# Boot
+grub
+efibootmgr
+os-prober
+
+# Filesystem
+e2fsprogs
+xfsprogs
+btrfs-progs
+dosfstools
+lvm2
+mtools
+
+# Network
+networkmanager
+openssh
+curl
+wget
+wpa_supplicant
+
+# Installer tooling (Calamares and Archiso dependencies)
+calamares
+ckbcomp
+hwinfo
+arch-install-scripts
+squashfs-tools
+libisoburn
+
+# Graphical Environment (KDE Plasma Default)
+plasma-meta
+sddm
+konsole
+kio
+kwayland
+plasma-wayland-protocols
+xorg-xwayland
+xorg-server
+# Video drivers (Hermes handles this for ArachOS, but we include base mesa)
+mesa
+
+# ArachOS system packages
+rustd
+rustd-resolved
+rustd-compat-libs
+rustd-cutover-tools
+tuned-rs
+libinput-rs
+blerust
+ccze-rs
+iwchaos
+hermes-gpu-stack
+arachos-release
+
+# Arach Kernel (provides /boot/arach, /boot/rustd, /boot/rustd-resolved)
+arach-kernel
+
+# Utilities
+fastfetch
+chafa
+dbus
+polkit
+kmod
+sudo
+man-db
