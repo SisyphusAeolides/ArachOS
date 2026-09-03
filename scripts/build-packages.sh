@@ -41,10 +41,18 @@ build_pkg() {
   rm -rf "$builddir"
   cp -a "$pkgdir" "$builddir"
   pushd "$builddir" >/dev/null
-  if [[ -n "$SIGNING_KEY" && -n "$SIGNING_HOME" ]]; then
-    GNUPGHOME="$SIGNING_HOME" makepkg -f --sign --noconfirm
+  if [[ -n "$ARACHOS_GPG_KEY_ID" ]]; then
+    if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
+      GNUPGHOME="$SIGNING_HOME" makepkg -sfi --sign --noconfirm
+    else
+      GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
+    fi
   else
-    makepkg -f --noconfirm
+    if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
+      makepkg -sfi --noconfirm
+    else
+      makepkg -sf --noconfirm
+    fi
   fi
   find . -maxdepth 1 -name '*.pkg.tar.zst' -exec cp -a {} "$OUTPUT/" \;
   find . -maxdepth 1 -name '*.pkg.tar.zst.sig' -exec cp -a {} "$OUTPUT/" \;

@@ -1,0 +1,18 @@
+FROM archlinux:latest
+
+# Install build dependencies
+RUN pacman -Syu --noconfirm base-devel git rust python pam dbus json-c \
+    archiso sudo qemu-system-x86 qemu-desktop make meson ninja cmake libevdev mtdev \
+    liburing openssl
+
+# Create a build user
+RUN useradd -m -G wheel -s /bin/bash builder && \
+    echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Setup working directory
+WORKDIR /home/builder/workspace
+RUN chown -R builder:builder /home/builder
+
+USER builder
+ENV IN_CONTAINER=1
+CMD ["bash", "ArachOS/scripts/podman-build-entrypoint.sh"]
