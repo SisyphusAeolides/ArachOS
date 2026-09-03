@@ -7,6 +7,9 @@
 export ARACHOS_CHAOS_GLYPH
 
 export BLERUST_OS_ICON="$ARACHOS_CHAOS_GLYPH"
+if [[ -z ${BLERUST_FOLDER_ICON:-} ]]; then
+    export BLERUST_FOLDER_ICON=''
+fi
 if [[ -z ${BLERUST_ICON_COLOR:-} ]]; then
     export BLERUST_ICON_COLOR=$'\e[1;38;2;123;45;38m'
 fi
