@@ -12,15 +12,15 @@ BUILD_DIR              ?= build
 PKG_REPO               ?= $(BUILD_DIR)/packages
 ISO_OUTPUT             ?= $(BUILD_DIR)/iso
 
-RUSTD_SOURCE_ROOT        ?= $(BUILD_DIR)/../rustd
-RESOLVED_SOURCE_ROOT     ?= $(BUILD_DIR)/../rustd-resolved
-ARACH_KERNEL_SOURCE_ROOT ?= $(BUILD_DIR)/../arach-kernel
-IWCHAOS_SOURCE_ROOT      ?= $(BUILD_DIR)/../iwchaos
-TUNED_SOURCE_ROOT        ?= $(BUILD_DIR)/../tuned-rs
-LIBINPUT_SOURCE_ROOT     ?= $(BUILD_DIR)/../libinput-rs
-BLERUST_SOURCE_ROOT      ?= $(BUILD_DIR)/../blerust
-CCZE_SOURCE_ROOT         ?= $(BUILD_DIR)/../ccze-rs
-HERMES_SOURCE_ROOT       ?= $(BUILD_DIR)/../Hermes
+RUSTD_SOURCE_ROOT        ?= ../rustd
+RESOLVED_SOURCE_ROOT     ?= ../rustd-resolved
+ARACH_KERNEL_SOURCE_ROOT ?= ../arach-kernel
+IWCHAOS_SOURCE_ROOT      ?= ../iwchaos
+TUNED_SOURCE_ROOT        ?= ../tuned-rs
+LIBINPUT_SOURCE_ROOT     ?= ../libinput-rs
+BLERUST_SOURCE_ROOT      ?= ../blerust
+CCZE_SOURCE_ROOT         ?= ../ccze-rs
+HERMES_SOURCE_ROOT       ?= ../Hermes
 
 ARACH_KERNEL_BUNDLE_ROOT         ?= $(BUILD_DIR)/kernel-bundle
 ARACH_RUSTD_STATIC_BUILD_ROOT    ?= $(BUILD_DIR)/rustd-static

@@ -1,0 +1,71 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgbase=rustd
+pkgname=('rustd' 'rustd-compat-libs' 'rustd-cutover-tools')
+pkgver=0.1.2
+pkgrel=17
+pkgdesc="RustD native Linux init and service manager"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/rustd"
+license=('LGPL-2.1-or-later')
+makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'python' 'pam' 'dbus' 'json-c')
+options=('!lto')
+
+_commit=RUSTD_COMMIT
+source=("git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgbase"
+  export CARGO_NET_OFFLINE=true
+  make build pam-module libs compat
+}
+
+package_rustd() {
+  pkgdesc="RustD native Linux init and service manager"
+  depends=('dbus' 'rustd-cutover-tools')
+  provides=('systemd' 'systemd-sysvcompat')
+  conflicts=('systemd' 'systemd-sysvcompat')
+
+  cd "$pkgbase"
+  make DESTDIR="$pkgdir" \
+       PREFIX=/usr \
+       LIBDIR=/usr/lib \
+       PKGCONFIGDIR=/usr/lib/pkgconfig \
+       PAMLIBDIR=/usr/lib/security \
+       install
+
+  # Also install devel files here for simplicity
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+package_rustd-compat-libs() {
+  pkgdesc="Arch libsystemd/libudev compatibility libraries backed by RustD"
+  depends=("rustd=${pkgver}")
+  provides=('systemd-libs' 'libsystemd' 'libudev' 'libsystemd.so' 'libudev.so')
+  conflicts=('systemd-libs')
+  replaces=('systemd-libs')
+
+  cd "$pkgbase"
+  install -d "$pkgdir/usr/lib"
+  install -m0755 build/libs/libsystemd.so.0 "$pkgdir/usr/lib/libsystemd.so.0"
+  ln -s libsystemd.so.0 "$pkgdir/usr/lib/libsystemd.so"
+  install -m0755 build/libs/libudev.so.1 "$pkgdir/usr/lib/libudev.so.1"
+  ln -s libudev.so.1 "$pkgdir/usr/lib/libudev.so"
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+package_rustd-cutover-tools() {
+  pkgdesc="Nonconflicting authentication cutover tools"
+  depends=('python')
+
+  cd "$pkgbase"
+  # Just install the PAM module since authselect is not used on Arch,
+  # but keeping the package name consistent with the rustd expectation.
+  install -d "$pkgdir/usr/lib/security"
+  if [ -f target/release/libpam_rustd.so ]; then
+      install -m0755 target/release/libpam_rustd.so "$pkgdir/usr/lib/security/pam_rustd.so"
+  elif [ -f build/libs/pam_rustd.so ]; then
+      install -m0755 build/libs/pam_rustd.so "$pkgdir/usr/lib/security/pam_rustd.so"
+  fi
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

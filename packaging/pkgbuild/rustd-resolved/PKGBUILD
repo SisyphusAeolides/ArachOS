@@ -1,0 +1,51 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgbase=rustd-resolved
+pkgname=('rustd-resolved' 'rustd-resolved-nss')
+pkgver=0.2.3
+pkgrel=6
+pkgdesc="RustD native DNS resolver"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/rustd-resolved"
+license=('LGPL-2.1-or-later')
+makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'openssl' 'liburing' 'python')
+options=('!lto')
+
+_commit=RUSTD_RESOLVED_COMMIT
+source=("git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgbase"
+  export CARGO_NET_OFFLINE=true
+  export RUSTFLAGS="${RUSTFLAGS:-} --cfg rustix_use_libc"
+  make build nss
+}
+
+package_rustd-resolved() {
+  pkgdesc="RustD native DNS resolver"
+  depends=('rustd' 'rustd-resolved-nss' 'openssl' 'liburing')
+  provides=('systemd-resolved')
+  conflicts=('systemd-resolved')
+  replaces=('systemd-resolved')
+
+  cd "$pkgbase"
+  export RUSTFLAGS="${RUSTFLAGS:-} --cfg rustix_use_libc"
+  make DESTDIR="$pkgdir" \
+       PREFIX=/usr \
+       LIBDIR=/usr/lib \
+       install
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+package_rustd-resolved-nss() {
+  pkgdesc="RustD DNS NSS module"
+
+  cd "$pkgbase"
+  install -d "$pkgdir/usr/lib"
+  if [ -f target/release/libnss_rustd_dns.so ]; then
+      install -m0755 target/release/libnss_rustd_dns.so "$pkgdir/usr/lib/libnss_rustd_dns.so.2"
+  elif [ -f build/libs/libnss_rustd_dns.so ]; then
+      install -m0755 build/libs/libnss_rustd_dns.so "$pkgdir/usr/lib/libnss_rustd_dns.so.2"
+  fi
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

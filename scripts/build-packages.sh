@@ -55,7 +55,8 @@ patch_commit() {
   local pkgbuild=$1 key=$2
   local sha; sha=$(lock_sha "$key")
   [[ -n $sha ]] || fail "sources.lock has no entry for $key"
-  sed -i "s/${key^^}_COMMIT/$sha/" "$pkgbuild"
+  local placeholder=$(echo "$key" | tr 'a-z-' 'A-Z_')_COMMIT
+  sed -i "s/${placeholder}/$sha/" "$pkgbuild"
 }
 
 # Prepare arachos-release PKGBUILD sources
@@ -81,6 +82,8 @@ cp "$ROOT/packaging/rustd/libinput-rs-elan-resume.service" \
   "$ROOT/packaging/pkgbuild/libinput-rs/libinput-rs-elan-resume.service"
 
 declare -A pkgs=(
+  [rustd]="$ROOT/packaging/pkgbuild/rustd"
+  [rustd-resolved]="$ROOT/packaging/pkgbuild/rustd-resolved"
   [libinput-rs]="$ROOT/packaging/pkgbuild/libinput-rs"
   [blerust]="$ROOT/packaging/pkgbuild/blerust"
   [ccze-rs]="$ROOT/packaging/pkgbuild/ccze-rs"
@@ -93,7 +96,7 @@ declare -A pkgs=(
 for name in "${!pkgs[@]}"; do
   pkgbuild="${pkgs[$name]}/PKGBUILD"
   # Patch commit placeholders dynamically
-  if grep -q "${name^^}_COMMIT\|BLERUST_COMMIT\|CCZE_RS_COMMIT\|TUNED_RS_COMMIT\|HERMES_COMMIT\|IWCHAOS_COMMIT\|LIBINPUT_RS_COMMIT" "$pkgbuild" 2>/dev/null; then
+  if grep -q "$(echo $name | tr 'a-z-' 'A-Z_' )_COMMIT\|BLERUST_COMMIT\|CCZE_RS_COMMIT\|TUNED_RS_COMMIT\|HERMES_COMMIT\|IWCHAOS_COMMIT\|LIBINPUT_RS_COMMIT" "$pkgbuild" 2>/dev/null; then
     patch_commit "$pkgbuild" "$name" || true
   fi
   build_pkg "$name" "${pkgs[$name]}"
