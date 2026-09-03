@@ -14,5 +14,6 @@ WORKDIR /home/builder/workspace
 RUN chown -R builder:builder /home/builder
 
 USER builder
+RUN git config --global --add safe.directory "*"
 ENV IN_CONTAINER=1
 CMD ["bash", "ArachOS/scripts/podman-build-entrypoint.sh"]
