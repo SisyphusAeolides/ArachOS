@@ -67,6 +67,11 @@ prepare_branding_srpm() {
     mkdir -p "$branding_top"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
     cp "$ROOT/packaging/branding/arachos-release.spec" "$branding_top/SPECS/"
     cp "$ROOT/docs/ArachOS.png" "$branding_top/SOURCES/ArachOS.png"
+    cp "$ROOT/packaging/branding/chaos.png" "$branding_top/SOURCES/chaos.png"
+    cp "$ROOT/packaging/branding/arachos-fastfetch.jsonc" \
+        "$branding_top/SOURCES/arachos-fastfetch.jsonc"
+    cp "$ROOT/packaging/branding/arachos-profile.sh" \
+        "$branding_top/SOURCES/arachos-profile.sh"
     rpmbuild -bs \
         --define "_topdir $branding_top" \
         --define 'dist .arachos' \

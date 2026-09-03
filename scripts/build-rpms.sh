@@ -244,6 +244,11 @@ make_iwchaos_source "$IWCHAOS_ROOT" "$iwchaos_sha" "$iwchaos_version" \
 cp "$ROOT"/packaging/rpm/*.spec "$TOPDIR/SPECS/"
 cp "$ROOT"/packaging/branding/*.spec "$TOPDIR/SPECS/"
 cp "$ROOT/docs/ArachOS.png" "$TOPDIR/SOURCES/ArachOS.png"
+cp "$ROOT/packaging/branding/chaos.png" "$TOPDIR/SOURCES/chaos.png"
+cp "$ROOT/packaging/branding/arachos-fastfetch.jsonc" \
+  "$TOPDIR/SOURCES/arachos-fastfetch.jsonc"
+cp "$ROOT/packaging/branding/arachos-profile.sh" \
+  "$TOPDIR/SOURCES/arachos-profile.sh"
 cp "$ROOT"/packaging/rustd/*.service "$TOPDIR/SOURCES/"
 
 common=(

@@ -75,6 +75,9 @@ packages=(
     dbus-daemon
     dbus-tools
     dnf
+    fastfetch
+    chafa
+    chafa-libs
     rpm
     dracut
     dracut-config-generic

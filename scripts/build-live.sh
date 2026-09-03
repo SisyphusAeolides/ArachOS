@@ -353,7 +353,10 @@ for path in .buildstamp etc/anaconda/profile.d/z-arachos.conf \
             usr/share/anaconda/pixmaps/topbar-bg.png \
             usr/share/anaconda/pixmaps/org.arachos.ArachOSInstaller.png \
             usr/share/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png \
-            usr/share/pixmaps/arachos.png; do
+            usr/share/pixmaps/arachos.png \
+            usr/share/pixmaps/arachos-chaos.png \
+            usr/share/fastfetch/presets/arachos.jsonc \
+            etc/profile.d/arachos-branding.sh; do
     grep -Fxq "$path" "$product_listing" \
         || fail "ArachOS product image is missing $path"
 done

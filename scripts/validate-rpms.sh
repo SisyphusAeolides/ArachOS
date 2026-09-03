@@ -98,7 +98,9 @@ mapfile -t branding_files < <(rpm -qpl "$branding") \
   || fail "cannot read file list from $(basename "$branding")"
 for path in /etc/arachos-release /etc/anaconda/profile.d/z-arachos.conf \
             /etc/anaconda/conf.d/10-arachos.conf \
+            /etc/profile.d/arachos-branding.sh \
             /etc/issue.d/20-arachos.issue /usr/share/pixmaps/arachos.png \
+            /usr/share/pixmaps/arachos-chaos.png \
             /usr/share/backgrounds/arachos/ArachOS.png \
             /usr/share/anaconda/boot/splash.png \
             /usr/share/anaconda/pixmaps/anaconda_header.png \
@@ -107,7 +109,8 @@ for path in /etc/arachos-release /etc/anaconda/profile.d/z-arachos.conf \
             /usr/share/anaconda/pixmaps/sidebar-logo.png \
             /usr/share/anaconda/pixmaps/org.arachos.ArachOSInstaller.png \
             /usr/share/anaconda/pixmaps/topbar-bg.png \
-            /usr/share/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png; do
+            /usr/share/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png \
+            /usr/share/fastfetch/presets/arachos.jsonc; do
   printf '%s\n' "${branding_files[@]}" | grep -Fx "$path" >/dev/null \
     || fail "branding RPM does not own $path"
 done

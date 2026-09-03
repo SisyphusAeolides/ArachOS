@@ -5,6 +5,9 @@ Summary:        ArachOS release identity and Anaconda branding
 License:        LicenseRef-ArachOS
 URL:            https://github.com/SisyphusAeolides/ArachOS
 Source0:        ArachOS.png
+Source1:        chaos.png
+Source2:        arachos-fastfetch.jsonc
+Source3:        arachos-profile.sh
 BuildArch:      noarch
 
 # Fedora packages use this capability as a minimum package-ecosystem ABI
@@ -51,6 +54,9 @@ install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/topbar-bg.p
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/anaconda/pixmaps/org.arachos.ArachOSInstaller.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png
 install -Dpm0644 %{SOURCE0} %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/system-logo-icon.png
+install -Dpm0644 %{SOURCE1} %{buildroot}%{_datadir}/pixmaps/arachos-chaos.png
+install -Dpm0644 %{SOURCE2} %{buildroot}%{_datadir}/fastfetch/presets/arachos.jsonc
+install -Dpm0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/profile.d/arachos-branding.sh
 
 install -d -m0755 %{buildroot}%{_sysconfdir}/anaconda/profile.d
 cat > %{buildroot}%{_sysconfdir}/anaconda/profile.d/z-arachos.conf <<'EOF'
@@ -226,10 +232,13 @@ EOF
 %{_usr}/share/backgrounds/arachos/ArachOS.png
 %{_usr}/share/icons/hicolor/48x48/apps/org.arachos.ArachOSInstaller.png
 %{_usr}/share/icons/hicolor/48x48/apps/system-logo-icon.png
+%{_usr}/share/fastfetch/presets/arachos.jsonc
 %{_usr}/share/pixmaps/arachos.png
+%{_usr}/share/pixmaps/arachos-chaos.png
 %{_usr}/share/pixmaps/bootloader/bootlogo_128.png
 %{_usr}/share/pixmaps/bootloader/bootlogo_256.png
 %{_usr}/share/pixmaps/system-logo-white.png
+%{_sysconfdir}/profile.d/arachos-branding.sh
 
 %changelog
 * Mon Aug 31 2026 Sisyphus Aeolides <SisyphusAeolides@pm.me> - 1.0-1
