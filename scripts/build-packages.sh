@@ -70,6 +70,9 @@ build_pkg() {
         "$builddir/libinput-rs-elan-resume.service"
       ;;
   esac
+  if lock_key=$(source_lock_key "$name"); then
+    patch_commit "$builddir/PKGBUILD" "$lock_key"
+  fi
   pushd "$builddir" >/dev/null
   if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
     sed -i "s|https://github.com/SisyphusAeolides|file:///home/builder/workspace|g" PKGBUILD
@@ -148,10 +151,6 @@ for name in "${pkgs_order[@]}"; do
     continue
   fi
   pkgbuild="${pkgs[$name]}/PKGBUILD"
-  # Keep every git-backed package aligned with the repository lock file.
-  if lock_key=$(source_lock_key "$name"); then
-    patch_commit "$pkgbuild" "$lock_key"
-  fi
   build_pkg "$name" "${pkgs[$name]}"
 done
 
