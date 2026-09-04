@@ -17,8 +17,8 @@ bootstrap_tarball_compression=('zstd' '-c' '-T0' '--auto-threads=logical' '--lon
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/root"]="0:0:750"
-  ["/home/arachos"]="1000:1000:750"
-  ["/home/arachos/Desktop"]="1000:1000:750"
+  ["/home/arachos"]="1000:1000:755"
+  ["/home/arachos/Desktop"]="1000:1000:755"
   ["/home/arachos/Desktop/calamares.desktop"]="1000:1000:755"
   ["/usr/sbin/arach-kernel-install"]="0:0:755"
 )

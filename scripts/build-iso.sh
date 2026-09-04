@@ -27,7 +27,6 @@ manifest_value() { sed -n "s/^$1=//p" "$2" | head -n 1; }
 for cmd in mkarchiso pacman-key sha256sum awk grub-mkstandalone; do
   need "$cmd"
 done
-[[ $EUID -eq 0 ]] || fail 'mkarchiso requires root'
 
 [[ "$ARACHOS_KERNEL_PACKAGE" == "arach-kernel" ]] \
   || fail "the target kernel package must be arach-kernel, not $ARACHOS_KERNEL_PACKAGE"
@@ -75,16 +74,6 @@ if [[ -n "$ARACHOS_REPOSITORY_URL" ]]; then
 fi
 
 # If a local package repository was built, add it to the archiso pacman.conf
-if [[ -d "$PKG_REPO" && -f "$PKG_REPO/arachos.db" ]]; then
-  if ! grep -q '\[arachos-local\]' "$ARCHISO_PROFILE/pacman.conf"; then
-    cat >> "$ARCHISO_PROFILE/pacman.conf" << LOCALREPO
-
-[arachos-local]
-SigLevel = Optional TrustAll
-Server = file://$PKG_REPO
-LOCALREPO
-  fi
-fi
 
 mkdir -p "$ISO_OUTPUT" "$WORK"
 

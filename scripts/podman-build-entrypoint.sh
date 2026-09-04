@@ -4,6 +4,9 @@ set -Eeuo pipefail
 cd ArachOS
 export IN_CONTAINER=1
 
+echo "==> Setting up permissions"
+chown -R builder:builder .
+
 echo "==> Building Packages"
 su builder -c "make build-packages"
 

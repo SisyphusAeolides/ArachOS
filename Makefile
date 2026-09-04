@@ -9,7 +9,7 @@ ARACHOS_GPG_HOME       ?=
 ARACHOS_GPG_KEY_ID     ?=
 
 BUILD_DIR              ?= build
-PKG_REPO               ?= $(BUILD_DIR)/packages
+PKG_REPO               ?= $(PWD)/$(BUILD_DIR)/packages
 ISO_OUTPUT             ?= $(BUILD_DIR)/iso
 
 RUSTD_SOURCE_ROOT        ?= ../rustd
