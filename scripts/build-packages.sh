@@ -48,13 +48,15 @@ build_pkg() {
   fi
   if [[ -n "$ARACHOS_GPG_KEY_ID" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
-      GNUPGHOME="$SIGNING_HOME" makepkg -sfi --sign --noconfirm
+      GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
+      sudo pacman -Udd --noconfirm *.pkg.tar.zst || true
     else
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
     fi
   else
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
-      makepkg -sfi --noconfirm
+      makepkg -sf --noconfirm
+      sudo pacman -Udd --noconfirm *.pkg.tar.zst || true
     else
       makepkg -sf --noconfirm
     fi
