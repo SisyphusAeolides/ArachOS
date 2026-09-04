@@ -9,7 +9,7 @@ license=('MIT')
 depends=('rustd' 'kmod')
 makedepends=('cargo' 'git' 'gcc' 'gawk')
 
-_commit=HERMES_COMMIT
+_commit=HERMES_GPU_STACK_COMMIT
 source=("git+${url}.git#commit=${_commit}"
         "hermes-gpu.service")
 sha256sums=('SKIP' 'SKIP')
