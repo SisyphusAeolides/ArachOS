@@ -24,7 +24,9 @@ build() {
 
 package() {
   cd "$pkgname"
-  install -Dm0755 target/release/libinput-rs "$pkgdir/usr/bin/libinput-rs"
+  for bin in libinput libinput-device-group libinput-fuzz-extract libinput-fuzz-to-zero libinput-rs-chwd; do
+    install -Dm0755 "target/release/$bin" "$pkgdir/usr/bin/$bin"
+  done
   install -Dm0644 "$srcdir/libinput-rs-elan-resume.service" \
     "$pkgdir/usr/lib/rustd/system/libinput-rs-elan-resume.service"
   if [ -f LICENSE ]; then install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"; fi
