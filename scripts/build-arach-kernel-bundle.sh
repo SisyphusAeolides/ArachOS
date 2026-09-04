@@ -226,9 +226,9 @@ install -m 0644 "$resolved_image" "$bundle_root/rustd-resolved"
 } > "$bundle_root/manifest.txt"
 sha256sum "$output_iso" > "$output_iso.sha256"
 # Keep the qualification bundle usable for C0 regression work without making
-# it look like an installable kernel.  The Anaconda builder consumes this
+# it look like an installable kernel.  The ArchISO builder consumes this
 # separate contract and refuses every value other than status=pass; the
-# persistent-root, Anaconda-target, and BIOS/UEFI gates are intentionally
+# persistent-root, ArchISO-target, and BIOS/UEFI gates are intentionally
 # recorded as pending until Arach-Kernel implements them.
 cat > "$bundle_root/install-manifest.txt" <<EOF
 schema=arachos-kernel-install-v1
@@ -247,8 +247,8 @@ EOF
 # The installer has a separate live-runtime contract from the Multiboot2
 # qualification bundle above. Keep a manifest beside the bundle even while
 # the Linux Arach-Kernel boot image and RustD-owned initramfs are unfinished;
-# build-live refuses this pending state instead of silently falling back to
-# the Fedora kernel/initramfs from the bootstrap ISO.
+# build-iso refuses this pending state instead of silently falling back to
+# the bootstrap Arch kernel and initramfs.
 cat > "$bundle_root/live-manifest.txt" <<EOF
 schema=arachos-live-runtime-v1
 status=pending
@@ -263,15 +263,14 @@ arach-kernel=$(awk '$1 == "arach-kernel" {print $3}' "$root/sources.lock")
 EOF
 printf 'ArachOS Arach Kernel bundle: %s\n' "$output_iso"
 
-# The installer transaction consumes an actual arach-kernel RPM.  Build it
+# The installer transaction consumes an actual arach-kernel package. Build it
 # from these exact measured artifacts after the bundle exists; this keeps the
 # package from ever being assembled from an unpinned or generic kernel input.
-if [[ ${ARACH_BUILD_KERNEL_RPM:-1} == 1 ]]; then
+if [[ ${ARACH_BUILD_KERNEL_PACKAGE:-1} == 1 ]]; then
     ARACH_KERNEL_BUNDLE_ROOT="$bundle_root" \
         PKG_REPO="$pkg_repo" \
         ARACHOS_VERSION="$arachos_version" \
         ARACHOS_RELEASE="$arachos_release" \
-        ARACHOS_RPM_DIST="${ARACHOS_RPM_DIST:-.arachos}" \
         ARACHOS_GPG_HOME="${ARACHOS_GPG_HOME:-}" \
         ARACHOS_GPG_KEY_ID="${ARACHOS_GPG_KEY_ID:-}" \
         bash "$root/scripts/build-arach-kernel-pkg.sh"
