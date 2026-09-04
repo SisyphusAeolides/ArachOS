@@ -25,10 +25,11 @@ assembled by the ArchISO profile. DNF/RPM packaging is not used for ArachOS.
 ## Installer
 
 ArachOS uses a branded Calamares installer in the ArchISO live environment.
-KDE Plasma is the default desktop, and the profile includes the filesystem and
-desktop choices that are present in the live image. GRUB is the bootloader used
-by the measured Arach Kernel contract; other bootloaders are not advertised as
-compatible until they implement and pass that contract's handoff checks.
+KDE Plasma is the default desktop, and the profile's “Everything” layout
+exposes every filesystem and desktop choice whose tools are present in the live
+image. GRUB is the bootloader used by the measured Arach Kernel contract; other
+bootloaders are not advertised as compatible until they implement and pass that
+contract's handoff checks.
 
 The release image is gated on the complete live-media and installed-system
 campaign. It will not be published while the Arach Kernel, RustD, RustD-
