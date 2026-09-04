@@ -77,8 +77,6 @@ patch_commit() {
 
 # Prepare arachos-release PKGBUILD sources
 cp "$ROOT/packaging/branding/arachos-profile.sh" \
-  "$WORK/../arachos-branding.sh" 2>/dev/null || \
-  cp "$ROOT/packaging/branding/arachos-profile.sh" \
   "$ROOT/packaging/pkgbuild/arachos-release/arachos-branding.sh"
 cp "$ROOT/packaging/branding/arachos-fastfetch.jsonc" \
   "$ROOT/packaging/pkgbuild/arachos-release/arachos-fastfetch.jsonc"
