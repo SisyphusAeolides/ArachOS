@@ -3,7 +3,7 @@ FROM archlinux:latest
 # Install build dependencies
 RUN pacman -Syu --noconfirm base-devel git rust python pam dbus json-c \
     archiso sudo qemu-system-x86 qemu-desktop make meson ninja cmake libevdev mtdev \
-    liburing openssl
+    liburing openssl rpm-tools cpio
 
 # Create a build user
 RUN useradd -m -G wheel -s /bin/bash builder && \
