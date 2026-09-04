@@ -74,6 +74,8 @@ build_pkg() {
     patch_commit "$builddir/PKGBUILD" "$lock_key"
   fi
   pushd "$builddir" >/dev/null
+  mapfile -t package_list < <(makepkg --packagelist)
+  ((${#package_list[@]} > 0)) || fail "makepkg did not report output packages for $name"
   if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
     sed -i "s|https://github.com/SisyphusAeolides|file:///home/builder/workspace|g" PKGBUILD
     sed -i "s|\.git#|#|g" PKGBUILD
@@ -82,20 +84,27 @@ build_pkg() {
   if [[ -n "$SIGNING_KEY" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
-      yes | sudo pacman -Udd --overwrite '*' *.pkg.tar.zst || true
+      if [[ "$name" == "grub" ]]; then
+        sudo pacman -Udd --noconfirm --overwrite '*' "${package_list[@]}"
+      fi
     else
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
     fi
   else
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       makepkg -sf --noconfirm
-      yes | sudo pacman -Udd --overwrite '*' *.pkg.tar.zst || true
+      if [[ "$name" == "grub" ]]; then
+        sudo pacman -Udd --noconfirm --overwrite '*' "${package_list[@]}"
+      fi
     else
       makepkg -sf --noconfirm
     fi
   fi
-  find . -maxdepth 1 -name '*.pkg.tar.zst' -exec cp -a {} "$OUTPUT/" \;
-  find . -maxdepth 1 -name '*.pkg.tar.zst.sig' -exec cp -a {} "$OUTPUT/" \;
+  for package in "${package_list[@]}"; do
+    [[ -s "$package" ]] || fail "makepkg did not create expected package: $package"
+    cp -a "$package" "$OUTPUT/"
+    [[ -s "$package.sig" ]] && cp -a "$package.sig" "$OUTPUT/"
+  done
   popd >/dev/null
 }
 
@@ -116,12 +125,13 @@ patch_commit() {
 source_lock_key() {
   case "$1" in
     hermes-gpu-stack) printf '%s\n' hermes ;;
-    arachos-release) return 1 ;;
+    arachos-release|grub) return 1 ;;
     *) printf '%s\n' "$1" ;;
   esac
 }
 
 pkgs_order=(
+  "grub"
   "rustd"
   "rustd-resolved"
   "tuned-rs"
@@ -134,6 +144,7 @@ pkgs_order=(
 )
 
 declare -A pkgs=(
+  [grub]="$ROOT/packaging/pkgbuild/grub"
   [rustd]="$ROOT/packaging/pkgbuild/rustd"
   [rustd-resolved]="$ROOT/packaging/pkgbuild/rustd-resolved"
   [libinput-rs]="$ROOT/packaging/pkgbuild/libinput-rs"
@@ -147,6 +158,13 @@ declare -A pkgs=(
 
 for name in "${pkgs_order[@]}"; do
   if ls "$OUTPUT/${name}-"*.pkg.tar.zst >/dev/null 2>&1; then
+    if [[ "${IN_CONTAINER:-0}" == "1" && "$name" == "grub" ]]; then
+      mapfile -t existing_packages < <(find "$OUTPUT" -maxdepth 1 -type f \
+        -name "${name}-*.pkg.tar.zst" -print | sort -V)
+      if ((${#existing_packages[@]} > 0)); then
+        sudo pacman -Udd --noconfirm --overwrite '*' "${existing_packages[@]}"
+      fi
+    fi
     echo "Package $name already built. Skipping."
     continue
   fi

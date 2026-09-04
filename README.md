@@ -4,6 +4,9 @@
 
 ArachOS is a custom Arch Linux-based operating system built with [archiso](https://wiki.archlinux.org/title/Archiso). It replaces the standard Linux init, input, power management, GPU, and wireless stacks with Rust implementations, and boots an independent measured kernel (Arach Kernel) instead of the generic Linux kernel.
 
+The release pipeline is Arch-native: pacman packages are built in Podman and
+assembled by the ArchISO profile. DNF/RPM packaging is not used for ArachOS.
+
 ## Core components
 
 | Package | Replaces | Description |
@@ -21,7 +24,16 @@ ArachOS is a custom Arch Linux-based operating system built with [archiso](https
 
 ## Installer
 
-ArachOS features a **Calamares "Everything" GUI Installer**. It is fully branded, defaults to the KDE Plasma desktop, and provides options for all filesystems, bootloaders, and alternative Desktop Environments during installation. The installer securely transitions the system to the measured Arach Kernel boot contract at the very end of the installation.
+ArachOS uses a branded Calamares installer in the ArchISO live environment.
+KDE Plasma is the default desktop, and the profile includes the filesystem and
+desktop choices that are present in the live image. GRUB is the bootloader used
+by the measured Arach Kernel contract; other bootloaders are not advertised as
+compatible until they implement and pass that contract's handoff checks.
+
+The release image is gated on the complete live-media and installed-system
+campaign. It will not be published while the Arach Kernel, RustD, RustD-
+resolved, Hermes, Calamares installation, first boot, networking, and reboot
+manifests are pending or incomplete.
 
 ## Repository layout
 
@@ -29,7 +41,7 @@ ArachOS features a **Calamares "Everything" GUI Installer**. It is fully branded
 archiso/                        archiso build profile
   airootfs/                     Files placed onto the live/installer root
     etc/                        OS identity, pacman config, Calamares settings
-      calamares/                Complete Calamares branding and netinstall configuration
+      calamares/                ArachOS branding and netinstall configuration
   packages.x86_64               Package list for the live medium (Plasma, Calamares, etc.)
   pacman.conf                   pacman config used during the ISO build
   profiledef.sh                 archiso profile metadata
@@ -88,8 +100,8 @@ make build-arach-kernel-bundle
 make qualify-hermes
 ```
 
-Once both qualification manifests report `status=pass`, the Podman build
-composes the ISO automatically. To rerun only ISO composition inside an
+Once every required qualification manifest reports `status=pass`, the Podman
+build composes the ISO automatically. To rerun only ISO composition inside an
 existing builder container:
 
 ```sh
@@ -114,9 +126,15 @@ build/iso/ArachOS-1.0-<YYYYMM>-x86_64.iso
 
 ## Installing ArachOS
 
-Boot the ISO and you will be greeted by the KDE Plasma desktop. Click the **Install ArachOS** shortcut on the desktop to launch the Calamares installer.
+For a qualified release, boot the ISO to the KDE Plasma live desktop and click
+the **Install ArachOS** shortcut to launch Calamares. The installer then guides
+you through partitioning, users, and the desktop choices included by the
+profile. The final installation step writes the Arach Kernel payload and
+validates the Multiboot2 boot contract on the target disk.
 
-The installer will guide you through partitioning, user creation, and Desktop Environment selection, before validating the strict Multiboot2 boot contract on the target disk.
+The current checkout is still a qualification build, not a release image.
+Use the disposable QEMU installation campaign described below until every
+manifest reports `status=pass`.
 
 Before release, `make test-kernel-qemu` must pass both BIOS and UEFI boots and
 report the runtime-ready marker. Installer tests use disposable QEMU disks and

@@ -1,0 +1,60 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=grub
+epoch=2
+pkgver=2.14
+pkgrel=2
+pkgdesc="GNU GRand Unified Bootloader (2) with the ArachOS EFI relocator fix"
+arch=('x86_64')
+url="https://www.gnu.org/software/grub/"
+license=('GPL-3.0-or-later')
+depends=('device-mapper' 'gettext' 'sh' 'xz')
+optdepends=(
+  'dosfstools: For grub-mkrescue FAT FS and EFI support'
+  'efibootmgr: For grub-install EFI support'
+  'freetype2: For grub-mkfont usage'
+  'fuse3: For grub-mount usage'
+  'libisoburn: Provides xorriso for grub-mkrescue'
+  'libusb: For grub-emu USB support'
+  'lzop: For grub-mkrescue LZO support'
+  'mtools: For grub-mkrescue FAT FS support'
+  'os-prober: To detect other operating systems'
+  'sdl: For grub-emu SDL support'
+)
+provides=('grub-bios' 'grub-common' 'grub-efi-x86_64' 'grub-emu')
+conflicts=('grub-bios' 'grub-common' 'grub-efi-x86_64' 'grub-emu' 'grub-legacy')
+replaces=('grub-common' 'grub-bios' 'grub-emu' 'grub-efi-x86_64')
+
+# This is the signed Arch GRUB 2.14-1 package. Only the EFI relocator module
+# is changed below; the rest of the package remains byte-for-byte upstream.
+source=(
+  'https://archive.archlinux.org/packages/g/grub/grub-2%3A2.14-1-x86_64.pkg.tar.zst'
+)
+sha256sums=('2b223178ee9bd0607bc4377af4deb8571fca9c59907154a55a5fad404ff7d305')
+
+package() {
+  local archive="$srcdir/grub-2%3A2.14-1-x86_64.pkg.tar.zst"
+  [[ -f "$archive" ]] || archive=$(find "$srcdir" -maxdepth 1 -type f \
+    -name 'grub-2*2.14-1-x86_64.pkg.tar.zst' -print -quit)
+  [[ -s "$archive" ]] || { error "GRUB source archive is missing"; return 1; }
+
+  tar --zstd -xf "$archive" -C "$pkgdir" \
+    --exclude='.PKGINFO' --exclude='.BUILDINFO' --exclude='.MTREE' \
+    --exclude='.INSTALL'
+
+  local relocator="$pkgdir/usr/lib/grub/x86_64-efi/relocator.mod"
+  [[ -s "$relocator" ]] || { error "x86_64 EFI relocator module is missing"; return 1; }
+
+  # GRUB 2.14 marks EFI module .text pages read/execute. Its Multiboot2 EFI
+  # relocator patches a template embedded in that section before jumping to a
+  # kernel, so advertise the section as writable as well. This keeps UEFI
+  # memory protection enabled everywhere else while making that required
+  # relocation step explicit in the module metadata.
+  local patched="$relocator.patched"
+  objcopy --set-section-flags .text=alloc,load,code,data,contents \
+    "$relocator" "$patched"
+  install -m0644 "$patched" "$relocator"
+  rm -f "$patched"
+
+  readelf -SW "$relocator" | awk '$3 == ".text" && $0 ~ /WAX/ {found=1} END {exit !found}' \
+    || { error "patched EFI relocator .text section is not writable"; return 1; }
+}
