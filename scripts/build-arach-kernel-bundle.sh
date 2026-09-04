@@ -7,7 +7,7 @@ rustd_root=${RUSTD_SOURCE_ROOT:-$root/../rustd}
 build_root=${ARACH_KERNEL_BUILD_ROOT:-$root/build/arach-kernel}
 rustd_static_root=${ARACH_RUSTD_STATIC_BUILD_ROOT:-$root/build/rustd-static}
 bundle_root=${ARACH_KERNEL_BUNDLE_ROOT:-$root/build/kernel-bundle}
-rpm_repo=${RPM_REPO:-$root/build/repo}
+pkg_repo=${PKG_REPO:-$root/build/packages}
 keep_build_work=${ARACHOS_KEEP_BUILD_WORK:-0}
 build_root_default=0
 rustd_static_root_default=0
@@ -25,7 +25,7 @@ fi
 
 fail() { printf 'ArachOS kernel bundle: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
-for command in git cargo readelf sha256sum rpm rpm2cpio cpio install find; do need "$command"; done
+for command in git cargo readelf sha256sum tar zstd install find; do need "$command"; done
 
 # Kernel and static-RustD compilation trees are disposable and can consume
 # many gigabytes. The durable bundle (artifacts and qualification manifests)
@@ -89,19 +89,19 @@ build_root=$(cd "$build_root" && pwd)
 bundle_root=$(cd "$bundle_root" && pwd)
 rustd_static_root=$(cd "$rustd_static_root" && pwd)
 
-extract_rpm_file() {
+extract_pkg_file() {
     local package=$1 path=$2 destination=$3
     rm -rf -- "$destination"
     mkdir -p "$destination"
-    (cd "$destination" && rpm2cpio "$package" | cpio -idm --quiet)
-    [[ -f $destination/$path ]] || fail "RPM $(basename "$package") has no $path"
+    tar --zstd -xf "$package" -C "$destination" "$path"
+    [[ -f $destination/$path ]] || fail "Package $(basename "$package") has no $path"
     printf '%s\n' "$destination/$path"
 }
 
-find_binary_rpm() {
+find_binary_pkg() {
     local pattern=$1
-    find "$rpm_repo" -maxdepth 1 -type f -name "$pattern" \
-        ! -name '*.src.rpm' ! -name '*-debugsource-*' ! -name '*-debuginfo-*' \
+    find "$pkg_repo" -maxdepth 1 -type f -name "$pattern" \
+        ! -name '*-debug-*' ! -name '*-debuginfo-*' \
         | sort -V | tail -n 1
 }
 
@@ -116,10 +116,10 @@ fi
 
 resolved_image=${ARACH_RESOLVED_IMAGE:-}
 if [[ -z $resolved_image ]]; then
-    resolved_rpm=$(find_binary_rpm 'rustd-resolved-[0-9]*.rpm')
+    resolved_pkg=$(find_binary_pkg 'rustd-resolved-[0-9]*.pkg.tar.zst')
     [[ -n $resolved_rpm ]] || fail \
-        'set ARACH_RESOLVED_IMAGE or provide a rustd-resolved RPM in RPM_REPO'
-    resolved_image=$(extract_rpm_file "$resolved_rpm" usr/lib/rustd/rustd-resolved \
+        'set ARACH_RESOLVED_IMAGE or provide a rustd-resolved PKG in PKG_REPO'
+    resolved_image=$(extract_pkg_file "$resolved_pkg" usr/lib/rustd/rustd-resolved \
         "$build_root/resolved-root")
 fi
 
