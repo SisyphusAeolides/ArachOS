@@ -11,9 +11,9 @@ export IN_CONTAINER=1
 
 restore_generated_ownership() {
     local status=$?
-    # The workspace is normally a host bind mount.  Keep the checkout and its
-    # .git directory untouched, and return generated files to the invoking
-    # user when running through `podman unshare`.
+    # The workspace is normally a host bind mount. Keep the checkout and its
+    # .git directory untouched. The outer run script reclaims the generated
+    # tree in its own user namespace after this container exits.
     chown -R 0:0 build 2>/dev/null || true
     trap - EXIT
     exit "$status"
