@@ -16,7 +16,7 @@ sha256sums=('SKIP' 'SKIP')
 
 build() {
   cd "Hermes"
-  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --frozen --release --locked
+  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --release --locked
 }
 
 package() {

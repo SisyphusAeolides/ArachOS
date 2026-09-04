@@ -10,7 +10,7 @@ license=('LGPL-2.1-or-later')
 makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'openssl' 'liburing' 'python')
 options=('!lto')
 
-_commit=RUSTD_RESOLVED_COMMIT
+_commit=aebea76ae5c6cdf718374310e131ba8743a7d09e
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
