@@ -127,7 +127,7 @@ build-iso:
 	ARACH_KERNEL_INSTALL_MANIFEST="$(ARACH_KERNEL_INSTALL_MANIFEST)" \
 	ARACHOS_HERMES_INSTALL_MANIFEST="$(ARACHOS_HERMES_INSTALL_MANIFEST)" \
 	ARACHOS_KERNEL_PACKAGE="$(ARACHOS_KERNEL_PACKAGE)" \
-	sudo -E bash scripts/build-iso.sh
+	bash scripts/build-iso.sh
 
 validate: verify-sources check-chaos validate-packages
 
