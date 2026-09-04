@@ -57,8 +57,8 @@ check-chaos: verify-sources
 	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" bash scripts/check-chaos.sh
 
 qualify-hermes: verify-sources
-	HERMES_QUALIFICATION_DIR="$(BUILD_DIR)/hermes-qualification" \
-	HERMES_RELEASE_MANIFEST="$(ARACHOS_HERMES_INSTALL_MANIFEST)" \
+	HERMES_QUALIFICATION_DIR="$(abspath $(BUILD_DIR)/hermes-qualification)" \
+	HERMES_RELEASE_MANIFEST="$(abspath $(ARACHOS_HERMES_INSTALL_MANIFEST))" \
 	bash "$(HERMES_SOURCE_ROOT)/scripts/qualify-release.sh"
 
 build-packages: verify-sources
