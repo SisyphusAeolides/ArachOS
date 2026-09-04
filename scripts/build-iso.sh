@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export PATH="/home/Sisyphus/bin:$PATH"
 # Build the ArachOS archiso live/install image.
 set -Eeuo pipefail
 
