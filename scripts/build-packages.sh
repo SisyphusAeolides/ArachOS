@@ -120,6 +120,10 @@ declare -A pkgs=(
 )
 
 for name in "${pkgs_order[@]}"; do
+  if ls "$OUTPUT/${name}-"*.pkg.tar.zst >/dev/null 2>&1; then
+    echo "Package $name already built. Skipping."
+    continue
+  fi
   pkgbuild="${pkgs[$name]}/PKGBUILD"
   # Patch commit placeholders dynamically
   if grep -q "$(echo $name | tr 'a-z-' 'A-Z_' )_COMMIT\|BLERUST_COMMIT\|CCZE_RS_COMMIT\|TUNED_RS_COMMIT\|HERMES_COMMIT\|IWCHAOS_COMMIT\|LIBINPUT_RS_COMMIT" "$pkgbuild" 2>/dev/null; then
