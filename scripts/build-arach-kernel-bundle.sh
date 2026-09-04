@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+export RUSTC_BOOTSTRAP=1
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 kernel_root=${ARACH_KERNEL_SOURCE_ROOT:-$root/../Arach-Kernel}
