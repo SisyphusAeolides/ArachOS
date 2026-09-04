@@ -9,7 +9,7 @@ license=('GPL-2.0-only')
 depends=('dkms' 'linux-headers' 'cargo' 'gcc' 'make' 'python' 'git' 'curl' 'binutils')
 makedepends=('git')
 
-_commit=IWCHAOS_COMMIT
+_commit=d21808bdb338d86ca7c0cf8da8191daead2ff7c4
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
@@ -17,5 +17,5 @@ package() {
   cd "$pkgname"
   install -d "$pkgdir/usr/src/$pkgname-$pkgver"
   cp -a . "$pkgdir/usr/src/$pkgname-$pkgver/"
-  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  if [ -f LICENSE ]; then install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"; fi
 }

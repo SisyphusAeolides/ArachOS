@@ -27,5 +27,5 @@ package() {
   install -Dm0755 target/release/libinput-rs "$pkgdir/usr/bin/libinput-rs"
   install -Dm0644 "$srcdir/libinput-rs-elan-resume.service" \
     "$pkgdir/usr/lib/rustd/system/libinput-rs-elan-resume.service"
-  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  if [ -f LICENSE ]; then install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"; fi
 }
