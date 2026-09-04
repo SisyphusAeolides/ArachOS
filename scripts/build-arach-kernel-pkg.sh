@@ -48,7 +48,7 @@ mkdir -p "$topdir"
 install -m 0644 "$bundle_root/arach" "$topdir/arach"
 install -m 0644 "$bundle_root/rustd" "$topdir/rustd"
 install -m 0644 "$bundle_root/rustd-resolved" "$topdir/rustd-resolved"
-install -m 0755 "$root/packaging/rpm/arach-kernel-install" "$topdir/arach-kernel-install"
+install -m 0755 "$root/archiso/airootfs/usr/sbin/arach-kernel-install" "$topdir/arach-kernel-install"
 install -m 0644 "$bundle_root/manifest.txt" "$topdir/arach-kernel-bundle-manifest.txt"
 install -m 0644 "$bundle_root/install-manifest.txt" "$topdir/arach-kernel-install-manifest.txt"
 
