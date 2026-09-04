@@ -10,7 +10,7 @@ license=('LGPL-2.1-or-later')
 makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'python' 'pam' 'dbus' 'json-c')
 options=('!lto')
 
-_commit=194cad016973226e1f99397645a41fb92d82b0d4
+_commit=97f7744e4f100e5122f164ad35ba82339289ad48
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 

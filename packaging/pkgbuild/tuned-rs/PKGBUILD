@@ -12,7 +12,7 @@ replaces=('tuned' 'power-profiles-daemon')
 depends=('dbus' 'polkit' 'rustd')
 makedepends=('cargo' 'git' 'gcc')
 
-_commit=49af9440bc774267e74696fa04a82ddddda1d796
+_commit=bbcd182d02ca832dd63d9dbaf3ce0b72f8af10bf
 source=("git+${url}.git#commit=${_commit}"
         "tuned-rs.service"
         "tuned-rs-ppd.service")

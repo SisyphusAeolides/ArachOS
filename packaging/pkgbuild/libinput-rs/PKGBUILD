@@ -12,7 +12,7 @@ replaces=('libinput')
 depends=('rustd-compat-libs')
 makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'meson' 'ninja' 'patch' 'libevdev' 'mtdev' 'liburing' 'python')
 
-_commit=878838aad6e5df64968d77a3cb9bac331b0b38cf
+_commit=c261a02410f3577517d75084bf00eb895e4cec5c
 source=("git+${url}.git#commit=${_commit}"
         "libinput-rs-elan-resume.service")
 sha256sums=('SKIP' 'SKIP')

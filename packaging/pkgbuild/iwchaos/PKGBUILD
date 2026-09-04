@@ -9,7 +9,7 @@ license=('GPL-2.0-only')
 depends=('dkms' 'linux-headers' 'cargo' 'gcc' 'make' 'python' 'git' 'curl' 'binutils')
 makedepends=('git')
 
-_commit=d21808bdb338d86ca7c0cf8da8191daead2ff7c4
+_commit=9b546445c5caffa00be3902bbd3190b89d11ffb3
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 

@@ -11,7 +11,7 @@ conflicts=('blesh')
 replaces=('blesh')
 makedepends=('cargo' 'git')
 
-_commit=2c83682a7e21c262134685a75409da193ee97a51
+_commit=a639d97d07b9407ca4b7b5f222ded652c8e5cb5d
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 

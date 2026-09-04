@@ -76,7 +76,7 @@ build_pkg() {
     sed -i "s|\.git#|#|g" PKGBUILD
     sed -i "s|iwchaos-linux|linux|g" PKGBUILD || true
   fi
-  if [[ -n "$ARACHOS_GPG_KEY_ID" ]]; then
+  if [[ -n "$SIGNING_KEY" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
       yes | sudo pacman -Udd --overwrite '*' *.pkg.tar.zst || true
@@ -100,8 +100,22 @@ patch_commit() {
   local pkgbuild=$1 key=$2
   local sha; sha=$(lock_sha "$key")
   [[ -n $sha ]] || fail "sources.lock has no entry for $key"
-  local placeholder=$(echo "$key" | tr 'a-z-' 'A-Z_')_COMMIT
-  sed -i "s/${placeholder}/$sha/" "$pkgbuild"
+  if grep -q '^_commit=' "$pkgbuild"; then
+    sed -i -E "s|^_commit=.*|_commit=$sha|" "$pkgbuild"
+  else
+    local placeholder=$(echo "$key" | tr 'a-z-' 'A-Z_')_COMMIT
+    grep -q "$placeholder" "$pkgbuild" \
+      || fail "$pkgbuild does not declare a pinned source commit"
+    sed -i "s/${placeholder}/$sha/" "$pkgbuild"
+  fi
+}
+
+source_lock_key() {
+  case "$1" in
+    hermes-gpu-stack) printf '%s\n' hermes ;;
+    arachos-release) return 1 ;;
+    *) printf '%s\n' "$1" ;;
+  esac
 }
 
 pkgs_order=(
@@ -134,9 +148,9 @@ for name in "${pkgs_order[@]}"; do
     continue
   fi
   pkgbuild="${pkgs[$name]}/PKGBUILD"
-  # Patch commit placeholders dynamically
-  if grep -q "$(echo $name | tr 'a-z-' 'A-Z_' )_COMMIT\|BLERUST_COMMIT\|CCZE_RS_COMMIT\|TUNED_RS_COMMIT\|HERMES_COMMIT\|IWCHAOS_COMMIT\|LIBINPUT_RS_COMMIT" "$pkgbuild" 2>/dev/null; then
-    patch_commit "$pkgbuild" "$name" || true
+  # Keep every git-backed package aligned with the repository lock file.
+  if lock_key=$(source_lock_key "$name"); then
+    patch_commit "$pkgbuild" "$lock_key"
   fi
   build_pkg "$name" "${pkgs[$name]}"
 done
