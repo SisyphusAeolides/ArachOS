@@ -26,8 +26,8 @@ ARACH_KERNEL_BUNDLE_ROOT         ?= $(BUILD_DIR)/kernel-bundle
 ARACH_RUSTD_STATIC_BUILD_ROOT    ?= $(BUILD_DIR)/rustd-static
 ARACH_KERNEL_INSTALL_MANIFEST    ?= $(BUILD_DIR)/kernel-bundle/install-manifest.txt
 ARACHOS_HERMES_INSTALL_MANIFEST  ?= $(BUILD_DIR)/hermes-qualification/release-manifest.txt
-ARACHOS_INSTALLER_KERNEL         ?= $(BUILD_DIR)/kernel-bundle/installer-kernel
-ARACHOS_INSTALLER_INITRD         ?= $(BUILD_DIR)/kernel-bundle/installer-initrd.img
+ARACHOS_INSTALLER_KERNEL         ?= $(BUILD_DIR)/kernel-bundle/arach
+ARACHOS_INSTALLER_INITRD         ?= $(BUILD_DIR)/kernel-bundle/bootstrap
 ARACHOS_LIVE_RUNTIME_MANIFEST    ?= $(BUILD_DIR)/kernel-bundle/live-manifest.txt
 
 ARACH_KERNEL_IMAGE  ?=
