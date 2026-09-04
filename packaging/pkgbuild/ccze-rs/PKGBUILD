@@ -11,7 +11,7 @@ conflicts=('ccze')
 replaces=('ccze')
 makedepends=('cargo' 'git' 'gcc-fortran')
 
-_commit=CCZE_RS_COMMIT
+_commit=af9d27d814c0d15a1ea1c0a03602eeef3b16c10e
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
@@ -33,6 +33,6 @@ package() {
   cd "$pkgname"
   export CFLAGS="${CFLAGS/-flto=auto/}"
   export LDFLAGS="${LDFLAGS/-flto=auto/}"
-  install -Dm0755 target/release/ccze-rs "$pkgdir/usr/bin/ccze-rs"
+  install -Dm0755 target/release/ccze "$pkgdir/usr/bin/ccze"
   if [ -f LICENSE ]; then install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"; fi
 }
