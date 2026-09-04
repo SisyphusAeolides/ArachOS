@@ -9,7 +9,7 @@ license=('MIT')
 depends=('rustd' 'kmod')
 makedepends=('cargo' 'git' 'gcc' 'gawk')
 
-_commit=HERMES_GPU_STACK_COMMIT
+_commit=6d060a604d835ac52f4e49291d852c8def69afdc
 source=("git+${url}.git#commit=${_commit}"
         "hermes-gpu.service")
 sha256sums=('SKIP' 'SKIP')
@@ -27,8 +27,6 @@ package() {
   install -Dm0755 target/release/nvidia-settings "$pkgdir/usr/bin/nvidia-settings"
   install -Dm0644 "$srcdir/hermes-gpu.service" \
     "$pkgdir/usr/lib/rustd/system/hermes-gpu.service"
-  install -Dm0644 DROPIN_CATALOG.txt \
-    "$pkgdir/usr/share/hermes/DROPIN_CATALOG.txt"
   install -Dm0755 target/release/libnvidia-ml.so.1 \
     "$pkgdir/usr/lib/libnvidia-ml.so.1"
   install -Dm0755 target/release/libcuda.so.1 \
