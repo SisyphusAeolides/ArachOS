@@ -2,32 +2,52 @@
 pkgname=libinput-rs
 pkgver=0.3.15
 pkgrel=1
-pkgdesc="Rust libinput implementation for ArachOS"
+pkgdesc="Rust libinput implementation and ABI-compatible tools for ArachOS"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/libinput-rs"
 license=('MIT' 'Unicode-3.0')
 provides=('libinput')
 conflicts=('libinput')
 replaces=('libinput')
-depends=('rustd-compat-libs')
-makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'meson' 'ninja' 'patch' 'libevdev' 'mtdev' 'liburing' 'python')
+depends=('glibc' 'gcc-libs' 'rustd-compat-libs' 'libevdev' 'mtdev' 'liburing' 'python')
+makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'meson' 'ninja' 'patch' 'libevdev' 'mtdev' 'liburing' 'python' 'curl')
 
 _commit=c261a02410f3577517d75084bf00eb895e4cec5c
+_tools_commit=26191d396d74d505541d6311f0b4ae68d791b890
 source=("git+${url}.git#commit=${_commit}"
+        "https://gitlab.freedesktop.org/libinput/libinput/-/archive/${_tools_commit}/libinput-${_tools_commit}.tar.gz"
         "libinput-rs-elan-resume.service")
-sha256sums=('SKIP' 'SKIP')
+sha256sums=('SKIP'
+            'd5d8c8464f9cb24b0897c03edfe7d7c9e75ff5a91fe9b5b48791781aa9642858'
+            'SKIP')
 
 build() {
   cd "$pkgname"
-  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --release --locked
+  # Build the Rust ABI and the pinned upstream utility payload in the same
+  # tree. The ArachOS package owns the complete libinput replacement surface,
+  # not just the command-line entry points.
+  CARGO_PROFILE_RELEASE_DEBUG=2 \
+    make all upstream-tools \
+      PREFIX=/usr \
+      LIBDIR=/usr/lib \
+      RPM_TOPDIR="$srcdir" \
+      UPSTREAM_TOOLS_ARCHIVE="$srcdir/libinput-${_tools_commit}.tar.gz"
 }
 
 package() {
   cd "$pkgname"
-  for bin in libinput libinput-device-group libinput-fuzz-extract libinput-fuzz-to-zero libinput-rs-chwd; do
-    install -Dm0755 "target/release/$bin" "$pkgdir/usr/bin/$bin"
-  done
+  make DESTDIR="$pkgdir" PREFIX=/usr LIBDIR=/usr/lib \
+    RPM_TOPDIR="$srcdir" \
+    UPSTREAM_TOOLS_ARCHIVE="$srcdir/libinput-${_tools_commit}.tar.gz" \
+    install
+
+  # RustD owns service activation on ArachOS. Keep the tested unit and preset
+  # under its native unit root instead of shipping a systemd unit tree.
+  install -Dm0644 "$pkgdir/usr/lib/systemd/system/libinput-rs-elan-resume.service" \
+    "$pkgdir/usr/lib/rustd/system/libinput-rs-elan-resume.service"
+  rm -f "$pkgdir/usr/lib/systemd/system/libinput-rs-elan-resume.service"
+  rm -rf "$pkgdir/usr/lib/systemd/system-preset" "$pkgdir/usr/lib/systemd"
   install -Dm0644 "$srcdir/libinput-rs-elan-resume.service" \
     "$pkgdir/usr/lib/rustd/system/libinput-rs-elan-resume.service"
-  if [ -f LICENSE ]; then install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"; fi
+  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
