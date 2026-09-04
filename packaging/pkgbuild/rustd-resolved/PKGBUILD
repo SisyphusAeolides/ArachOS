@@ -33,7 +33,7 @@ package_rustd-resolved() {
        PREFIX=/usr \
        LIBDIR=/usr/lib \
        install
-  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
 
 package_rustd-resolved-nss() {
@@ -46,5 +46,5 @@ package_rustd-resolved-nss() {
   elif [ -f build/libs/libnss_rustd_dns.so ]; then
       install -m0755 build/libs/libnss_rustd_dns.so "$pkgdir/usr/lib/libnss_rustd_dns.so.2"
   fi
-  install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
