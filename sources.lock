@@ -7,7 +7,7 @@ iwchaos-linux https://github.com/gregkh/linux.git 8d3ae59288f1e7d58d76558a6ee96d
 tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git 49af9440bc774267e74696fa04a82ddddda1d796
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git c261a02410f3577517d75084bf00eb895e4cec5c
 blerust https://github.com/SisyphusAeolides/blerust.git 2c83682a7e21c262134685a75409da193ee97a51
-ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 282d2a5f68790e1137054b82e9fdfaf82d4e44cc
+ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git af9d27d814c0d15a1ea1c0a03602eeef3b16c10e
 hermes https://github.com/SisyphusAeolides/Hermes.git 6d060a604d835ac52f4e49291d852c8def69afdc
 hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git 6d060a604d835ac52f4e49291d852c8def69afdc
 arachos-release local none
