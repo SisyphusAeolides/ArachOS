@@ -111,7 +111,7 @@ sign-packages:
 	ARACHOS_GPG_KEY_ID="$(ARACHOS_GPG_KEY_ID)" \
 	bash scripts/sign-pkg-repo.sh "$(PKG_REPO)"
 
-build-iso: build-packages build-arach-kernel-bundle validate-packages
+build-iso:
 	PKG_REPO="$(PKG_REPO)" \
 	ISO_OUTPUT="$(ISO_OUTPUT)" \
 	ARACHOS_VERSION="$(ARACHOS_VERSION)" \
