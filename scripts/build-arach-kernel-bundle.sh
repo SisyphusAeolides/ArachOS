@@ -267,7 +267,7 @@ printf 'ArachOS Arach Kernel bundle: %s\n' "$output_iso"
 # package from ever being assembled from an unpinned or generic kernel input.
 if [[ ${ARACH_BUILD_KERNEL_RPM:-1} == 1 ]]; then
     ARACH_KERNEL_BUNDLE_ROOT="$bundle_root" \
-        RPM_REPO="$rpm_repo" \
+        PKG_REPO="$pkg_repo" \
         ARACHOS_VERSION="$arachos_version" \
         ARACHOS_RELEASE="$arachos_release" \
         ARACHOS_RPM_DIST="${ARACHOS_RPM_DIST:-.arachos}" \
