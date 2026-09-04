@@ -17,16 +17,22 @@ sha256sums=('SKIP')
 
 build() {
   cd "$pkgname"
+  export CFLAGS="${CFLAGS/-flto=auto/}"
+  export LDFLAGS="${LDFLAGS/-flto=auto/}"
   CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --release --locked
 }
 
 check() {
   cd "$pkgname"
+  export CFLAGS="${CFLAGS/-flto=auto/}"
+  export LDFLAGS="${LDFLAGS/-flto=auto/}"
   cargo test --locked --all-targets
 }
 
 package() {
   cd "$pkgname"
+  export CFLAGS="${CFLAGS/-flto=auto/}"
+  export LDFLAGS="${LDFLAGS/-flto=auto/}"
   install -Dm0755 target/release/ccze-rs "$pkgdir/usr/bin/ccze-rs"
   if [ -f LICENSE ]; then install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"; fi
 }
