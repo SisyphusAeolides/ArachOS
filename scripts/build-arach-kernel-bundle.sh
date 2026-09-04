@@ -118,7 +118,7 @@ fi
 resolved_image=${ARACH_RESOLVED_IMAGE:-}
 if [[ -z $resolved_image ]]; then
     resolved_pkg=$(find_binary_pkg 'rustd-resolved-[0-9]*.pkg.tar.zst')
-    [[ -n $resolved_rpm ]] || fail \
+    [[ -n $resolved_pkg ]] || fail \
         'set ARACH_RESOLVED_IMAGE or provide a rustd-resolved PKG in PKG_REPO'
     resolved_image=$(extract_pkg_file "$resolved_pkg" usr/lib/rustd/rustd-resolved \
         "$build_root/resolved-root")
