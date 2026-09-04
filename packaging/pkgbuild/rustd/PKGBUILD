@@ -34,6 +34,21 @@ package_rustd() {
        install
 
   # Also install devel files here for simplicity
+  mkdir -p "$pkgdir/usr/lib/pkgconfig"
+  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libudev.pc"
+Name: libudev
+Description: Library to access udev device information (RustD compat)
+Version: 255
+Libs: -L/usr/lib -ludev
+Cflags: -I/usr/include
+PC
+  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libsystemd.pc"
+Name: libsystemd
+Description: systemd System and Service Manager Libraries (RustD compat)
+Version: 255
+Libs: -L/usr/lib -lsystemd
+Cflags: -I/usr/include
+PC
   install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
 
@@ -50,6 +65,21 @@ package_rustd-compat-libs() {
   ln -s libsystemd.so.0 "$pkgdir/usr/lib/libsystemd.so"
   install -m0755 build/libs/libudev.so.1 "$pkgdir/usr/lib/libudev.so.1"
   ln -s libudev.so.1 "$pkgdir/usr/lib/libudev.so"
+  mkdir -p "$pkgdir/usr/lib/pkgconfig"
+  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libudev.pc"
+Name: libudev
+Description: Library to access udev device information (RustD compat)
+Version: 255
+Libs: -L/usr/lib -ludev
+Cflags: -I/usr/include
+PC
+  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libsystemd.pc"
+Name: libsystemd
+Description: systemd System and Service Manager Libraries (RustD compat)
+Version: 255
+Libs: -L/usr/lib -lsystemd
+Cflags: -I/usr/include
+PC
   install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
 
@@ -66,5 +96,20 @@ package_rustd-cutover-tools() {
   elif [ -f build/libs/pam_rustd.so ]; then
       install -m0755 build/libs/pam_rustd.so "$pkgdir/usr/lib/security/pam_rustd.so"
   fi
+  mkdir -p "$pkgdir/usr/lib/pkgconfig"
+  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libudev.pc"
+Name: libudev
+Description: Library to access udev device information (RustD compat)
+Version: 255
+Libs: -L/usr/lib -ludev
+Cflags: -I/usr/include
+PC
+  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libsystemd.pc"
+Name: libsystemd
+Description: systemd System and Service Manager Libraries (RustD compat)
+Version: 255
+Libs: -L/usr/lib -lsystemd
+Cflags: -I/usr/include
+PC
   install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
