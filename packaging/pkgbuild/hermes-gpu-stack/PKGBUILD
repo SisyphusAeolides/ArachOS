@@ -9,8 +9,8 @@ license=('MIT')
 depends=('rustd' 'kmod')
 makedepends=('cargo' 'git' 'gcc' 'gawk')
 
-_commit=HERMES_GPU_STACK_COMMIT
-source=("git+\${url}.git#commit=\${_commit}"
+_commit=6d060a604d835ac52f4e49291d852c8def69afdc
+source=("git+${url}.git#commit=${_commit}"
         "hermes-gpu.service")
 sha256sums=('SKIP' 'SKIP')
 
@@ -24,27 +24,27 @@ package() {
   
   # Binaries
   for bin in hermes-ctl nvidia-smi nvidia-modprobe nvidia-settings nvidia-debugdump nvidia-persistenced nvidia-cuda-mps-control; do
-    if [ -f "target/release/\$bin" ]; then
-      install -Dm0755 "target/release/\$bin" "\$pkgdir/usr/bin/\$bin"
+    if [ -f "target/release/$bin" ]; then
+      install -Dm0755 "target/release/$bin" "$pkgdir/usr/bin/$bin"
     fi
   done
   
   # Service
-  install -Dm0644 "\$srcdir/hermes-gpu.service" "\$pkgdir/usr/lib/rustd/system/hermes-gpu.service"
+  install -Dm0644 "$srcdir/hermes-gpu.service" "$pkgdir/usr/lib/rustd/system/hermes-gpu.service"
   
   # Libraries (mapping Rust names to expected NVIDIA ABI names)
   if [ -f "target/release/libnvidia_ml.so" ]; then
-    install -Dm0755 target/release/libnvidia_ml.so "\$pkgdir/usr/lib/libnvidia-ml.so.1"
+    install -Dm0755 target/release/libnvidia_ml.so "$pkgdir/usr/lib/libnvidia-ml.so.1"
   fi
   if [ -f "target/release/libhermes_cuda.so" ]; then
-    install -Dm0755 target/release/libhermes_cuda.so "\$pkgdir/usr/lib/libcuda.so.1"
+    install -Dm0755 target/release/libhermes_cuda.so "$pkgdir/usr/lib/libcuda.so.1"
   fi
   if [ -f "target/release/libhermes_mesa.so" ]; then
-    install -Dm0755 target/release/libhermes_mesa.so "\$pkgdir/usr/lib/libGLX_nvidia.so.0"
-    install -Dm0755 target/release/libhermes_mesa.so "\$pkgdir/usr/lib/libEGL_nvidia.so.0"
+    install -Dm0755 target/release/libhermes_mesa.so "$pkgdir/usr/lib/libGLX_nvidia.so.0"
+    install -Dm0755 target/release/libhermes_mesa.so "$pkgdir/usr/lib/libEGL_nvidia.so.0"
   fi
   
   if [ -f LICENSE ]; then
-    install -Dm0644 LICENSE "\$pkgdir/usr/share/licenses/\$pkgname/LICENSE"
+    install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   fi
 }
