@@ -27,4 +27,30 @@ done
 
 [[ -f "$PKG_REPO/arachos.db" ]] || fail 'pacman repository database (arachos.db) is missing'
 
+# libinput-rs is a replacement package, not just a pair of helper binaries.
+# Keep the ABI, headers, upstream tools, and RustD unit in the repository
+# contract so a truncated package cannot reach an ArchISO build.
+libinput_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \
+  -name 'libinput-rs-*.pkg.tar.zst' ! -name '*-debug-*' -print -quit)
+[[ -n "$libinput_pkg" ]] || fail 'libinput-rs package is missing'
+mapfile -t libinput_files < <(tar --zstd -tf "$libinput_pkg")
+for path in \
+  usr/bin/libinput \
+  usr/bin/libinput-rs \
+  usr/bin/libinput-rs-chwd \
+  usr/include/libinput.h \
+  usr/lib/libinput.so.10 \
+  usr/lib/libinput.so.10.13.0 \
+  usr/lib/pkgconfig/libinput.pc \
+  usr/lib/rustd/system/libinput-rs-elan-resume.service \
+  usr/libexec/libinput/libinput-tool; do
+  printf '%s\n' "${libinput_files[@]}" | grep -Fxq "$path" \
+    || fail "libinput-rs package is missing $path"
+done
+if printf '%s\n' "${libinput_files[@]}" | grep -Eq '^usr/lib/systemd/'; then
+  fail 'libinput-rs package contains a systemd unit path'
+fi
+tar --zstd -xOf "$libinput_pkg" .PKGINFO | grep -Fxq 'depend = rustd-compat-libs' \
+  || fail 'libinput-rs package is not bound to rustd-compat-libs'
+
 printf 'validated %d packages in %s\n' "${#pkgs[@]}" "$PKG_REPO"
