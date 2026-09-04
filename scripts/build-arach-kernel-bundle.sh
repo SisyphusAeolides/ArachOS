@@ -58,8 +58,8 @@ trap cleanup_kernel_build EXIT
 [[ $arachos_arch == x86_64 ]] || fail 'the kernel bundle currently supports x86_64 only'
 [[ -d $kernel_root/.git ]] || fail "Arach-Kernel checkout is missing: $kernel_root"
 [[ -d $rustd_root/.git ]] || fail "RustD checkout is missing: $rustd_root"
-[[ -d $rpm_repo ]] || fail "RPM repository is missing: $rpm_repo; run make build-rpms first"
-rpm_repo=$(cd "$rpm_repo" && pwd)
+[[ -d $pkg_repo ]] || fail "Package repository is missing: $pkg_repo; run make build-packages first"
+pkg_repo=$(cd "$pkg_repo" && pwd)
 
 RUSTD_SOURCE_ROOT="$rustd_root" \
 RESOLVED_SOURCE_ROOT="${RESOLVED_SOURCE_ROOT:-$root/../rustd-resolved}" \
