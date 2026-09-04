@@ -224,7 +224,8 @@ install -m 0644 "$resolved_image" "$bundle_root/rustd-resolved"
     done
     printf 'toolchain=%s\n' "$($cargo_bin --version)"
 } > "$bundle_root/manifest.txt"
-sha256sum "$output_iso" > "$output_iso.sha256"
+(cd "$(dirname "$output_iso")" && sha256sum "$(basename "$output_iso")") \
+    > "$output_iso.sha256"
 # Keep the qualification bundle usable for C0 regression work without making
 # it look like an installable kernel.  The ArchISO builder consumes this
 # separate contract and refuses every value other than status=pass; the
