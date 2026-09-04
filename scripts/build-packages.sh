@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 OUTPUT="${PKG_OUTPUT:-$ROOT/build/packages}"
+OUTPUT="$(realpath -m "$OUTPUT")"
 SIGNING_KEY="${ARACHOS_GPG_KEY_ID:-}"
 SIGNING_HOME="${ARACHOS_GPG_HOME:-}"
 KEEP_WORK="${ARACHOS_KEEP_BUILD_WORK:-0}"
@@ -49,14 +50,14 @@ build_pkg() {
   if [[ -n "$ARACHOS_GPG_KEY_ID" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
-      sudo pacman -Udd --noconfirm *.pkg.tar.zst || true
+      sudo pacman -Udd --noconfirm --overwrite '*' *.pkg.tar.zst || true
     else
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
     fi
   else
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       makepkg -sf --noconfirm
-      sudo pacman -Udd --noconfirm *.pkg.tar.zst || true
+      sudo pacman -Udd --noconfirm --overwrite '*' *.pkg.tar.zst || true
     else
       makepkg -sf --noconfirm
     fi
