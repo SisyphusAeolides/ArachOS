@@ -6,10 +6,9 @@ echo "==> Building Podman image"
 podman build -t arachos-builder -f Dockerfile.build .
 
 echo "==> Running Build Container"
-# Mount the parent Projects directory so all sibling repos are available
-podman run --rm -it \
-  --userns=keep-id \
+podman unshare podman run --rm -it \
+  --user root \
   --security-opt label=disable \
   --privileged \
   -v /home/Sisyphus/Projects:/home/builder/workspace:z \
-  arachos-builder
+  arachos-builder bash ArachOS/scripts/podman-build-entrypoint.sh
