@@ -13,6 +13,16 @@ WORK="$ROOT/build/pkgwork"
 fail() { printf 'ArachOS build-packages: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 
+cleanup_work() {
+  local status=$?
+  if [[ "$KEEP_WORK" != "1" && -d "$WORK" ]]; then
+    find "$WORK" -depth -delete
+  fi
+  trap - EXIT
+  exit "$status"
+}
+trap cleanup_work EXIT
+
 need makepkg
 need git
 need repo-add
@@ -41,6 +51,25 @@ build_pkg() {
   local builddir="$WORK/$name"
   rm -rf "$builddir"
   cp -a "$pkgdir" "$builddir"
+  case "$name" in
+    arachos-release)
+      cp "$ROOT/packaging/branding/arachos-profile.sh" "$builddir/arachos-branding.sh"
+      cp "$ROOT/packaging/branding/arachos-fastfetch.jsonc" "$builddir/arachos-fastfetch.jsonc"
+      cp "$ROOT/docs/ArachOS.png" "$builddir/ArachOS.png"
+      cp "$ROOT/packaging/branding/chaos.png" "$builddir/chaos.png"
+      ;;
+    tuned-rs)
+      cp "$ROOT/packaging/rustd/tuned-rs.service" "$builddir/tuned-rs.service"
+      cp "$ROOT/packaging/rustd/tuned-rs-ppd.service" "$builddir/tuned-rs-ppd.service"
+      ;;
+    hermes-gpu-stack)
+      cp "$ROOT/packaging/rustd/hermes-gpu.service" "$builddir/hermes-gpu.service"
+      ;;
+    libinput-rs)
+      cp "$ROOT/packaging/rustd/libinput-rs-elan-resume.service" \
+        "$builddir/libinput-rs-elan-resume.service"
+      ;;
+  esac
   pushd "$builddir" >/dev/null
   if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
     sed -i "s|https://github.com/SisyphusAeolides|file:///home/builder/workspace|g" PKGBUILD
@@ -74,26 +103,6 @@ patch_commit() {
   local placeholder=$(echo "$key" | tr 'a-z-' 'A-Z_')_COMMIT
   sed -i "s/${placeholder}/$sha/" "$pkgbuild"
 }
-
-# Prepare arachos-release PKGBUILD sources
-cp "$ROOT/packaging/branding/arachos-profile.sh" \
-  "$ROOT/packaging/pkgbuild/arachos-release/arachos-branding.sh"
-cp "$ROOT/packaging/branding/arachos-fastfetch.jsonc" \
-  "$ROOT/packaging/pkgbuild/arachos-release/arachos-fastfetch.jsonc"
-cp "$ROOT/docs/ArachOS.png" \
-  "$ROOT/packaging/pkgbuild/arachos-release/ArachOS.png"
-cp "$ROOT/packaging/branding/chaos.png" \
-  "$ROOT/packaging/pkgbuild/arachos-release/chaos.png"
-
-# Copy service units
-cp "$ROOT/packaging/rustd/tuned-rs.service" \
-  "$ROOT/packaging/pkgbuild/tuned-rs/tuned-rs.service"
-cp "$ROOT/packaging/rustd/tuned-rs-ppd.service" \
-  "$ROOT/packaging/pkgbuild/tuned-rs/tuned-rs-ppd.service"
-cp "$ROOT/packaging/rustd/hermes-gpu.service" \
-  "$ROOT/packaging/pkgbuild/hermes-gpu-stack/hermes-gpu.service"
-cp "$ROOT/packaging/rustd/libinput-rs-elan-resume.service" \
-  "$ROOT/packaging/pkgbuild/libinput-rs/libinput-rs-elan-resume.service"
 
 pkgs_order=(
   "rustd"
@@ -140,9 +149,5 @@ else
   repo-add -n arachos.db.tar.gz *.pkg.tar.zst
 fi
 popd >/dev/null
-
-if [[ "$KEEP_WORK" != "1" ]]; then
-  rm -rf "$WORK"
-fi
 
 printf 'ArachOS packages written to %s\n' "$OUTPUT"

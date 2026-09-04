@@ -52,18 +52,21 @@ Makefile                        Reproducible entry points
 
 ## Prerequisites
 
-Build host must be Arch Linux (or a compatible derivative such as CachyOS) with the following packages installed:
+The supported build path uses Podman so package and ISO tooling stays inside a
+reproducible Arch Linux container. The host needs Podman, QEMU, and OVMF:
 
 ```sh
-sudo pacman -S archiso base-devel git cargo rust
+sudo pacman -S podman qemu-full edk2-ovmf
 ```
 
 ## Building packages
 
-All ArachOS packages are built from the exact commits recorded in `sources.lock`. Check out the required source trees alongside this repository, then run:
+All ArachOS packages are built from the exact commits recorded in
+`sources.lock`. Check out the required source trees alongside this repository,
+then run the container build:
 
 ```sh
-make build-packages
+scripts/run-podman-build.sh
 ```
 
 To sign the package repository, provide your GPG credentials:
@@ -85,16 +88,22 @@ make build-arach-kernel-bundle
 make qualify-hermes
 ```
 
-Once both qualification manifests report `status=pass`, build the ISO:
+Once both qualification manifests report `status=pass`, the Podman build
+composes the ISO automatically. To rerun only ISO composition inside an
+existing builder container:
 
 ```sh
-sudo make build-iso
+podman unshare podman run --rm --privileged --user root \
+  --security-opt label=disable \
+  -v "$HOME/Projects:/home/builder/workspace:z" \
+  arachos-builder bash -lc 'cd ArachOS && make build-iso'
 ```
 
 For a release candidate, provide the hosted ArachOS repository URL so the installed system has an enabled ArachOS source after reboot:
 
 ```sh
-sudo make build-iso ARACHOS_REPOSITORY_URL=https://mirror.example/arachos/1.0/x86_64/
+ARACHOS_REPOSITORY_URL=https://mirror.example/arachos/1.0/x86_64/ \
+  scripts/run-podman-build.sh
 ```
 
 If that variable is omitted, the installer writes a disabled repository entry and prints a warning. The result is:
@@ -108,6 +117,13 @@ build/iso/ArachOS-1.0-<YYYYMM>-x86_64.iso
 Boot the ISO and you will be greeted by the KDE Plasma desktop. Click the **Install ArachOS** shortcut on the desktop to launch the Calamares installer.
 
 The installer will guide you through partitioning, user creation, and Desktop Environment selection, before validating the strict Multiboot2 boot contract on the target disk.
+
+Before release, `make test-kernel-qemu` must pass both BIOS and UEFI boots and
+report the runtime-ready marker. Installer tests use disposable QEMU disks and
+must cover installation, first boot from the installed disk, networking,
+resolver operation, package transactions, reboot, and shutdown. Test firmware
+state, disks, serial logs, and failed build work are temporary and are removed
+after each run.
 
 ## Arach Kernel qualification bundle
 

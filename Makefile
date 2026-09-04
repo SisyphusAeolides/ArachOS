@@ -7,6 +7,7 @@ ARACHOS_REPOSITORY_URL ?=
 ARACHOS_KEEP_BUILD_WORK ?= 0
 ARACHOS_GPG_HOME       ?=
 ARACHOS_GPG_KEY_ID     ?=
+ARACHOS_KERNEL_PACKAGE ?= arach-kernel
 
 BUILD_DIR              ?= build
 PKG_REPO               ?= $(PWD)/$(BUILD_DIR)/packages
@@ -38,7 +39,7 @@ ARACH_BOOTSTRAP_ABI   ?= linux
 
 .PHONY: verify-sources check-chaos qualify-hermes build-packages \
 	build-arach-kernel-bundle validate-packages sign-packages \
-	build-iso validate clean
+	build-iso test-kernel-qemu validate clean
 
 verify-sources:
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
@@ -128,6 +129,9 @@ build-iso:
 	ARACHOS_HERMES_INSTALL_MANIFEST="$(ARACHOS_HERMES_INSTALL_MANIFEST)" \
 	ARACHOS_KERNEL_PACKAGE="$(ARACHOS_KERNEL_PACKAGE)" \
 	bash scripts/build-iso.sh
+
+test-kernel-qemu:
+	bash scripts/test-kernel-qemu.sh
 
 validate: verify-sources check-chaos validate-packages
 

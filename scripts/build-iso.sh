@@ -24,6 +24,16 @@ fail() { printf 'ArachOS build-iso: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 manifest_value() { sed -n "s/^$1=//p" "$2" | head -n 1; }
 
+cleanup_work() {
+  local status=$?
+  if [[ "$LIVE_MEDIA_KEEP_WORK" != "1" && -d "$WORK" ]]; then
+    find "$WORK" -depth -delete
+  fi
+  trap - EXIT
+  exit "$status"
+}
+trap cleanup_work EXIT
+
 for cmd in mkarchiso pacman-key sha256sum awk grub-mkstandalone; do
   need "$cmd"
 done
@@ -36,17 +46,19 @@ done
   || fail "Arach-Kernel install qualification manifest is missing: $ARACH_KERNEL_INSTALL_MANIFEST"
 [[ "$(manifest_value schema "$ARACH_KERNEL_INSTALL_MANIFEST")" == "arachos-kernel-install-v1" ]] \
   || fail 'Arach-Kernel install qualification manifest has the wrong schema'
-[[ "$(manifest_value status "$ARACH_KERNEL_INSTALL_MANIFEST")" != "blocked" ]] \
-  || echo "Arach-Kernel qualification bypassed"
+[[ "$(manifest_value status "$ARACH_KERNEL_INSTALL_MANIFEST")" == "pass" ]] \
+  || fail 'Arach-Kernel install qualification does not report status=pass'
 
 # Validate Hermes qualification manifest
-[[ "pass" != "blocked" ]] \
-  || echo "Hermes qualification bypassed"
+[[ -r "$ARACHOS_HERMES_INSTALL_MANIFEST" ]] \
+  || fail "Hermes qualification manifest is missing: $ARACHOS_HERMES_INSTALL_MANIFEST"
+[[ "$(manifest_value status "$ARACHOS_HERMES_INSTALL_MANIFEST")" == "pass" ]] \
+  || fail 'Hermes qualification does not report status=pass'
 
 # Validate live runtime manifest
 [[ -r "$ARACHOS_LIVE_RUNTIME_MANIFEST" ]] \
   || fail "Live runtime manifest is missing: $ARACHOS_LIVE_RUNTIME_MANIFEST"
-[[ "$(manifest_value status "$ARACHOS_LIVE_RUNTIME_MANIFEST")" != "blocked" ]] \
+[[ "$(manifest_value status "$ARACHOS_LIVE_RUNTIME_MANIFEST")" == "pass" ]] \
   || fail 'Live runtime manifest does not report status=pass'
 [[ "$(manifest_value kernel "$ARACHOS_LIVE_RUNTIME_MANIFEST")" == "arach-kernel" ]] \
   || fail 'Live runtime manifest does not report kernel=arach-kernel'
@@ -59,13 +71,16 @@ done
 [[ -s "$ARACHOS_INSTALLER_INITRD" ]] \
   || fail "Installer initrd is missing: $ARACHOS_INSTALLER_INITRD"
 
-# Stage Arach Kernel boot payloads into the airootfs
+# Stage measured Arach Kernel boot payloads into the live filesystem.
 install -Dm0644 "$ARACHOS_INSTALLER_KERNEL" \
   "$ARCHISO_PROFILE/airootfs/boot/arach"
 install -Dm0644 "$ROOT/build/kernel-bundle/rustd" \
-  "$ARCHISO_PROFILE/airootfs/boot/rustd" 2>/dev/null || true
+  "$ARCHISO_PROFILE/airootfs/boot/rustd"
 install -Dm0644 "$ROOT/build/kernel-bundle/rustd-resolved" \
-  "$ARCHISO_PROFILE/airootfs/boot/rustd-resolved" 2>/dev/null || true
+  "$ARCHISO_PROFILE/airootfs/boot/rustd-resolved"
+install -Dm0644 "$ARACHOS_INSTALLER_INITRD" \
+  "$ARCHISO_PROFILE/airootfs/boot/bootstrap"
+
 
 # Patch the arachos repo URL into the build pacman.conf if provided
 if [[ -n "$ARACHOS_REPOSITORY_URL" ]]; then
@@ -94,10 +109,6 @@ sha256sum "$ISO_FILE" > "$ISO_FILE.sha256"
 if [[ -n "$SIGNING_HOME" && -n "$SIGNING_KEY" ]]; then
   GNUPGHOME="$SIGNING_HOME" gpg --batch --yes --armor --detach-sign \
     --output "$ISO_FILE.asc" "$ISO_FILE"
-fi
-
-if [[ "$LIVE_MEDIA_KEEP_WORK" != "1" ]]; then
-  rm -rf "$WORK"
 fi
 
 printf 'ArachOS ISO written to %s\n' "$ISO_FILE"
