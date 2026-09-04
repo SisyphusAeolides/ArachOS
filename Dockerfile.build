@@ -1,7 +1,7 @@
 FROM archlinux:latest
 
 # Install build dependencies
-RUN pacman -Syu --noconfirm base-devel git rust rust-src python pam dbus json-c \
+RUN pacman -Syu --noconfirm base-devel git rust rust-src python gcc-fortran pam dbus json-c \
     archiso sudo qemu-system-x86 qemu-desktop make meson ninja cmake libevdev mtdev \
     liburing openssl grub
 
