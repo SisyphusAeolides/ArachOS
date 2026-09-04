@@ -9,3 +9,5 @@ libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git c261a02410f35775
 blerust https://github.com/SisyphusAeolides/blerust.git 2c83682a7e21c262134685a75409da193ee97a51
 ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 282d2a5f68790e1137054b82e9fdfaf82d4e44cc
 hermes https://github.com/SisyphusAeolides/Hermes.git 6d060a604d835ac52f4e49291d852c8def69afdc
+hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git 6d060a604d835ac52f4e49291d852c8def69afdc
+arachos-release local none
