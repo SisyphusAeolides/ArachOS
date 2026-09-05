@@ -10,6 +10,7 @@ fail() { printf 'ArachOS validate-corinth-deployment: %s\n' "$*" >&2; exit 1; }
 config="$PROFILE/etc/corinth/service.toml"
 signature="$PROFILE/etc/corinth/service.toml.sig"
 keyring="$PROFILE/etc/arach/hwd/keys.toml"
+catalog="$PROFILE/etc/arach/hwd/catalog"
 present=0
 for path in "$config" "$signature" "$keyring"; do
     [[ -e "$path" ]] && present=$((present + 1))
@@ -42,3 +43,17 @@ grep -Eq '^[[:space:]]*signature[[:space:]]*=[[:space:]]*"(https://|/)' "$config
 # image boot. This check only prevents a partial or obviously malformed copy
 # from being published by the ArchISO builder.
 printf 'validated complete Corinth deployment inputs in %s\n' "$PROFILE"
+
+if [[ -e "$catalog" ]]; then
+    [[ -d "$catalog" && ! -L "$catalog" ]] ||
+        fail 'Arach-HWD catalog root is not a real directory'
+    [[ -f "$catalog/catalog.lock" && ! -L "$catalog/catalog.lock" ]] ||
+        fail 'Arach-HWD catalog.lock is not a regular file'
+    [[ -f "$catalog/keys.toml" && ! -L "$catalog/keys.toml" ]] ||
+        fail 'Arach-HWD catalog keys.toml is not a regular file'
+    [[ -d "$catalog/profiles" && ! -L "$catalog/profiles" ]] ||
+        fail 'Arach-HWD catalog profiles is not a real directory'
+    symlink=$(find "$catalog" -type l -print -quit)
+    [[ -z "$symlink" ]] || fail 'Arach-HWD catalog contains a symlink'
+    printf 'validated complete Arach-HWD catalog inputs in %s\n' "$catalog"
+fi
