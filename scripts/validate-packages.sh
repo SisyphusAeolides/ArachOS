@@ -33,6 +33,18 @@ for pkg in "${required[@]}"; do
     || fail "required package is missing: $pkg"
 done
 
+rustd_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \
+  -name 'rustd-[0-9]*.pkg.tar.zst' ! -name '*-debug-*' -print | sort -V | tail -n 1)
+[[ -n "$rustd_pkg" ]] || fail 'rustd package is missing'
+archive_contains "$rustd_pkg" usr/bin/rustctl \
+  || fail 'rustd package is missing usr/bin/rustctl'
+
+rustd_tools_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \
+  -name 'rustd-cutover-tools-*.pkg.tar.zst' ! -name '*-debug-*' -print | sort -V | tail -n 1)
+[[ -n "$rustd_tools_pkg" ]] || fail 'rustd-cutover-tools package is missing'
+archive_contains "$rustd_tools_pkg" usr/lib/rustd/rustctl \
+  || fail 'rustd-cutover-tools package is missing its native rustctl path'
+
 [[ -f "$PKG_REPO/arachos.db" ]] || fail 'pacman repository database (arachos.db) is missing'
 
 calamares_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \

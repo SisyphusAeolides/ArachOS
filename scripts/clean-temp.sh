@@ -17,6 +17,8 @@ patterns=(
     'arachos-grub.*'
     'arachos-limine.*'
     'arachos-qemu.*'
+    'arachos-dm.*'
+    'arachos-rustd-services.*'
     'arach-formal.*'
     'arach-hwd-formal.*'
     'corinth-formal.*'

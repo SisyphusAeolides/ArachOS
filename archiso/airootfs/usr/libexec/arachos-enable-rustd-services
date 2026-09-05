@@ -1,0 +1,71 @@
+#!/usr/bin/bash
+# Enable the ArachOS service graph through the native RustD client.
+set -Eeuo pipefail
+
+target_root=${ARACHOS_TARGET_ROOT:-/}
+if [[ "$target_root" != /* || "$target_root" == *[[:space:]]* ]]; then
+    printf 'ArachOS: invalid target root: %s\n' "$target_root" >&2
+    exit 64
+fi
+if [[ "$target_root" != / ]]; then
+    target_root=${target_root%/}
+fi
+
+rustctl=
+for candidate in \
+    "$target_root/usr/bin/rustctl" \
+    "$target_root/usr/lib/rustd/rustctl"; do
+    if [[ -x "$candidate" ]]; then
+        rustctl=$candidate
+        break
+    fi
+done
+[[ -n "$rustctl" ]] || {
+    printf '%s\n' 'ArachOS: RustD control client is not installed' >&2
+    exit 1
+}
+
+units=(
+    NetworkManager.service
+    rustd-journald.service
+    rustd-tmpfiles-setup-dev.service
+    rustd-udevd.service
+    rustd-udev-trigger.service
+    rustd-udev-settle.service
+    dbus.service
+    rustd-resolved.service
+    rustd-logind.service
+    rustd-user-sessions.service
+    tuned-rs.service
+    tuned-rs-ppd.service
+    libinput-rs-elan-resume.service
+    hermes-gpu.service
+)
+
+native_unit_available() {
+    local unit=$1
+    local managed="$target_root/etc/rustd/system/$unit"
+    [[ -f "$managed" || -f "$target_root/usr/lib/rustd/system/$unit" ]] && return 0
+    [[ -L "$managed" &&
+        "$(readlink "$managed")" == "/usr/lib/systemd/system/$unit" &&
+        -f "$target_root/usr/lib/systemd/system/$unit" ]]
+}
+
+install -d -m 0755 "$target_root/etc/rustd/system"
+for unit in "${units[@]}"; do
+    if ! native_unit_available "$unit"; then
+        compat="$target_root/usr/lib/systemd/system/$unit"
+        if [[ -f "$compat" ]]; then
+            link="$target_root/etc/rustd/system/$unit"
+            if [[ ! -e "$link" && ! -L "$link" ]]; then
+                ln -s "/usr/lib/systemd/system/$unit" "$link"
+            fi
+        fi
+    fi
+    native_unit_available "$unit" || {
+        printf 'ArachOS: required RustD unit is missing: %s\n' "$unit" >&2
+        exit 1
+    }
+done
+
+exec "$rustctl" --root="$target_root" enable "${units[@]}"

@@ -37,7 +37,10 @@ profile does not install a distribution package-manager client. The standalone
 measured-kernel qualification image uses Limine's Multiboot2 loader; the live
 installer profile currently uses GRUB's Multiboot2 path. The installer remains
 qualification-only until Arach Kernel provides the persistent live root and
-the complete Calamares handoff has passed its installed-disk tests.
+the complete Calamares handoff has passed its installed-disk tests. After the
+package step, Calamares configures the selected desktop and enables its native
+RustD display-manager unit with `rustctl`; no package hook or systemd manager
+is required for the installed target.
 
 The release image is gated on the complete live-media and installed-system
 campaign. It will not be published while the Arach Kernel, RustD, RustD-
@@ -63,6 +66,8 @@ scripts/
   build-packages.sh             Build all pacman packages from pinned sources
   build-iso.sh                  Build the archiso live/install ISO
   test-calamares-corinth.py     Test Calamares package routing without a target root
+  test-display-manager.sh       Test native RustD display-manager activation
+  test-rustd-services.sh        Test the RustD service graph and unit bridge
   test-podman-wrapper.sh        Check signed release-input forwarding
   clean-temp.sh                 Remove disposable ArachOS test and image work
   build-arach-kernel-pkg.sh     Build the pacman arach-kernel package
@@ -252,7 +257,10 @@ For a qualified release, boot the ISO to the KDE Plasma live desktop and click
 the **Install ArachOS** shortcut to launch Calamares. The installer then guides
 you through partitioning, users, and the desktop choices included by the
 profile. The final installation step writes the Arach Kernel payload and
-validates the Multiboot2 boot contract on the target disk.
+validates the Multiboot2 boot contract on the target disk. The selected display
+manager is enabled through RustD after Corinth finishes installing the desktop
+packages, and the network, resolver, input, power, and Hermes units are enabled
+through the same native RustD service graph.
 
 The current checkout is still a qualification build, not a release image.
 Use the disposable QEMU installation campaign described below until every

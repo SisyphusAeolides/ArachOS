@@ -1,0 +1,69 @@
+#!/usr/bin/bash
+# Enable the display manager selected by the installed desktop packages.
+set -Eeuo pipefail
+
+target_root=${ARACHOS_TARGET_ROOT:-/}
+if [[ "$target_root" != /* || "$target_root" == *[[:space:]]* ]]; then
+    printf 'ArachOS: invalid target root: %s\n' "$target_root" >&2
+    exit 64
+fi
+if [[ "$target_root" != / ]]; then
+    target_root=${target_root%/}
+fi
+
+rustctl=
+for candidate in \
+    "$target_root/usr/bin/rustctl" \
+    "$target_root/usr/lib/rustd/rustctl"; do
+    if [[ -x "$candidate" ]]; then
+        rustctl=$candidate
+        break
+    fi
+done
+[[ -n "$rustctl" ]] || {
+    printf '%s\n' 'ArachOS: RustD control client is not installed' >&2
+    exit 1
+}
+
+native_unit_available() {
+    local unit=$1
+    local managed="$target_root/etc/rustd/system/$unit"
+    [[ -f "$target_root/usr/lib/rustd/system/$unit" || -f "$managed" ]] && return 0
+    [[ -L "$managed" &&
+        "$(readlink "$managed")" == "/usr/lib/systemd/system/$unit" &&
+        -f "$target_root/usr/lib/systemd/system/$unit" ]]
+}
+
+ensure_unit() {
+    local unit=$1
+    native_unit_available "$unit" && return 0
+    local compat="$target_root/usr/lib/systemd/system/$unit"
+    [[ -f "$compat" ]] || return 1
+    local link="$target_root/etc/rustd/system/$unit"
+    install -d -m 0755 "$target_root/etc/rustd/system"
+    if [[ ! -e "$link" && ! -L "$link" ]]; then
+        ln -s "/usr/lib/systemd/system/$unit" "$link"
+    fi
+    native_unit_available "$unit"
+}
+
+# Keep this order aligned with the Calamares displaymanager configuration.
+# The desktop selection normally installs one manager; the first complete
+# entry keeps the result deterministic when a desktop pulls in more than one.
+for manager in slim plasmalogin sddm lightdm gdm mdm lxdm greetd; do
+    case "$manager" in
+        slim|plasmalogin|sddm|lightdm|gdm|mdm|lxdm|greetd)
+            unit="$manager.service"
+            ;;
+        *)
+            continue
+            ;;
+    esac
+    if [[ -x "$target_root/usr/bin/$manager" ||
+        -x "$target_root/usr/sbin/$manager" ]] && ensure_unit "$unit"; then
+        exec "$rustctl" --root="$target_root" enable "$unit"
+    fi
+done
+
+printf '%s\n' 'ArachOS: no supported display manager was installed' >&2
+exit 1
