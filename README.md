@@ -171,6 +171,11 @@ make build-arach-kernel-bundle
 
 The bundle records `status=qualification-only` until the persistent root, BIOS/UEFI installed-boot gates, and all runtime paths pass. The build stops instead of composing an ISO when qualification is incomplete.
 
+The pinned kernel now includes the checked sector-I/O and GPT partition
+boundary used by the upcoming disk driver. It is deliberately not treated as
+storage support yet: a hardware block driver, filesystem implementation, and
+boot-time root handoff still have to pass their QEMU and installed-disk tests.
+
 ## Hermes release qualification
 
 Hermes is an evidence-driven GPU stack. Run its qualification harness from the pinned Hermes checkout:
