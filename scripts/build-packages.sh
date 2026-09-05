@@ -55,16 +55,18 @@ stage_container_packages() {
   # still needs the legacy files while later PKGBUILDs resolve dependencies,
   # so remove only the old package database entries before staging the new
   # archives.  --dbonly leaves every file in the container untouched.
-  local archive conflict
+  local archive conflict installed
   local -a conflicts=()
   for archive in "$@"; do
     while IFS= read -r conflict; do
       [[ -n "$conflict" ]] || continue
       conflict="${conflict%%[<>=]*}"
       [[ -n "$conflict" ]] || continue
-      if sudo pacman -Qq "$conflict" >/dev/null 2>&1; then
-        conflicts+=("$conflict")
-      fi
+      # Query output is the owning package name, which matters when a
+      # conflict is declared through a virtual provide (grub-bios, etc.).
+      while IFS= read -r installed; do
+        [[ -n "$installed" ]] && conflicts+=("$installed")
+      done < <(sudo pacman -Qq "$conflict" 2>/dev/null || true)
     done < <(tar --zstd -xOf "$archive" .PKGINFO 2>/dev/null \
       | awk -F' = ' '$1 == "conflict" {print $2}')
   done
