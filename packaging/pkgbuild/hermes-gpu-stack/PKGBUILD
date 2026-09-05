@@ -1,7 +1,7 @@
 # Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
 pkgname=hermes-gpu-stack
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc="Hardware-qualified multi-vendor GPU and GSP compatibility stack"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/Hermes"
