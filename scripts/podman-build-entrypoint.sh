@@ -35,9 +35,9 @@ chown -R builder:builder build
 echo "==> Building Packages"
 su builder -c "make build-packages"
 
-# The kernel bundle is assembled with grub-mkrescue.  Install the exact
-# ArachOS GRUB archive that was just built so the bundle uses its writable EFI
-# relocator, rather than the stock GRUB inherited from the builder image.
+# ArchISO still carries the package's GRUB tooling for Calamares's installed
+# system. The standalone measured-kernel qualification bundle uses Limine;
+# keep the exact ArachOS GRUB archive here for the ArchISO profile itself.
 grub_package=$(find build/packages -maxdepth 1 -type f \
     -name 'grub-*.pkg.tar.zst' ! -name '*-debug-*' \
     -print | sort -V | tail -n 1)

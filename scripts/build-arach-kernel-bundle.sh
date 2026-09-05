@@ -3,7 +3,7 @@ set -Eeuo pipefail
 export RUSTC_BOOTSTRAP=1
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-kernel_root=${ARACH_KERNEL_SOURCE_ROOT:-$root/../Arach-Kernel}
+kernel_root=${ARACH_KERNEL_SOURCE_ROOT:-$root/../arach-kernel}
 rustd_root=${RUSTD_SOURCE_ROOT:-$root/../rustd}
 build_root=${ARACH_KERNEL_BUILD_ROOT:-$root/build/arach-kernel}
 rustd_static_root=${ARACH_RUSTD_STATIC_BUILD_ROOT:-$root/build/rustd-static}
@@ -200,13 +200,21 @@ ARACH_KERNEL_IMAGE="$kernel_image" \
 ARACH_RUSTD_IMAGE="$rustd_image" \
 ARACH_BOOTSTRAP_IMAGE="$bootstrap_image" \
 ARACH_RESOLVED_IMAGE="$resolved_image" \
-ARACH_GRUB_ISO="$output_iso" \
-    bash "$kernel_root/scripts/build-arachos-grub-bundle.sh"
+ARACH_LIMINE_ISO="$output_iso" \
+    bash "$kernel_root/scripts/build-arachos-limine-bundle.sh"
 
-install -m 0644 "$kernel_image" "$bundle_root/arach"
-install -m 0644 "$rustd_image" "$bundle_root/rustd"
-install -m 0644 "$bootstrap_image" "$bundle_root/bootstrap"
-install -m 0644 "$resolved_image" "$bundle_root/rustd-resolved"
+copy_artifact() {
+    local source=$1 destination=$2
+    if [[ $source == "$destination" ]]; then
+        return 0
+    fi
+    install -m 0644 "$source" "$destination"
+}
+
+copy_artifact "$kernel_image" "$bundle_root/arach"
+copy_artifact "$rustd_image" "$bundle_root/rustd"
+copy_artifact "$bootstrap_image" "$bundle_root/bootstrap"
+copy_artifact "$resolved_image" "$bundle_root/rustd-resolved"
 {
     printf 'schema=arachos-kernel-bundle-v1\n'
     printf 'arachos_version=%s\n' "$arachos_version"

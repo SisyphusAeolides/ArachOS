@@ -27,9 +27,10 @@ assembled by the ArchISO profile. DNF/RPM packaging is not used for ArachOS.
 ArachOS uses a branded Calamares installer in the ArchISO live environment.
 KDE Plasma is the default desktop, and the profile's “Everything” layout
 exposes every filesystem and desktop choice whose tools are present in the live
-image. GRUB is the bootloader used by the measured Arach Kernel contract; other
-bootloaders are not advertised as compatible until they implement and pass that
-contract's handoff checks.
+image. The standalone measured-kernel qualification image uses Limine's
+Multiboot2 loader on BIOS and UEFI. The ArchISO profile still carries GRUB for
+Calamares's installed-system choices; that path remains a separate gate until
+its handoff and installed-disk tests pass.
 
 The release image is gated on the complete live-media and installed-system
 campaign. It will not be published while the Arach Kernel, RustD, RustD-
@@ -169,7 +170,10 @@ Arach Kernel is developed and measured independently from the generic Linux kern
 make build-arach-kernel-bundle
 ```
 
-The bundle records `status=qualification-only` until the persistent root, BIOS/UEFI installed-boot gates, and all runtime paths pass. The build stops instead of composing an ISO when qualification is incomplete.
+The standalone bundle is built with Limine and records
+`status=qualification-only` until the persistent root, BIOS/UEFI installed-boot
+gates, and all runtime paths pass. The build stops instead of composing an ISO
+when qualification is incomplete.
 
 The pinned kernel now includes the checked sector-I/O and GPT partition
 boundary used by the upcoming disk driver. It is deliberately not treated as
