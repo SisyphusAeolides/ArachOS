@@ -63,6 +63,7 @@ scripts/
   build-packages.sh             Build all pacman packages from pinned sources
   build-iso.sh                  Build the archiso live/install ISO
   test-calamares-corinth.py     Test Calamares package routing without a target root
+  test-podman-wrapper.sh        Check signed release-input forwarding
   clean-temp.sh                 Remove disposable ArachOS test and image work
   build-arach-kernel-pkg.sh     Build the pacman arach-kernel package
   build-arach-kernel-bundle.sh  Arach Kernel / RustD qualification build
