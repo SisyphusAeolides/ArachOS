@@ -39,7 +39,7 @@ ARACH_BOOTSTRAP_IMAGE ?=
 ARACH_RESOLVED_IMAGE  ?=
 ARACH_BOOTSTRAP_ABI   ?= linux
 
-.PHONY: verify-sources check-chaos qualify-hermes build-packages \
+.PHONY: verify-sources check-chaos validate-calamares qualify-hermes build-packages \
 	build-arach-kernel-bundle validate-packages sign-packages \
 	build-iso test-kernel-qemu validate clean
 
@@ -59,6 +59,9 @@ verify-sources:
 
 check-chaos: verify-sources
 	IWCHAOS_SOURCE_ROOT="$(IWCHAOS_SOURCE_ROOT)" bash scripts/check-chaos.sh
+
+validate-calamares:
+	bash scripts/validate-calamares.sh
 
 qualify-hermes: verify-sources
 	HERMES_QUALIFICATION_DIR="$(abspath $(BUILD_DIR)/hermes-qualification)" \
@@ -141,7 +144,7 @@ build-iso:
 test-kernel-qemu:
 	bash scripts/test-kernel-qemu.sh
 
-validate: verify-sources check-chaos validate-packages
+validate: verify-sources check-chaos validate-calamares validate-packages
 
 clean:
 	rm -rf "$(BUILD_DIR)"

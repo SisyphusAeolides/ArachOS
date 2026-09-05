@@ -1,7 +1,7 @@
 # Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
 pkgname=arachos-release
 pkgver=1.0
-pkgrel=2
+pkgrel=3
 pkgdesc="ArachOS release identity, branding, and OS metadata"
 arch=('any')
 url="https://github.com/SisyphusAeolides/ArachOS"
@@ -40,7 +40,7 @@ OSREL
   install -Dm0644 /dev/stdin "$pkgdir/etc/arachos-release" << 'AREL'
 ArachOS 1.0
 Architecture: x86_64
-Package ecosystem: pacman
+Package manager: Corinth (Arach native)
 AREL
 
   install -Dm0644 /dev/stdin "$pkgdir/etc/issue.d/20-arachos.issue" << 'ISSUE'

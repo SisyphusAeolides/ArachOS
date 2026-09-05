@@ -69,6 +69,13 @@ tar --zstd -xOf "$corinth_pkg" .PKGINFO | grep -Fx 'depend = arach-hwd' >/dev/nu
 tar --zstd -xOf "$corinth_pkg" .PKGINFO | grep -Fx 'provides = arach-package-manager' >/dev/null \
   || fail 'corinth package does not advertise the Arach package-manager interface'
 
+release_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \
+  -name 'arachos-release-*.pkg.tar.zst' ! -name '*-debug-*' -print | sort -V | tail -n 1)
+[[ -n "$release_pkg" ]] || fail 'ArachOS release package is missing'
+tar --zstd -xOf "$release_pkg" etc/arachos-release \
+  | grep -Fx 'Package manager: Corinth (Arach native)' >/dev/null \
+  || fail 'ArachOS release metadata does not identify Corinth as the package manager'
+
 # libinput-rs is a replacement package, not just a pair of helper binaries.
 # Keep the ABI, headers, upstream tools, and RustD unit in the repository
 # contract so a truncated package cannot reach an ArchISO build.
