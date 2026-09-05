@@ -8,6 +8,6 @@ tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git 367ccbcc7ce6772e33890e
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 8e2e26d124d7cd38b6babcb6fa47213e8ee4a313
 blerust https://github.com/SisyphusAeolides/blerust.git a536d8fe1e800d3134f61b03f0f6d14dc9a1e288
 ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git afab950e5e4f2d991bfc79b132a0ce60225d8936
-hermes https://github.com/SisyphusAeolides/Hermes.git 27234ede598704f7c1c12a139a1db4b6bbedf5c0
+hermes https://github.com/SisyphusAeolides/Hermes.git ad38472c5e68a6fb6b9b2622b2f251cd297f8a17
 hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git 781ed88ffd5d4de2c25633b59825cd0913e1ab57
 arachos-release local none
