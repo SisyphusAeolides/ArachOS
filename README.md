@@ -265,9 +265,9 @@ state, disks, serial logs, and failed build work are temporary and are removed
 after each run.
 
 If an interrupted run leaves a disposable test directory behind, use
-`make clean-temp`. It only removes the ArachOS-owned `arachos-grub.*`,
-`arachos-limine.*`, and `arachos-qemu.*` directories below `${TMPDIR:-/tmp}`.
-It does not touch unrelated temporary files.
+`make clean-temp`. It removes only the exact temporary prefixes used by ArachOS
+and its pinned component qualification helpers below `${TMPDIR:-/tmp}`; it does
+not touch unrelated temporary files.
 
 ## Arach Kernel qualification bundle
 
