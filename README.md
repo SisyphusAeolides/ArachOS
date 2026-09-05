@@ -132,6 +132,25 @@ install, update, remove, rollback, first-boot, and Calamares tests pass in
 disposable QEMU runs. Until then, Corinth is available for qualification and
 the release gate reports the remaining work instead of silently falling back.
 
+Once a release is provisioned with its signed Corinth service deployment, the
+same four commands search and manage packages from the admitted Arch, AUR,
+Fedora, Debian, Alpine, Gentoo, CRUX, and Nix catalogs:
+
+```text
+corinth search example
+corinth install example
+corinth update example
+corinth remove example
+```
+
+Provider discovery and recipe ingestion run in the repository worker. The
+installed client consumes only the signed, digest-pinned catalogs and cached
+artifacts named by `/etc/corinth/service.toml`; it never executes a mutable
+foreign package script or silently invokes pacman, dnf, apt, apk, emerge,
+pkgsrc, or nix as a fallback. A release image without that signed deployment
+must remain a qualification image because those commands cannot be trusted to
+modify the installed root yet.
+
 The component checks can be run directly from their pinned worktrees:
 
 ```sh
