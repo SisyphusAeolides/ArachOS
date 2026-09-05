@@ -149,7 +149,11 @@ artifacts named by `/etc/corinth/service.toml`; it never executes a mutable
 foreign package script or silently invokes pacman, dnf, apt, apk, emerge,
 pkgsrc, or nix as a fallback. A release image without that signed deployment
 must remain a qualification image because those commands cannot be trusted to
-modify the installed root yet.
+modify the installed root yet. The service file can bootstrap a signed
+provider-registry manifest; Corinth refreshes that manifest on each ordinary
+command, enforces its monotonic generation, and keeps a verified private cache
+for offline operation. The registry is the only automatic bridge from the
+eight foreign ecosystems into the signed native catalogs.
 
 The component checks can be run directly from their pinned worktrees:
 
