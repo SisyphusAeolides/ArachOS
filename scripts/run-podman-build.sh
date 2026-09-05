@@ -24,6 +24,7 @@ container_args=(
   # the adjacent checkout or another explicitly named directory.
   -v "$PROJECTS_ROOT:$PROJECTS_ROOT:z"
 )
+mounted_release_inputs=()
 
 mount_release_input() {
   local path=$1
@@ -32,13 +33,19 @@ mount_release_input() {
     printf 'error: release input path is not an absolute path without newline/colon: %s\n' "$path" >&2
     return 1
   }
-  [[ -e "$path" ]] || {
+  [[ -e "$path" && ! -L "$path" ]] || {
     printf 'error: release input does not exist: %s\n' "$path" >&2
     return 1
   }
   case "$path" in
     "$PROJECTS_ROOT"|"$PROJECTS_ROOT"/*) ;;
-    *) container_args+=( -v "$path:$path:ro" ) ;;
+    *)
+      for mounted in "${mounted_release_inputs[@]}"; do
+        [[ "$mounted" != "$path" ]] || return 0
+      done
+      mounted_release_inputs+=("$path")
+      container_args+=( -v "$path:$path:ro" )
+      ;;
   esac
 }
 
