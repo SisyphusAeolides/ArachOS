@@ -30,14 +30,12 @@ build() {
     make all upstream-tools \
       PREFIX=/usr \
       LIBDIR=/usr/lib \
-      RPM_TOPDIR="$srcdir" \
       UPSTREAM_TOOLS_ARCHIVE="$srcdir/libinput-${_tools_commit}.tar.gz"
 }
 
 package() {
   cd "$pkgname"
   make DESTDIR="$pkgdir" PREFIX=/usr LIBDIR=/usr/lib \
-    RPM_TOPDIR="$srcdir" \
     UPSTREAM_TOOLS_ARCHIVE="$srcdir/libinput-${_tools_commit}.tar.gz" \
     install
 
