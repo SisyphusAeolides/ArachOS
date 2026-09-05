@@ -4,6 +4,10 @@ ARACHOS_VERSION        ?= 1.0
 ARACHOS_RELEASE        ?= 1
 ARACHOS_ARCH           ?= x86_64
 ARACHOS_REPOSITORY_URL ?=
+ARACHOS_CORINTH_SERVICE_CONFIG    ?=
+ARACHOS_CORINTH_SERVICE_SIGNATURE ?=
+ARACHOS_CORINTH_KEYRING            ?=
+ARACHOS_CORINTH_DEPLOYMENT_REQUIRED ?= 0
 ARACHOS_KEEP_BUILD_WORK ?= 0
 ARACHOS_GPG_HOME       ?=
 ARACHOS_GPG_KEY_ID     ?=
@@ -39,7 +43,7 @@ ARACH_BOOTSTRAP_IMAGE ?=
 ARACH_RESOLVED_IMAGE  ?=
 ARACH_BOOTSTRAP_ABI   ?= linux
 
-.PHONY: verify-sources check-chaos validate-calamares qualify-hermes build-packages \
+.PHONY: verify-sources check-chaos validate-calamares validate-corinth-deployment qualify-hermes build-packages \
 	build-arach-kernel-bundle validate-packages sign-packages \
 	build-iso test-kernel-qemu validate clean
 
@@ -62,6 +66,9 @@ check-chaos: verify-sources
 
 validate-calamares:
 	bash scripts/validate-calamares.sh
+
+validate-corinth-deployment:
+	bash scripts/validate-corinth-deployment.sh
 
 qualify-hermes: verify-sources
 	HERMES_QUALIFICATION_DIR="$(abspath $(BUILD_DIR)/hermes-qualification)" \
@@ -130,6 +137,10 @@ build-iso:
 	ARACHOS_RELEASE="$(ARACHOS_RELEASE)" \
 	ARACHOS_ARCH="$(ARACHOS_ARCH)" \
 	ARACHOS_REPOSITORY_URL="$(ARACHOS_REPOSITORY_URL)" \
+	ARACHOS_CORINTH_SERVICE_CONFIG="$(ARACHOS_CORINTH_SERVICE_CONFIG)" \
+	ARACHOS_CORINTH_SERVICE_SIGNATURE="$(ARACHOS_CORINTH_SERVICE_SIGNATURE)" \
+	ARACHOS_CORINTH_KEYRING="$(ARACHOS_CORINTH_KEYRING)" \
+	ARACHOS_CORINTH_DEPLOYMENT_REQUIRED="$(ARACHOS_CORINTH_DEPLOYMENT_REQUIRED)" \
 	ARACHOS_INSTALLER_KERNEL="$(ARACHOS_INSTALLER_KERNEL)" \
 	ARACHOS_INSTALLER_INITRD="$(ARACHOS_INSTALLER_INITRD)" \
 	ARACHOS_LIVE_RUNTIME_MANIFEST="$(ARACHOS_LIVE_RUNTIME_MANIFEST)" \
@@ -144,7 +155,7 @@ build-iso:
 test-kernel-qemu:
 	bash scripts/test-kernel-qemu.sh
 
-validate: verify-sources check-chaos validate-calamares validate-packages
+validate: verify-sources check-chaos validate-calamares validate-corinth-deployment validate-packages
 
 clean:
 	@set -eu; \

@@ -8,6 +8,10 @@ ISO_OUTPUT="$(realpath -m "${ISO_OUTPUT:-$ROOT/build/iso}")"
 WORK="$(realpath -m "${LIVE_MEDIA_WORK:-$ROOT/build/iso-work}")"
 ARACHOS_VERSION="${ARACHOS_VERSION:-1.0}"
 ARACHOS_REPOSITORY_URL="${ARACHOS_REPOSITORY_URL:-}"
+ARACHOS_CORINTH_SERVICE_CONFIG="${ARACHOS_CORINTH_SERVICE_CONFIG:-}"
+ARACHOS_CORINTH_SERVICE_SIGNATURE="${ARACHOS_CORINTH_SERVICE_SIGNATURE:-}"
+ARACHOS_CORINTH_KEYRING="${ARACHOS_CORINTH_KEYRING:-}"
+ARACHOS_CORINTH_DEPLOYMENT_REQUIRED="${ARACHOS_CORINTH_DEPLOYMENT_REQUIRED:-0}"
 PKG_REPO="$(realpath -m "${PKG_REPO:-$ROOT/build/packages}")"
 SIGNING_KEY="${ARACHOS_GPG_KEY_ID:-}"
 SIGNING_HOME="${ARACHOS_GPG_HOME:-}"
@@ -151,6 +155,15 @@ else
     '/^\[arachos\]$/,$ s|^Server[[:space:]]*=.*|# Server = disabled until a hosted ArachOS repository is supplied|' \
     "$ARCHISO_PROFILE/airootfs/etc/pacman.conf"
 fi
+
+# The service deployment is deliberately staged only into the disposable
+# profile copy. The checked-in ArchISO tree never receives private signing
+# material or a machine-specific provider configuration.
+ARACHOS_CORINTH_SERVICE_CONFIG="$ARACHOS_CORINTH_SERVICE_CONFIG" \
+ARACHOS_CORINTH_SERVICE_SIGNATURE="$ARACHOS_CORINTH_SERVICE_SIGNATURE" \
+ARACHOS_CORINTH_KEYRING="$ARACHOS_CORINTH_KEYRING" \
+ARACHOS_CORINTH_DEPLOYMENT_REQUIRED="$ARACHOS_CORINTH_DEPLOYMENT_REQUIRED" \
+  bash "$ROOT/scripts/stage-corinth-deployment.sh" "$ARCHISO_PROFILE"
 
 # Import ArachOS signing key into the archiso keyring
 if [[ -n "$SIGNING_HOME" && -n "$SIGNING_KEY" ]]; then

@@ -61,6 +61,8 @@ scripts/
   build-arach-kernel-bundle.sh  Arach Kernel / RustD qualification build
   validate-packages.sh          Validate the built pacman repository
   sign-pkg-repo.sh              Sign packages and the repository database
+  stage-corinth-deployment.sh   Stage an explicit signed service deployment
+  validate-corinth-deployment.sh Check the deployment boundary
   verify-sources.sh             Validate pinned source checkouts
   check-chaos.sh                Chaos-math, Fortran, and wireless gates
 sources.lock                    Exact source revisions for all components
@@ -155,6 +157,24 @@ provider-registry manifest; Corinth refreshes that manifest on each ordinary
 command, enforces its monotonic generation, and keeps a verified private cache
 for offline operation. The registry is the only automatic bridge from the
 eight foreign ecosystems into the signed native catalogs.
+
+The image builder accepts that deployment only as an explicit release input;
+it never creates keys or embeds a mutable provider URL by default. Supply the
+three public, signed files together when composing a release image:
+
+```sh
+make build-iso \
+  ARACHOS_CORINTH_SERVICE_CONFIG=/secure/release/service.toml \
+  ARACHOS_CORINTH_SERVICE_SIGNATURE=/secure/release/service.toml.sig \
+  ARACHOS_CORINTH_KEYRING=/secure/release/keys.toml \
+  ARACHOS_CORINTH_DEPLOYMENT_REQUIRED=1
+```
+
+The builder copies them only into its disposable ArchISO profile and checks
+that the service names a signed provider registry. Corinth performs the full
+signature, digest, generation, expiry, and provider validation at boot. If
+the files are omitted, validation explicitly reports a qualification image;
+the four commands are not presented as a usable installed transaction path.
 
 The component checks can be run directly from their pinned worktrees:
 
