@@ -46,6 +46,35 @@ lock_sha() {
 
 mkdir -p "$OUTPUT" "$WORK"
 
+stage_container_packages() {
+  [[ "${IN_CONTAINER:-0}" == "1" ]] || return 0
+  ((${#@} > 0)) || fail 'no package archives available for container staging'
+
+  # ArachOS replacement packages intentionally conflict with their legacy
+  # providers (RustD replaces systemd, for example).  The build container
+  # still needs the legacy files while later PKGBUILDs resolve dependencies,
+  # so remove only the old package database entries before staging the new
+  # archives.  --dbonly leaves every file in the container untouched.
+  local archive conflict
+  local -a conflicts=()
+  for archive in "$@"; do
+    while IFS= read -r conflict; do
+      [[ -n "$conflict" ]] || continue
+      conflict="${conflict%%[<>=]*}"
+      [[ -n "$conflict" ]] || continue
+      if sudo pacman -Qq "$conflict" >/dev/null 2>&1; then
+        conflicts+=("$conflict")
+      fi
+    done < <(tar --zstd -xOf "$archive" .PKGINFO 2>/dev/null \
+      | awk -F' = ' '$1 == "conflict" {print $2}')
+  done
+  if ((${#conflicts[@]} > 0)); then
+    mapfile -t conflicts < <(printf '%s\n' "${conflicts[@]}" | sort -u)
+    sudo pacman -Rdd --dbonly --noconfirm "${conflicts[@]}"
+  fi
+  sudo pacman -Udd --dbonly --noconfirm --overwrite '*' "$@"
+}
+
 build_pkg() {
   local name=$1 pkgdir=$2
   local builddir="$WORK/$name"
@@ -74,12 +103,6 @@ build_pkg() {
     patch_commit "$builddir/PKGBUILD" "$lock_key"
   fi
 
-  install_container_packages() {
-    [[ "${IN_CONTAINER:-0}" == "1" ]] || return 0
-    ((${#@} > 0)) || fail "no package archives available for $name"
-    sudo pacman -Udd --noconfirm --overwrite '*' "$@"
-  }
-
   pushd "$builddir" >/dev/null
   mapfile -t package_list < <(makepkg --packagelist)
   ((${#package_list[@]} > 0)) || fail "makepkg did not report output packages for $name"
@@ -91,18 +114,12 @@ build_pkg() {
   if [[ -n "$SIGNING_KEY" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
-      if [[ "$name" == "grub" ]]; then
-        sudo pacman -Udd --noconfirm --overwrite '*' "${package_list[@]}"
-      fi
     else
       GNUPGHOME="$SIGNING_HOME" makepkg -sf --sign --noconfirm
     fi
   else
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       makepkg -sf --noconfirm
-      if [[ "$name" == "grub" ]]; then
-        sudo pacman -Udd --noconfirm --overwrite '*' "${package_list[@]}"
-      fi
     else
       makepkg -sf --noconfirm
     fi
@@ -116,7 +133,7 @@ build_pkg() {
   # build.  The output repository is assembled only after all packages finish,
   # so pacman cannot otherwise resolve a dependency on a package built one
   # step earlier (for example tuned-rs -> rustd).
-  install_container_packages "${package_list[@]}"
+  stage_container_packages "${package_list[@]}"
   popd >/dev/null
 }
 
@@ -174,7 +191,7 @@ for name in "${pkgs_order[@]}"; do
       mapfile -t existing_packages < <(find "$OUTPUT" -maxdepth 1 -type f \
         -name "${name}-*.pkg.tar.zst" -print | sort -V)
       if ((${#existing_packages[@]} > 0)); then
-        sudo pacman -Udd --noconfirm --overwrite '*' "${existing_packages[@]}"
+        stage_container_packages "${existing_packages[@]}"
       fi
     fi
     echo "Package $name already built. Skipping."
