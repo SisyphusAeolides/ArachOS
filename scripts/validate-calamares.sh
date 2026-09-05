@@ -20,13 +20,14 @@ hardware_module="$PROFILE/usr/lib/calamares/modules/arachos-hardware"
 display_manager_config="$OVERRIDES/etc/calamares/modules/shellprocess-arachos-display-manager.conf"
 display_manager_helper="$PROFILE/usr/libexec/arachos-enable-display-manager"
 rustd_services_helper="$PROFILE/usr/libexec/arachos-enable-rustd-services"
+kernel_install_test="$ROOT/scripts/test-arach-kernel-install.sh"
 
 for path in "$settings" "$unpackfs" "$kernel_step" "$bootloader" \
     "$desktop_groups" "$package_config" \
     "$hardware_config" "$package_module/module.desc" "$package_module/main.py" \
     "$hardware_module/module.desc" "$hardware_module/main.py" \
     "$display_manager_config" "$display_manager_helper" \
-    "$rustd_services_helper"; do
+    "$rustd_services_helper" "$kernel_install_test"; do
     [[ -s "$path" ]] || fail "required Calamares file is missing: $path"
 done
 
@@ -107,6 +108,8 @@ grep -Fq 'hermes-gpu.service' "$rustd_services_helper" \
     || fail 'the RustD service helper omits Hermes'
 [[ -x "$rustd_services_helper" ]] \
     || fail 'the RustD service helper is not executable'
+[[ -x "$kernel_install_test" ]] \
+    || fail 'the Arach Kernel install handoff test is not executable'
 for setting in \
     'enabled: true' \
     'catalog-root: /etc/arach/hwd/catalog' \

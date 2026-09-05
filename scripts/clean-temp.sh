@@ -17,6 +17,7 @@ patterns=(
     'arachos-grub.*'
     'arachos-limine.*'
     'arachos-qemu.*'
+    'arachos-kernel-install.*'
     'arachos-dm.*'
     'arachos-rustd-services.*'
     'arach-formal.*'

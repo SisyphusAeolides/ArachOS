@@ -46,7 +46,7 @@ ARACH_BOOTSTRAP_ABI   ?= linux
 
 .PHONY: verify-sources check-chaos validate-calamares validate-corinth-deployment qualify-hermes build-packages \
 	build-arach-kernel-bundle validate-packages sign-packages \
-	build-iso test-calamares test-display-manager test-rustd-services test-podman-wrapper test-kernel-qemu validate clean clean-temp
+	build-iso test-calamares test-arach-kernel-install test-display-manager test-rustd-services test-podman-wrapper test-kernel-qemu validate clean clean-temp
 
 verify-sources:
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
@@ -160,6 +160,9 @@ test-kernel-qemu:
 test-calamares:
 	python3 scripts/test-calamares-corinth.py
 
+test-arach-kernel-install:
+	bash scripts/test-arach-kernel-install.sh
+
 test-display-manager:
 	bash scripts/test-display-manager.sh
 
@@ -172,7 +175,7 @@ test-podman-wrapper:
 clean-temp:
 	bash scripts/clean-temp.sh
 
-validate: verify-sources check-chaos validate-calamares validate-corinth-deployment validate-packages test-calamares test-display-manager test-podman-wrapper
+validate: verify-sources check-chaos validate-calamares validate-corinth-deployment validate-packages test-calamares test-arach-kernel-install test-display-manager test-podman-wrapper
 
 clean:
 	@set -eu; \

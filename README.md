@@ -66,6 +66,7 @@ scripts/
   build-packages.sh             Build all pacman packages from pinned sources
   build-iso.sh                  Build the archiso live/install ISO
   test-calamares-corinth.py     Test Calamares package routing without a target root
+  test-arach-kernel-install.sh  Test the persistent Arach-Kernel handoff gates
   test-display-manager.sh       Test native RustD display-manager activation
   test-rustd-services.sh        Test the RustD service graph and unit bridge
   test-podman-wrapper.sh        Check signed release-input forwarding
@@ -265,6 +266,16 @@ through the same native RustD service graph.
 The current checkout is still a qualification build, not a release image.
 Use the disposable QEMU installation campaign described below until every
 manifest reports `status=pass`.
+
+The local handoff check is also available without a boot image:
+
+```sh
+make test-arach-kernel-install
+```
+
+It verifies the target-root persistence check, Multiboot2/RustD artifact
+digests, generated GRUB entry, and rejection of a tampered payload. The test
+uses only a disposable target under `/tmp` and removes it when it exits.
 
 Before release, `make test-kernel-qemu` must pass both BIOS and UEFI boots and
 report the runtime-ready marker. Installer tests use disposable QEMU disks and
