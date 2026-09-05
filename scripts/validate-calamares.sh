@@ -97,6 +97,8 @@ calamares_pkgbuild="$ROOT/packaging/pkgbuild/calamares/PKGBUILD"
 [[ -s "$calamares_pkgbuild" ]] || fail 'the ArachOS Calamares PKGBUILD is missing'
 grep -Fq 'BUILD_TESTING=ON' "$calamares_pkgbuild" \
     || fail 'the ArachOS Calamares package disables its test suite'
+grep -Eq "^[[:space:]]+'python'[[:space:]]*$" "$calamares_pkgbuild" \
+    || fail 'the ArachOS Calamares package omits its Python runtime dependency'
 grep -Eq '^[[:space:]]+packages[[:space:]]*$' "$calamares_pkgbuild" \
     || fail 'the ArachOS Calamares package still builds the stock package job'
 for module in initcpio initcpiocfg mkinitfs openrcdmcryptcfg packages \
