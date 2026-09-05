@@ -72,6 +72,23 @@ reproducible Arch Linux container. The host needs Podman, QEMU, and OVMF:
 sudo pacman -S podman qemu-full edk2-ovmf
 ```
 
+Formal checks use Idris 2 built from its upstream source tree. They do not use
+an AUR helper or an Arch package snapshot. Install the Chez Scheme runtime and
+the other build tools with the Arch package manager, then build the pinned
+upstream revision:
+
+```sh
+sudo pacman -S --needed chez-scheme agda git base-devel
+git clone --filter=blob:none https://github.com/idris-lang/Idris2.git "$HOME/src/Idris2"
+git -C "$HOME/src/Idris2" checkout --detach 5aaefadb587224eb44d3be0fbb7e2835b48bd7a6
+make -C "$HOME/src/Idris2" bootstrap SCHEME=chez PREFIX="$HOME/.local"
+make -C "$HOME/src/Idris2" install PREFIX="$HOME/.local"
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+The formal verification scripts accept `IDRIS2=/path/to/idris2` when the
+compiler is installed outside `PATH`.
+
 ## Building packages
 
 All ArachOS packages are built from the exact commits recorded in
