@@ -20,5 +20,4 @@ file_permissions=(
   ["/home/arachos"]="1000:1000:755"
   ["/home/arachos/Desktop"]="1000:1000:755"
   ["/home/arachos/Desktop/calamares.desktop"]="1000:1000:755"
-  ["/usr/sbin/arach-kernel-install"]="0:0:755"
 )

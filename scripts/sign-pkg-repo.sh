@@ -40,5 +40,5 @@ printf 'signed %d packages with ArachOS key %s\n' "${#pkg_files[@]}" "$fingerpri
 
 # Re-add all signed packages to the repo database with signing
 pushd "$PKG_REPO" >/dev/null
-GNUPGHOME="$GPG_HOME" repo-add -s -n arachos.db.tar.gz *.pkg.tar.zst
+GNUPGHOME="$GPG_HOME" repo-add -s arachos.db.tar.gz *.pkg.tar.zst
 popd >/dev/null

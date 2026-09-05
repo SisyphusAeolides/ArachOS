@@ -39,11 +39,21 @@ wget
 wpa_supplicant
 
 # Installer tooling (Calamares and Archiso dependencies)
+cachyos-keyring
+cachyos-mirrorlist
 cachyos-calamares
 hwinfo
 arch-install-scripts
 squashfs-tools
 libisoburn
+
+# Explicit providers keep archiso builds noninteractive and reproducible.
+iptables
+jack2
+noto-fonts
+qt6-multimedia-ffmpeg
+rust
+tesseract-data-eng
 
 # Graphical Environment (KDE Plasma Default)
 plasma-meta

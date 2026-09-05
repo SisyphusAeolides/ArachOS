@@ -1,0 +1,7 @@
+--- /usr/bin/pacstrap
++++ /usr/bin/pacstrap
+@@ -288,0 +289,4 @@
++if [[ -n "${ARACHOS_PACMAN_OVERWRITE:-}" ]]; then
++  pacman_args+=(--overwrite "$ARACHOS_PACMAN_OVERWRITE")
++fi
++

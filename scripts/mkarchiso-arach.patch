@@ -1,0 +1,33 @@
+--- /usr/bin/mkarchiso
++++ /usr/bin/mkarchiso
+@@ -454,8 +454,10 @@
+     local ucode_image
+     _msg_info "Preparing kernel and initramfs for the ISO 9660 file system..."
+     install -d -m 0755 -- "${isofs_dir}/${install_dir}/boot/${arch}"
+-    install -m 0644 -- "${boot_dir}/initramfs-"*".img" "${isofs_dir}/${install_dir}/boot/${arch}/"
+-    install -m 0644 -- "${boot_dir}/vmlinuz-"* "${isofs_dir}/${install_dir}/boot/${arch}/"
++    install -m 0644 -- "${boot_dir}/bootstrap" "${isofs_dir}/${install_dir}/boot/${arch}/initramfs-linux.img"
++    install -m 0644 -- "${boot_dir}/arach" "${isofs_dir}/${install_dir}/boot/${arch}/vmlinuz-linux"
++    install -m 0644 -- "${boot_dir}/rustd" "${isofs_dir}/${install_dir}/boot/${arch}/rustd"
++    install -m 0644 -- "${boot_dir}/rustd-resolved" "${isofs_dir}/${install_dir}/boot/${arch}/rustd-resolved"
+
+     if (( need_external_ucodes )); then
+         for ucode_image in "${ucodes[@]}"; do
+@@ -580,7 +580,7 @@
+ _check_if_initramfs_has_ucode() {
+     local initrd
+
+-    for initrd in $(compgen -G "${boot_dir}"'/initramfs-*.img'); do
++    for initrd in "${boot_dir}/bootstrap"; do
+         if ! bsdtar -tf "$initrd" 'early_cpio' 'kernel/x86/microcode/*.bin' &>/dev/null; then
+             need_external_ucodes=1
+             _msg_info "Initramfs file does not contain microcode update files. External microcode initramfs images will be copied."
+@@ -1194,7 +1194,7 @@
+             _files_to_sign+=("${_dir}${_file}")
+         fi
+     done
+-    for _file in "${_files_to_sign[@]}" "${_dir}${arch}/vmlinuz-"!(*.sig) "${_dir}${arch}/initramfs-"*.img; do
++    for _file in "${_files_to_sign[@]}" "${_dir}${arch}/vmlinuz-linux" "${_dir}${arch}/initramfs-linux.img"; do
+         rm -f -- "${_file}".ipxe.sig
+         openssl cms \
+             -sign \

@@ -1,13 +1,13 @@
 schema=arachos-sources-v1
-rustd https://github.com/SisyphusAeolides/rustd.git 3cbefaf69e03fec227974b4f2575ae312183c4ea
-rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 1077ea4f0d3db4e789a1aa6abd9b1ab50c20447e
-arach-kernel https://github.com/SisyphusAeolides/Arach-Kernel.git 330ab801927a588e8f284142f13b19f0f119b3e7
-iwchaos https://github.com/SisyphusAeolides/iwchaos.git 9b546445c5caffa00be3902bbd3190b89d11ffb3
+rustd https://github.com/SisyphusAeolides/rustd.git 071888ef2bf723ff7f689fc325a71adf6d1b9dfd
+rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git 38277258f308c78e74cddae1d56d07a5dc68d851
+arach-kernel https://github.com/SisyphusAeolides/Arach-Kernel.git 2a29aaa20683c588bb21aa55d39e445b82104fcf
+iwchaos https://github.com/SisyphusAeolides/iwchaos.git 1a7e1fe6afead1be72e21688b062563f1e4cfa28
 iwchaos-linux https://github.com/gregkh/linux.git 8d3ae59288f1e7d58d76558a6ee96d533bc5019f
-tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git 367ccbcc7ce6772e33890e547a4ae19f88d5459f
-libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 8e2e26d124d7cd38b6babcb6fa47213e8ee4a313
+tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git d07da1570684e016415d56ac4e00bc72a68f4cd0
+libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 03fa4fed83d1493b6dc72a7f2ea2a48d002b5268
 blerust https://github.com/SisyphusAeolides/blerust.git a536d8fe1e800d3134f61b03f0f6d14dc9a1e288
-ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git afab950e5e4f2d991bfc79b132a0ce60225d8936
-hermes https://github.com/SisyphusAeolides/Hermes.git ad38472c5e68a6fb6b9b2622b2f251cd297f8a17
-hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git 781ed88ffd5d4de2c25633b59825cd0913e1ab57
+ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 78b9e4c1c3405432ba7a1284df7ee1f9008af124
+hermes https://github.com/SisyphusAeolides/Hermes.git a6f305871b9ba4604e2fbe9768269d8d5f1c3c43
+hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git a6f305871b9ba4604e2fbe9768269d8d5f1c3c43
 arachos-release local none

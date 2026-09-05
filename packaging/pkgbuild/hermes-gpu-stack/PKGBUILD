@@ -1,7 +1,7 @@
 # Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
 pkgname=hermes-gpu-stack
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Hardware-qualified multi-vendor GPU and GSP compatibility stack"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/Hermes"
@@ -9,7 +9,7 @@ license=('MIT')
 depends=('rustd' 'kmod')
 makedepends=('cargo' 'git' 'gcc' 'gawk')
 
-_commit=781ed88ffd5d4de2c25633b59825cd0913e1ab57
+_commit=a6f305871b9ba4604e2fbe9768269d8d5f1c3c43
 source=("git+${url}.git#commit=${_commit}"
         "hermes-gpu.service")
 sha256sums=('SKIP' 'SKIP')

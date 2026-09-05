@@ -170,6 +170,30 @@ source_lock_key() {
   esac
 }
 
+package_outputs_ready() {
+  local name=$1 pkgdir=$2 path archive metadata_dir
+  local -a expected=()
+
+  metadata_dir=$(mktemp -d "$WORK/.metadata-${name}.XXXXXX")
+  cp "$pkgdir/PKGBUILD" "$metadata_dir/PKGBUILD"
+  pushd "$metadata_dir" >/dev/null
+  mapfile -t expected < <(makepkg --packagelist)
+  popd >/dev/null
+  find "$metadata_dir" -depth -delete
+  ((${#expected[@]} > 0)) || return 1
+
+  # Compare the exact filenames makepkg would produce for this PKGBUILD. A
+  # prefix-only glob would mistake rustd-resolved for rustd and can leave a
+  # dependency unstaged after a package release is bumped.
+  for path in "${expected[@]}"; do
+    archive="$OUTPUT/$(basename "$path")"
+    if [[ "$archive" == *-debug-*.pkg.tar.zst && ! -s "$archive" ]]; then
+      continue
+    fi
+    [[ -s "$archive" ]] || return 1
+  done
+}
+
 pkgs_order=(
   "grub"
   "rustd"
@@ -197,7 +221,7 @@ declare -A pkgs=(
 )
 
 for name in "${pkgs_order[@]}"; do
-  if ls "$OUTPUT/${name}-"*.pkg.tar.zst >/dev/null 2>&1; then
+  if package_outputs_ready "$name" "${pkgs[$name]}"; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       mapfile -t existing_packages < <(find "$OUTPUT" -maxdepth 1 -type f \
         -name "${name}-*.pkg.tar.zst" -print | sort -V)
@@ -215,9 +239,9 @@ done
 # Update pacman repo database
 pushd "$OUTPUT" >/dev/null
 if [[ -n "$SIGNING_KEY" && -n "$SIGNING_HOME" ]]; then
-  GNUPGHOME="$SIGNING_HOME" repo-add -s -n arachos.db.tar.gz *.pkg.tar.zst
+  GNUPGHOME="$SIGNING_HOME" repo-add -s arachos.db.tar.gz *.pkg.tar.zst
 else
-  repo-add -n arachos.db.tar.gz *.pkg.tar.zst
+  repo-add arachos.db.tar.gz *.pkg.tar.zst
 fi
 popd >/dev/null
 

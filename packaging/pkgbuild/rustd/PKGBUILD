@@ -2,7 +2,7 @@
 pkgbase=rustd
 pkgname=('rustd' 'rustd-compat-libs' 'rustd-cutover-tools')
 pkgver=0.1.2
-pkgrel=17
+pkgrel=19
 pkgdesc="RustD native Linux init and service manager"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/rustd"
@@ -10,7 +10,7 @@ license=('LGPL-2.1-or-later')
 makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'python' 'pam' 'dbus' 'json-c')
 options=('!lto')
 
-_commit=97f7744e4f100e5122f164ad35ba82339289ad48
+_commit=e4b3cb63ba2ab60938fcf606dee4ac1edd3f4762
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
@@ -33,22 +33,6 @@ package_rustd() {
        PAMLIBDIR=/usr/lib/security \
        install
 
-  # Also install devel files here for simplicity
-  mkdir -p "$pkgdir/usr/lib/pkgconfig"
-  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libudev.pc"
-Name: libudev
-Description: Library to access udev device information (RustD compat)
-Version: 255
-Libs: -L/usr/lib -ludev
-Cflags: -I/usr/include
-PC
-  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libsystemd.pc"
-Name: libsystemd
-Description: systemd System and Service Manager Libraries (RustD compat)
-Version: 255
-Libs: -L/usr/lib -lsystemd
-Cflags: -I/usr/include
-PC
   install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
 
@@ -65,26 +49,11 @@ package_rustd-compat-libs() {
   ln -s libsystemd.so.0 "$pkgdir/usr/lib/libsystemd.so"
   install -m0755 build/libs/libudev.so.1 "$pkgdir/usr/lib/libudev.so.1"
   ln -s libudev.so.1 "$pkgdir/usr/lib/libudev.so"
-  mkdir -p "$pkgdir/usr/lib/pkgconfig"
-  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libudev.pc"
-Name: libudev
-Description: Library to access udev device information (RustD compat)
-Version: 255
-Libs: -L/usr/lib -ludev
-Cflags: -I/usr/include
-PC
-  cat <<PC > "$pkgdir/usr/lib/pkgconfig/libsystemd.pc"
-Name: libsystemd
-Description: systemd System and Service Manager Libraries (RustD compat)
-Version: 255
-Libs: -L/usr/lib -lsystemd
-Cflags: -I/usr/include
-PC
   install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
 
 package_rustd-cutover-tools() {
-  pkgdesc="Nonconflicting authentication cutover tools"
+  pkgdesc="RustD authentication tools and Arch package transaction frontend"
   depends=('python')
 
   cd "$pkgbase"
@@ -96,6 +65,11 @@ package_rustd-cutover-tools() {
   elif [ -f build/libs/pam_rustd.so ]; then
       install -m0755 build/libs/pam_rustd.so "$pkgdir/usr/lib/security/pam_rustd.so"
   fi
+  # Arch package scriptlets call systemctl while the RustD package replaces
+  # the stock systemd manager. Keep the frontend in this dependency package
+  # so it is available before the desktop packages' hooks run.
+  install -Dm0755 dist/arch/systemctl "$pkgdir/usr/bin/systemctl"
+  install -Dm0755 target/release/rustctl "$pkgdir/usr/lib/rustd/rustctl"
   mkdir -p "$pkgdir/usr/lib/pkgconfig"
   cat <<PC > "$pkgdir/usr/lib/pkgconfig/libudev.pc"
 Name: libudev

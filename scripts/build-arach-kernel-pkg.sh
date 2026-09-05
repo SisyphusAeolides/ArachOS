@@ -60,6 +60,7 @@ pkgdesc="Arach Kernel and measured RustD boot payloads"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/Arach-Kernel"
 license=('GPL-2.0-only')
+options=('!strip')
 depends=('bash' 'coreutils' 'grub')
 
 source=("arach"
@@ -74,7 +75,10 @@ package() {
   install -Dm0644 "\$srcdir/arach" "\$pkgdir/boot/arach"
   install -Dm0644 "\$srcdir/rustd" "\$pkgdir/boot/rustd"
   install -Dm0644 "\$srcdir/rustd-resolved" "\$pkgdir/boot/rustd-resolved"
-  install -Dm0755 "\$srcdir/arach-kernel-install" "\$pkgdir/usr/sbin/arach-kernel-install"
+  # Arch keeps /usr/sbin as a symlink to /usr/bin. Install the executable in
+  # the canonical directory so it does not conflict with the filesystem
+  # package's symlink during an ISO transaction.
+  install -Dm0755 "\$srcdir/arach-kernel-install" "\$pkgdir/usr/bin/arach-kernel-install"
   install -Dm0644 "\$srcdir/arach-kernel-bundle-manifest.txt" "\$pkgdir/usr/share/arachos/arach-kernel/bundle-manifest.txt"
   install -Dm0644 "\$srcdir/arach-kernel-install-manifest.txt" "\$pkgdir/usr/share/arachos/arach-kernel/install-manifest.txt"
 }
@@ -100,8 +104,8 @@ printf 'Arach Kernel package: %s\n' "$pkg_repo/$(basename "$pkg_path")"
 # Update repo db with new kernel
 pushd "$pkg_repo" >/dev/null
 if [[ -n "${ARACHOS_GPG_KEY_ID:-}" && -n "${ARACHOS_GPG_HOME:-}" ]]; then
-    GNUPGHOME="${ARACHOS_GPG_HOME:-}" repo-add -s -n arachos.db.tar.gz $(basename "$pkg_path")
+    GNUPGHOME="${ARACHOS_GPG_HOME:-}" repo-add -s arachos.db.tar.gz $(basename "$pkg_path")
 else
-    repo-add -n arachos.db.tar.gz $(basename "$pkg_path")
+    repo-add arachos.db.tar.gz $(basename "$pkg_path")
 fi
 popd >/dev/null
