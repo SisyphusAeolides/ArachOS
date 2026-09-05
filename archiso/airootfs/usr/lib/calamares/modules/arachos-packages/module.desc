@@ -1,0 +1,6 @@
+# ArachOS package transaction job
+---
+type:       "job"
+name:       "arachos-packages"
+interface:  "python"
+script:     "main.py"

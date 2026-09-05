@@ -45,7 +45,7 @@ ARACH_BOOTSTRAP_ABI   ?= linux
 
 .PHONY: verify-sources check-chaos validate-calamares validate-corinth-deployment qualify-hermes build-packages \
 	build-arach-kernel-bundle validate-packages sign-packages \
-	build-iso test-kernel-qemu validate clean
+	build-iso test-calamares test-kernel-qemu validate clean clean-temp
 
 verify-sources:
 	RUSTD_SOURCE_ROOT="$(RUSTD_SOURCE_ROOT)" \
@@ -154,6 +154,12 @@ build-iso:
 
 test-kernel-qemu:
 	bash scripts/test-kernel-qemu.sh
+
+test-calamares:
+	python3 scripts/test-calamares-corinth.py
+
+clean-temp:
+	bash scripts/clean-temp.sh
 
 validate: verify-sources check-chaos validate-calamares validate-corinth-deployment validate-packages
 

@@ -31,4 +31,13 @@ for name in "${!source_roots[@]}"; do
     || fail "$name checkout has uncommitted changes"
 done
 
+# Calamares is fetched by its ArachOS PKGBUILD rather than as a sibling
+# checkout. Keep its source revision in the same lock file and verify the
+# package definition before makepkg is allowed to fetch it.
+calamares_lock=$(awk '$1 == "calamares" {print $3}' "$LOCK")
+[[ $calamares_lock =~ ^[0-9a-f]{40}$ ]] || fail 'invalid lock entry for calamares'
+calamares_commit=$(sed -n 's/^_commit=//p' "$ROOT/packaging/pkgbuild/calamares/PKGBUILD")
+[[ "$calamares_commit" == "$calamares_lock" ]] \
+  || fail "calamares PKGBUILD is $calamares_commit, expected $calamares_lock"
+
 printf 'verified %d source checkouts against %s\n' "${#source_roots[@]}" "$LOCK"

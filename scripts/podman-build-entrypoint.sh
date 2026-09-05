@@ -9,14 +9,6 @@ set -Eeuo pipefail
 cd ArachOS
 export IN_CONTAINER=1
 
-# The profile uses its pinned mirror lists for package builds and the
-# ArchISO pacstrap operation. Install them before pacman-conf evaluates the
-# profile configuration.
-install -Dm0644 archiso/airootfs/etc/pacman.d/cachyos-mirrorlist \
-    /etc/pacman.d/cachyos-mirrorlist
-install -Dm0644 archiso/airootfs/etc/pacman.d/cachyos-v3-mirrorlist \
-    /etc/pacman.d/cachyos-v3-mirrorlist
-
 restore_generated_ownership() {
     local status=$?
     # The workspace is normally a host bind mount. Keep the checkout and its

@@ -1,7 +1,5 @@
 FROM archlinux:latest
 
-COPY archiso/keys/cachyos.gpg /usr/share/arachos/cachyos.gpg
-COPY scripts/bootstrap-cachyos.sh /usr/local/sbin/bootstrap-cachyos
 COPY scripts/mkarchiso-arach.patch /tmp/mkarchiso-arach.patch
 COPY scripts/pacstrap-arach.patch /tmp/pacstrap-arach.patch
 
@@ -9,8 +7,8 @@ COPY scripts/pacstrap-arach.patch /tmp/pacstrap-arach.patch
 RUN pacman -Syu --noconfirm base-devel git rust rust-src python gcc-fortran ripgrep pam dbus json-c \
     archiso sudo qemu-system-x86 qemu-desktop make meson ninja cmake libevdev mtdev \
     liburing openssl grub limine curl ca-certificates gnupg \
-    && chmod 0755 /usr/local/sbin/bootstrap-cachyos \
-    && /usr/local/sbin/bootstrap-cachyos \
+    kcoreaddons kpmcore libpwquality qt6-declarative qt6-svg yaml-cpp \
+    extra-cmake-modules libglvnd qt6-tools qt6-translations \
     && patch --batch --forward --fuzz=0 /usr/bin/mkarchiso < /tmp/mkarchiso-arach.patch \
     && patch --batch --forward --fuzz=0 /usr/bin/pacstrap < /tmp/pacstrap-arach.patch \
     && rm -f /tmp/mkarchiso-arach.patch /tmp/pacstrap-arach.patch

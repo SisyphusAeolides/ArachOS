@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Exercise the Calamares-to-Corinth transaction boundary without a target root."""
+
+import importlib.util
+import subprocess
+import sys
+import types
+from pathlib import Path
+
+
+class _Job:
+    def __init__(self, configuration):
+        self.configuration = configuration
+        self.progress = []
+
+    def setprogress(self, value):
+        self.progress.append(value)
+
+
+class _Storage:
+    def __init__(self, values):
+        self.values = values
+
+    def contains(self, key):
+        return key in self.values
+
+    def value(self, key):
+        return self.values[key]
+
+
+def load_module(calls, warnings):
+    calamares = types.ModuleType("libcalamares")
+    utils = types.ModuleType("libcalamares.utils")
+
+    def run_target(command):
+        calls.append(list(command))
+        if "optional" in command:
+            raise subprocess.CalledProcessError(17, command)
+
+    utils.target_env_process_output = run_target
+    utils.debug = lambda message: None
+    utils.warning = warnings.append
+    calamares.utils = utils
+    sys.modules["libcalamares"] = calamares
+    sys.modules["libcalamares.utils"] = utils
+
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "archiso/airootfs/usr/lib/calamares/modules/arachos-packages/main.py"
+    )
+    spec = importlib.util.spec_from_file_location("arachos_packages", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return calamares, module
+
+
+def check(condition, message):
+    if not condition:
+        raise AssertionError(message)
+
+
+def main():
+    calls = []
+    warnings = []
+    calamares, module = load_module(calls, warnings)
+    configuration = {
+        "corinth": {
+            "executable": "/usr/bin/corinth",
+            "service-config": "/etc/corinth/service.toml",
+            "service-signature": "/etc/corinth/service.toml.sig",
+            "keyring": "/etc/arach/hwd/keys.toml",
+        },
+        "operations": [{"install": ["plasma-meta"]}],
+    }
+    calamares.job = _Job(configuration)
+    calamares.globalstorage = _Storage(
+        {"locale": "en_US", "packageOperations": [{"try_install": ["optional"]}]}
+    )
+
+    check(module.run() is None, "a successful critical package should pass")
+    check(
+        calls[0][:3] == ["/usr/bin/corinth", "install", "plasma-meta"],
+        "install verb was not routed",
+    )
+    check(
+        calls[0][-6:]
+        == [
+            "--config",
+            "/etc/corinth/service.toml",
+            "--config-signature",
+            "/etc/corinth/service.toml.sig",
+            "--keyring",
+            "/etc/arach/hwd/keys.toml",
+        ],
+        "signed service arguments were not passed",
+    )
+    check(len(warnings) == 1 and "optional" in warnings[0], "optional failures should be reported")
+    check(calamares.job.progress[-1] == 1.0, "Calamares progress did not finish")
+
+    calamares.job = _Job({"corinth": {}, "operations": [{"localInstall": ["/tmp/file"]}]})
+    calamares.globalstorage = _Storage({"locale": "en"})
+    error = module.run()
+    check(error and "configuration error" in error[0], "local package files must be rejected")
+
+    calamares.job = _Job({"corinth": {}, "operations": [{"install": ["--unsafe"]}]})
+    error = module.run()
+    check(error and "unsafe" in error[1], "unsafe package names must be rejected")
+
+    calamares.job = _Job(
+        {
+            "corinth": {},
+            "operations": [
+                {"install": [{"package": "example", "pre-script": "touch /tmp/x"}]}
+            ],
+        }
+    )
+    calamares.globalstorage = _Storage({"locale": "en"})
+    error = module.run()
+    check(error and "scripts are disabled" in error[1], "package scripts must be rejected")
+    print("validated Calamares Corinth transaction routing")
+
+
+if __name__ == "__main__":
+    main()

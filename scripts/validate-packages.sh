@@ -23,6 +23,7 @@ mapfile -d '' pkgs < <(
 (( ${#pkgs[@]} > 0 )) || fail 'no binary packages found'
 
 required=(
+  calamares
   rustd rustd-resolved rustd-compat-libs rustd-cutover-tools
   tuned-rs libinput-rs blerust ccze-rs hermes-gpu-stack
   arach-hwd corinth arachos-release arach-kernel
@@ -33,6 +34,23 @@ for pkg in "${required[@]}"; do
 done
 
 [[ -f "$PKG_REPO/arachos.db" ]] || fail 'pacman repository database (arachos.db) is missing'
+
+calamares_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \
+  -name 'calamares-*.pkg.tar.zst' ! -name '*-debug-*' -print | sort -V | tail -n 1)
+[[ -n "$calamares_pkg" ]] || fail 'calamares package is missing'
+archive_contains "$calamares_pkg" usr/bin/calamares \
+  || fail 'calamares package is missing usr/bin/calamares'
+if tar --zstd -tf "$calamares_pkg" \
+    | grep -E '^usr/lib/calamares/modules/packages/' >/dev/null; then
+  fail 'calamares package contains the stock package-manager job'
+fi
+for module in initcpio initcpiocfg mkinitfs openrcdmcryptcfg packagechooser \
+    packagechooserq plymouthcfg services-openrc services-systemd; do
+  if tar --zstd -tf "$calamares_pkg" \
+      | grep -E "^usr/lib/calamares/modules/${module}/" >/dev/null; then
+    fail "calamares package contains the unused ${module} module"
+  fi
+done
 
 # Corinth and Arach-HWD are shipped together. Keep every CLI that is part of
 # their native workflow in the image and verify that Corinth is bound to the

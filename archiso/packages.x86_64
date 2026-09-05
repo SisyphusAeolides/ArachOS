@@ -1,6 +1,6 @@
 # ArachOS live/install medium package list
-# Base system
-base
+# Base userspace (the Arch `base` meta-package is intentionally omitted: it
+# would pull a distribution kernel into an Arach-Kernel-only image.)
 bash
 coreutils
 util-linux
@@ -25,6 +25,7 @@ os-prober
 
 # Filesystem
 e2fsprogs
+parted
 xfsprogs
 btrfs-progs
 dosfstools
@@ -39,11 +40,8 @@ wget
 wpa_supplicant
 
 # Installer tooling (Calamares and Archiso dependencies)
-cachyos-keyring
-cachyos-mirrorlist
-cachyos-calamares
+calamares
 hwinfo
-arch-install-scripts
 squashfs-tools
 libisoburn
 
@@ -105,4 +103,3 @@ device-mapper
 
 # Extended Bootloader Options
 refind
-pacman-mirrorlist

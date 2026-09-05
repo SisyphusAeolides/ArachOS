@@ -315,6 +315,7 @@ prune_stale_outputs() {
 }
 
 pkgs_order=(
+  "calamares"
   "grub"
   "rustd"
   "rustd-resolved"
@@ -330,6 +331,7 @@ pkgs_order=(
 )
 
 declare -A pkgs=(
+  [calamares]="$ROOT/packaging/pkgbuild/calamares"
   [grub]="$ROOT/packaging/pkgbuild/grub"
   [rustd]="$ROOT/packaging/pkgbuild/rustd"
   [rustd-resolved]="$ROOT/packaging/pkgbuild/rustd-resolved"

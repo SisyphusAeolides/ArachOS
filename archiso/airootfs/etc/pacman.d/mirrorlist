@@ -1,4 +1,4 @@
-Server = https://archlinux.cachyos.org/repo/$repo/os/$arch
+Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
 # STARTED AT: 2026-09-03 14:05:38.533072014 -05:00
 # VERSION: 0.31.0
 # ARGS: rate-mirrors --save /tmp/tmp.sKX3kuW8fR arch

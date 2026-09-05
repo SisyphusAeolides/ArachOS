@@ -50,6 +50,10 @@ done
 [[ "$ARACHOS_KERNEL_PACKAGE" == "arach-kernel" ]] \
   || fail "the target kernel package must be arach-kernel, not $ARACHOS_KERNEL_PACKAGE"
 
+# Keep the image composition tied to the tested ArachOS Calamares sequence;
+# an ISO build must not proceed with a stale stock package job or profile.
+bash "$ROOT/scripts/validate-calamares.sh"
+
 # ArachOS never ships or boots a distribution Linux kernel. Keep the profile
 # from acquiring one through a future package-list edit; linux-api-headers are
 # userspace headers and are not a bootable kernel.

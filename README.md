@@ -2,7 +2,7 @@
 
 ![ArachOS](docs/ArachOS.png)
 
-ArachOS is a custom Arch Linux-based operating system built with [archiso](https://wiki.archlinux.org/title/Archiso). It replaces the standard Linux init, input, power management, GPU, and wireless stacks with Rust implementations. Both the live medium and installed systems boot the independent measured Arach Kernel; the release path never falls back to a generic Linux kernel. ArchISO provides the package and filesystem assembly, while Limine loads Arach Kernel and its measured RustD payloads.
+ArachOS is assembled with [archiso](https://wiki.archlinux.org/title/Archiso), but its boot and service contract is its own: RustD is PID 1, Arach-Kernel is the only kernel, and the measured Arach payloads are loaded directly by the boot contract. The release path never falls back to a generic Linux kernel. ArchISO supplies the image assembly primitives; it does not define the installed runtime package interface.
 
 The release pipeline is Arch-native: pacman packages are built in Podman and
 assembled by the ArchISO profile.
@@ -26,11 +26,16 @@ assembled by the ArchISO profile.
 
 ## Installer
 
-ArachOS is being prepared with a fully branded Calamares “Everything”
-installer. KDE Plasma is the default desktop, and the profile exposes the
-filesystem, bootloader, and desktop choices whose tools are present in the
-image. The standalone measured-kernel image and the eventual live installer
-use Limine's Multiboot2 loader on BIOS and UEFI. The installer remains
+ArachOS ships a fully branded Calamares “Everything” installer built from the
+pinned upstream Calamares source. KDE Plasma is the default desktop, and the
+profile exposes the filesystem, bootloader, and desktop choices whose tools
+are present in the image. The stock Calamares package job is not in the
+sequence: `arachos-packages` receives the selections from `netinstall` and
+executes signed Corinth transactions inside the mounted target root. No
+foreign package-manager backend is available to the installer, and the live
+profile does not install a distribution package-manager client. The standalone
+measured-kernel qualification image uses Limine's Multiboot2 loader; the live
+installer profile currently uses GRUB's Multiboot2 path. The installer remains
 qualification-only until Arach Kernel provides the persistent live root and
 the complete Calamares handoff has passed its installed-disk tests.
 
@@ -57,6 +62,8 @@ packaging/
 scripts/
   build-packages.sh             Build all pacman packages from pinned sources
   build-iso.sh                  Build the archiso live/install ISO
+  test-calamares-corinth.py     Test Calamares package routing without a target root
+  clean-temp.sh                 Remove disposable ArachOS test and image work
   build-arach-kernel-pkg.sh     Build the pacman arach-kernel package
   build-arach-kernel-bundle.sh  Arach Kernel / RustD qualification build
   validate-packages.sh          Validate the built pacman repository
@@ -237,6 +244,11 @@ must cover installation, first boot from the installed disk, networking,
 resolver operation, package transactions, reboot, and shutdown. Test firmware
 state, disks, serial logs, and failed build work are temporary and are removed
 after each run.
+
+If an interrupted run leaves a disposable test directory behind, use
+`make clean-temp`. It only removes the ArachOS-owned `arachos-grub.*`,
+`arachos-limine.*`, and `arachos-qemu.*` directories below `${TMPDIR:-/tmp}`.
+It does not touch unrelated temporary files.
 
 ## Arach Kernel qualification bundle
 
