@@ -6,8 +6,8 @@
      install -d -m 0755 -- "${isofs_dir}/${install_dir}/boot/${arch}"
 -    install -m 0644 -- "${boot_dir}/initramfs-"*".img" "${isofs_dir}/${install_dir}/boot/${arch}/"
 -    install -m 0644 -- "${boot_dir}/vmlinuz-"* "${isofs_dir}/${install_dir}/boot/${arch}/"
-+    install -m 0644 -- "${boot_dir}/bootstrap" "${isofs_dir}/${install_dir}/boot/${arch}/initramfs-linux.img"
-+    install -m 0644 -- "${boot_dir}/arach" "${isofs_dir}/${install_dir}/boot/${arch}/vmlinuz-linux"
++    install -m 0644 -- "${boot_dir}/bootstrap" "${isofs_dir}/${install_dir}/boot/${arch}/bootstrap"
++    install -m 0644 -- "${boot_dir}/arach" "${isofs_dir}/${install_dir}/boot/${arch}/arach"
 +    install -m 0644 -- "${boot_dir}/rustd" "${isofs_dir}/${install_dir}/boot/${arch}/rustd"
 +    install -m 0644 -- "${boot_dir}/rustd-resolved" "${isofs_dir}/${install_dir}/boot/${arch}/rustd-resolved"
 
@@ -27,7 +27,7 @@
          fi
      done
 -    for _file in "${_files_to_sign[@]}" "${_dir}${arch}/vmlinuz-"!(*.sig) "${_dir}${arch}/initramfs-"*.img; do
-+    for _file in "${_files_to_sign[@]}" "${_dir}${arch}/vmlinuz-linux" "${_dir}${arch}/initramfs-linux.img"; do
++    for _file in "${_files_to_sign[@]}" "${_dir}${arch}/arach" "${_dir}${arch}/bootstrap"; do
          rm -f -- "${_file}".ipxe.sig
          openssl cms \
              -sign \

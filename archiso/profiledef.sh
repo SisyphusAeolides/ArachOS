@@ -9,6 +9,8 @@ iso_version="${ARACHOS_VERSION:-1.0}"
 install_dir="arch"
 buildmodes=('iso')
 bootmodes=('uefi.grub')
+# Arach Kernel is a Multiboot2 image; only the GRUB mode can load this boot
+# contract. The generic Syslinux and systemd-boot templates are not selected.
 arch="x86_64"
 pacman_conf="${ARACHOS_PACMAN_CONF:-pacman.conf}"
 airootfs_image_type="squashfs"
