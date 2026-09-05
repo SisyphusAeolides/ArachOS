@@ -2,7 +2,7 @@ schema=arachos-sources-v1
 calamares https://github.com/calamares/calamares.git 36d30c492e5c7b5d6d32fed5c5d9790522e1eea3
 rustd https://github.com/SisyphusAeolides/rustd.git 2f5b45ec0a74a39ff29ae45396fee246359c9e63
 rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git c1d4102030d1e7c794905db843ebe680d8e429de
-arach-kernel https://github.com/SisyphusAeolides/Arach-Kernel.git 76f7992f842e45e03d9efea67040ddbc90e1b5bb
+arach-kernel https://github.com/SisyphusAeolides/Arach-Kernel.git 99c41276d4b717644c493a0e231fde4a0a8c3c2d
 iwchaos https://github.com/SisyphusAeolides/iwchaos.git 1a7e1fe6afead1be72e21688b062563f1e4cfa28
 tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git d07da1570684e016415d56ac4e00bc72a68f4cd0
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 03fa4fed83d1493b6dc72a7f2ea2a48d002b5268

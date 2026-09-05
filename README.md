@@ -303,10 +303,11 @@ The standalone bundle is built with Limine and records
 gates, and all runtime paths pass. The build stops instead of composing an ISO
 when qualification is incomplete.
 
-The pinned kernel now includes the checked sector-I/O and GPT partition
-boundary used by the upcoming disk driver. It is deliberately not treated as
-storage support yet: a hardware block driver, filesystem implementation, and
-boot-time root handoff still have to pass their QEMU and installed-disk tests.
+The pinned kernel now reads and validates GPT metadata through its measured
+NVMe block transport when a namespace provides it. The QEMU BIOS/UEFI smoke
+test provisions a temporary GPT disk and requires that metadata marker. This
+is still not a root filesystem: a filesystem implementation, persistent VFS,
+and boot-time root handoff must pass their installed-disk tests before release.
 
 ## Hermes release qualification
 
