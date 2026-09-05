@@ -10,7 +10,7 @@ ARACHOS_GPG_KEY_ID     ?=
 ARACHOS_KERNEL_PACKAGE ?= arach-kernel
 
 BUILD_DIR              ?= build
-PKG_REPO               ?= $(PWD)/$(BUILD_DIR)/packages
+PKG_REPO               ?= $(CURDIR)/$(BUILD_DIR)/packages
 ISO_OUTPUT             ?= $(BUILD_DIR)/iso
 
 RUSTD_SOURCE_ROOT        ?= ../rustd
