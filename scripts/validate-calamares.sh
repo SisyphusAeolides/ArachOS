@@ -105,7 +105,7 @@ for module in initcpio initcpiocfg mkinitfs openrcdmcryptcfg packages \
         || fail "the ArachOS Calamares package still builds ${module}"
 done
 
-python3 "$ROOT/scripts/test-calamares-corinth.py" \
+PYTHONDONTWRITEBYTECODE=1 python3 "$ROOT/scripts/test-calamares-corinth.py" \
     || fail 'the Calamares Corinth transaction test failed'
 
 printf 'validated Calamares Arach-Kernel handoff in %s\n' "$PROFILE"

@@ -8,6 +8,9 @@ import types
 from pathlib import Path
 
 
+sys.dont_write_bytecode = True
+
+
 class _Job:
     def __init__(self, configuration):
         self.configuration = configuration
