@@ -2,7 +2,7 @@
 
 ![ArachOS](docs/ArachOS.png)
 
-ArachOS is a custom Arch Linux-based operating system built with [archiso](https://wiki.archlinux.org/title/Archiso). It replaces the standard Linux init, input, power management, GPU, and wireless stacks with Rust implementations, and boots an independent measured kernel (Arach Kernel) instead of the generic Linux kernel.
+ArachOS is a custom Arch Linux-based operating system built with [archiso](https://wiki.archlinux.org/title/Archiso). It replaces the standard Linux init, input, power management, GPU, and wireless stacks with Rust implementations. Installed systems boot an independent measured kernel (Arach Kernel) instead of the generic Linux kernel; the live installer uses the Arch Linux kernel and initramfs and carries the measured payload for the final handoff.
 
 The release pipeline is Arch-native: pacman packages are built in Podman and
 assembled by the ArchISO profile. DNF/RPM packaging is not used for ArachOS.
@@ -73,10 +73,9 @@ reproducible Arch Linux container. The host needs Podman, QEMU, and OVMF:
 sudo pacman -S podman qemu-full edk2-ovmf
 ```
 
-Formal checks use Idris 2 built from its upstream source tree. They do not use
-an AUR helper or an Arch package snapshot. Install the Chez Scheme runtime and
-the other build tools with the Arch package manager, then build the pinned
-upstream revision:
+Formal checks use Idris 2 built directly from the pinned upstream source tree.
+Install the Chez Scheme runtime and the other build tools with the Arch package
+manager, then build the pinned revision:
 
 ```sh
 sudo pacman -S --needed chez-scheme agda git base-devel
