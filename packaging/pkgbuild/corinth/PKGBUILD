@@ -1,7 +1,7 @@
 # Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
 pkgname=corinth
 pkgver=0.1.0
-pkgrel=2
+pkgrel=3
 pkgdesc="Transactional native package manager for ArachOS"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/Corinth"
@@ -11,7 +11,7 @@ depends=('arach-hwd' 'bubblewrap' 'cargo' 'curl' 'git' 'rust' 'tar' 'zstd')
 makedepends=('cargo' 'git')
 options=('!lto')
 
-_commit=d0bafb09aefb8fb2b4667a21e3f8216506615729
+_commit=642382d6a4a9a651add343ba4f577eee10a2a82d
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
