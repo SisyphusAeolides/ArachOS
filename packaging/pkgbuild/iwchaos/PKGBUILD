@@ -1,12 +1,12 @@
 # Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
 pkgname=iwchaos
 pkgver=0.2.4
-pkgrel=1
+pkgrel=2
 pkgdesc="Target-kernel Intel Wi-Fi modules with a bounded rate policy (DKMS)"
-arch=('any')
+arch=('x86_64')
 url="https://github.com/SisyphusAeolides/iwchaos"
 license=('GPL-2.0-only')
-depends=('dkms' 'linux-headers' 'cargo' 'gcc' 'make' 'python' 'git' 'curl' 'binutils')
+depends=('dkms' 'kmod' 'rust' 'gcc' 'make' 'python' 'git' 'curl' 'binutils')
 makedepends=('git')
 
 _commit=9b546445c5caffa00be3902bbd3190b89d11ffb3

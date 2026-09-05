@@ -111,7 +111,6 @@ build_pkg() {
   if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
     sed -i "s|https://github.com/SisyphusAeolides|file:///home/builder/workspace|g" PKGBUILD
     sed -i "s|\.git#|#|g" PKGBUILD
-    sed -i "s|iwchaos-linux|linux|g" PKGBUILD || true
   fi
   if [[ -n "$SIGNING_KEY" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then

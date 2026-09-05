@@ -2,7 +2,7 @@
 pkgbase=rustd
 pkgname=('rustd' 'rustd-compat-libs' 'rustd-cutover-tools')
 pkgver=0.1.2
-pkgrel=19
+pkgrel=20
 pkgdesc="RustD native Linux init and service manager"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/rustd"
@@ -32,6 +32,15 @@ package_rustd() {
        PKGCONFIGDIR=/usr/lib/pkgconfig \
        PAMLIBDIR=/usr/lib/security \
        install
+
+  # Keep the service graph native to Arch by dropping label-restoration
+  # commands for which the release image has no provider. RustD's manager and
+  # udev implementation remain fully active.
+  if [[ -d "$pkgdir/usr/lib/rustd/system" ]]; then
+    while IFS= read -r -d '' unit; do
+      sed -i '/restorecon/d' "$unit"
+    done < <(find "$pkgdir/usr/lib/rustd/system" -type f -name '*.service' -print0)
+  fi
 
   install -Dm0644 LICENSE.LGPL-2.1 "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

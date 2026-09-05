@@ -2,10 +2,10 @@
 
 ![ArachOS](docs/ArachOS.png)
 
-ArachOS is a custom Arch Linux-based operating system built with [archiso](https://wiki.archlinux.org/title/Archiso). It replaces the standard Linux init, input, power management, GPU, and wireless stacks with Rust implementations. Installed systems boot an independent measured kernel (Arach Kernel) instead of the generic Linux kernel; the live installer uses the Arch Linux kernel and initramfs and carries the measured payload for the final handoff.
+ArachOS is a custom Arch Linux-based operating system built with [archiso](https://wiki.archlinux.org/title/Archiso). It replaces the standard Linux init, input, power management, GPU, and wireless stacks with Rust implementations. Both the live medium and installed systems boot the independent measured Arach Kernel; the release path never falls back to a generic Linux kernel. ArchISO provides the package and filesystem assembly, while Limine loads Arach Kernel and its measured RustD payloads.
 
 The release pipeline is Arch-native: pacman packages are built in Podman and
-assembled by the ArchISO profile. DNF/RPM packaging is not used for ArachOS.
+assembled by the ArchISO profile.
 
 ## Core components
 
@@ -17,20 +17,20 @@ assembled by the ArchISO profile. DNF/RPM packaging is not used for ArachOS.
 | `tuned-rs` | `tuned` / `power-profiles-daemon` | Rust power management |
 | `blerust` | `blesh` | Rust line editor |
 | `ccze-rs` | `ccze` | Rust log colorizer |
-| `iwchaos` | `iwlwifi` / `iwlmvm` | Intel Wi-Fi DKMS modules with bounded rate policy |
+| `iwchaos` | — | Kept outside the release image until an Arach-Kernel-native Wi-Fi driver is qualified |
 | `hermes-gpu-stack` | NVIDIA/AMD drivers | Hardware-qualified multi-vendor GPU stack |
 | `arach-kernel` | `linux` | Measured Arach Kernel Multiboot2 image + RustD payloads |
 | `arachos-release` | `archlinux-release` | ArachOS identity, branding, and OS metadata |
 
 ## Installer
 
-ArachOS uses a branded Calamares installer in the ArchISO live environment.
-KDE Plasma is the default desktop, and the profile's “Everything” layout
-exposes every filesystem and desktop choice whose tools are present in the live
-image. The standalone measured-kernel qualification image uses Limine's
-Multiboot2 loader on BIOS and UEFI. The ArchISO profile still carries GRUB for
-Calamares's installed-system choices; that path remains a separate gate until
-its handoff and installed-disk tests pass.
+ArachOS is being prepared with a fully branded Calamares “Everything”
+installer. KDE Plasma is the default desktop, and the profile exposes the
+filesystem, bootloader, and desktop choices whose tools are present in the
+image. The standalone measured-kernel image and the eventual live installer
+use Limine's Multiboot2 loader on BIOS and UEFI. The installer remains
+qualification-only until Arach Kernel provides the persistent live root and
+the complete Calamares handoff has passed its installed-disk tests.
 
 The release image is gated on the complete live-media and installed-system
 campaign. It will not be published while the Arach Kernel, RustD, RustD-
@@ -163,7 +163,8 @@ after each run.
 
 ## Arach Kernel qualification bundle
 
-Arach Kernel is developed and measured independently from the generic Linux kernel. Build the qualification bundle:
+Arach Kernel is the only kernel in the ArachOS boot contract. Build the
+qualification bundle:
 
 ```sh
 make build-arach-kernel-bundle

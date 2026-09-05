@@ -17,7 +17,7 @@ mapfile -d '' pkgs < <(
 
 required=(
   rustd rustd-resolved rustd-compat-libs rustd-cutover-tools
-  tuned-rs libinput-rs blerust ccze-rs iwchaos hermes-gpu-stack
+  tuned-rs libinput-rs blerust ccze-rs hermes-gpu-stack
   arachos-release arach-kernel
 )
 for pkg in "${required[@]}"; do

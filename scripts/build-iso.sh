@@ -40,6 +40,14 @@ done
 [[ "$ARACHOS_KERNEL_PACKAGE" == "arach-kernel" ]] \
   || fail "the target kernel package must be arach-kernel, not $ARACHOS_KERNEL_PACKAGE"
 
+# ArachOS never ships or boots a distribution Linux kernel. Keep the profile
+# from acquiring one through a future package-list edit; linux-api-headers are
+# userspace headers and are not a bootable kernel.
+if awk '$1 ~ /^linux(-|$)/ { found=1 } END { exit found ? 0 : 1 }' \
+    "$ARCHISO_PROFILE/packages.x86_64"; then
+  fail 'the ArchISO profile contains a distribution Linux kernel package'
+fi
+
 # Validate Arach Kernel install qualification manifest
 [[ -r "$ARACH_KERNEL_INSTALL_MANIFEST" ]] \
   || fail "Arach-Kernel install qualification manifest is missing: $ARACH_KERNEL_INSTALL_MANIFEST"
@@ -146,7 +154,6 @@ if [[ -n "$SIGNING_HOME" && -n "$SIGNING_KEY" ]]; then
 fi
 
 ARACHOS_PACMAN_CONF="$ARCHISO_PROFILE/pacman.conf" \
-ARACHOS_PACMAN_OVERWRITE="usr/lib/os-release" \
 ARACHOS_VERSION="$ARACHOS_VERSION" \
 mkarchiso -v -w "$WORK" -o "$ISO_OUTPUT" "$ARCHISO_PROFILE"
 

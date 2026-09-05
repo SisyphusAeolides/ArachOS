@@ -1,7 +1,7 @@
 # Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
 pkgname=arachos-release
 pkgver=1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="ArachOS release identity, branding, and OS metadata"
 arch=('any')
 url="https://github.com/SisyphusAeolides/ArachOS"
@@ -18,8 +18,12 @@ sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
   # OS identity
-  install -d "$pkgdir/usr/lib"
-  cat > "$pkgdir/usr/lib/os-release" << 'OSREL'
+  # filesystem owns /usr/lib/os-release on current Arch releases.  Keep the
+  # ArachOS identity in /etc, which is the administrator-facing location
+  # consumed by login managers and desktop applications, and avoid claiming a
+  # file that belongs to the base system package.
+  install -d "$pkgdir/etc"
+  cat > "$pkgdir/etc/os-release" << 'OSREL'
 NAME="ArachOS"
 ID=arachos
 VERSION="1.0"
@@ -33,8 +37,6 @@ DOCUMENTATION_URL="https://github.com/SisyphusAeolides/ArachOS"
 SUPPORT_URL="https://github.com/SisyphusAeolides/ArachOS/issues"
 BUG_REPORT_URL="https://github.com/SisyphusAeolides/ArachOS/issues"
 OSREL
-  ln -s ../usr/lib/os-release "$pkgdir/etc/os-release" 2>/dev/null || true
-
   install -Dm0644 /dev/stdin "$pkgdir/etc/arachos-release" << 'AREL'
 ArachOS 1.0
 Architecture: x86_64
