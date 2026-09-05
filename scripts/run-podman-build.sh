@@ -15,6 +15,10 @@ if podman unshare podman run --rm -it \
     --env ARACHOS_REPOSITORY_URL \
     --env ARACHOS_GPG_HOME \
     --env ARACHOS_GPG_KEY_ID \
+    --env ARACHOS_CORINTH_SERVICE_CONFIG \
+    --env ARACHOS_CORINTH_SERVICE_SIGNATURE \
+    --env ARACHOS_CORINTH_KEYRING \
+    --env ARACHOS_CORINTH_DEPLOYMENT_REQUIRED \
     --env ARACHOS_HWD_CATALOG_ROOT \
     -v "$PROJECTS_ROOT:/home/builder/workspace:z" \
     arachos-builder bash ArachOS/scripts/podman-build-entrypoint.sh; then
