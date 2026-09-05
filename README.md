@@ -306,11 +306,13 @@ The standalone bundle is built with Limine and records
 gates, and all runtime paths pass. The build stops instead of composing an ISO
 when qualification is incomplete.
 
-The pinned kernel now reads and validates GPT metadata through its measured
-NVMe block transport when a namespace provides it. The QEMU BIOS/UEFI smoke
-test provisions a temporary GPT disk and requires that metadata marker. This
-is still not a root filesystem: a filesystem implementation, persistent VFS,
-and boot-time root handoff must pass their installed-disk tests before release.
+The pinned kernel now reads and validates GPT metadata and an admitted
+read-only ext4 root through its measured NVMe block transport when a namespace
+provides it. The QEMU BIOS/UEFI smoke test provisions a temporary GPT disk,
+seeds `/etc/machine-id`, and requires both the filesystem marker and RustD
+runtime marker. This is a bounded root handoff, not yet a complete writable
+mount namespace; the release gate still requires the full installed-disk and
+Calamares paths.
 
 ## Hermes release qualification
 
