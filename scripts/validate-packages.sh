@@ -40,6 +40,8 @@ calamares_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \
 [[ -n "$calamares_pkg" ]] || fail 'calamares package is missing'
 archive_contains "$calamares_pkg" usr/bin/calamares \
   || fail 'calamares package is missing usr/bin/calamares'
+tar --zstd -xOf "$calamares_pkg" .PKGINFO | grep -Fx 'depend = python' >/dev/null \
+  || fail 'calamares package is missing its Python runtime dependency'
 if tar --zstd -tf "$calamares_pkg" \
     | grep -E '^usr/lib/calamares/modules/packages/' >/dev/null; then
   fail 'calamares package contains the stock package-manager job'
