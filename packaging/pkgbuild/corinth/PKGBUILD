@@ -11,7 +11,7 @@ depends=('arach-hwd' 'bubblewrap' 'cargo' 'curl' 'git' 'rust' 'tar' 'zstd')
 makedepends=('cargo' 'git')
 options=('!lto')
 
-_commit=c94dee673e5ca84fa3d17196635d1c1fdb26c4ae
+_commit=d0bafb09aefb8fb2b4667a21e3f8216506615729
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
