@@ -147,4 +147,13 @@ test-kernel-qemu:
 validate: verify-sources check-chaos validate-calamares validate-packages
 
 clean:
-	rm -rf "$(BUILD_DIR)"
+	@set -eu; \
+	 target="$(abspath $(BUILD_DIR))"; \
+	 case "$$target" in \
+	   "/"|"$(CURDIR)") echo "refusing to remove unsafe build path: $$target" >&2; exit 1 ;; \
+	 esac; \
+	 if [ -e "$$target" ]; then \
+	   find "$$target" -depth -delete 2>/dev/null || \
+	     sudo -n find "$$target" -depth -delete 2>/dev/null || \
+	     { echo "unable to clean generated build tree: $$target" >&2; exit 1; }; \
+	 fi

@@ -20,7 +20,7 @@ assembled by the ArchISO profile.
 | `iwchaos` | — | Kept outside the release image until an Arach-Kernel-native Wi-Fi driver is qualified |
 | `hermes-gpu-stack` | NVIDIA/AMD drivers | Hardware-qualified multi-vendor GPU stack |
 | `arach-hwd` | — | Signed Arach-Kernel hardware and firmware planner |
-| `corinth` | pacman transaction path | Signed native package resolver with atomic generations and rollback |
+| `corinth` | Arch package transaction path | Signed native package resolver with atomic generations and rollback |
 | `arach-kernel` | `linux` | Measured Arach Kernel Multiboot2 image + RustD payloads |
 | `arachos-release` | `archlinux-release` | ArachOS identity, branding, and OS metadata |
 
@@ -125,9 +125,10 @@ Corinth supplies dependency resolution, native artifact verification, atomic
 generation publication, and rollback. KDE Plasma remains the default desktop;
 Cosmic is not selected by the ArachOS profile.
 
-The Arch package tools are still used by ArchISO while this path is qualified.
+The Arch package tools are still used by ArchISO while this path is qualified;
+they are build-time tooling, not the installed package-management interface.
 That keeps image assembly reproducible without claiming an installed-root
-transaction that has not run. The pacman hand-off is allowed only after native
+transaction that has not run. The Arch-tool hand-off is allowed only after native
 install, update, remove, rollback, first-boot, and Calamares tests pass in
 disposable QEMU runs. Until then, Corinth is available for qualification and
 the release gate reports the remaining work instead of silently falling back.
