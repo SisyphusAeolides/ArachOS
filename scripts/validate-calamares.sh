@@ -21,13 +21,14 @@ display_manager_config="$OVERRIDES/etc/calamares/modules/shellprocess-arachos-di
 display_manager_helper="$PROFILE/usr/libexec/arachos-enable-display-manager"
 rustd_services_helper="$PROFILE/usr/libexec/arachos-enable-rustd-services"
 kernel_install_test="$ROOT/scripts/test-arach-kernel-install.sh"
+rustd_policy_test="$ROOT/scripts/test-rustd-no-selinux.sh"
 
 for path in "$settings" "$unpackfs" "$kernel_step" "$bootloader" \
     "$desktop_groups" "$package_config" \
     "$hardware_config" "$package_module/module.desc" "$package_module/main.py" \
     "$hardware_module/module.desc" "$hardware_module/main.py" \
     "$display_manager_config" "$display_manager_helper" \
-    "$rustd_services_helper" "$kernel_install_test"; do
+    "$rustd_services_helper" "$kernel_install_test" "$rustd_policy_test"; do
     [[ -s "$path" ]] || fail "required Calamares file is missing: $path"
 done
 
@@ -35,6 +36,9 @@ grep -Eq 'module:[[:space:]]+netinstall' "$settings" \
     || fail 'Calamares settings do not expose the software selector'
 grep -Fq 'shellprocess@arachos-kernel' "$settings" \
     || fail 'Calamares settings do not run the Arach Kernel handoff'
+if grep -Eq '^[[:space:]]*-[[:space:]]+"-' "$kernel_step"; then
+    fail 'Arach Kernel handoff still ignores a command failure'
+fi
 grep -Eq '^[[:space:]]*-[[:space:]]+arachos-packages[[:space:]]*$' "$settings" \
     || fail 'Calamares settings do not run the Corinth package job'
 grep -Eq '^[[:space:]]*-[[:space:]]+arachos-hardware[[:space:]]*$' "$settings" \
@@ -110,6 +114,8 @@ grep -Fq 'hermes-gpu.service' "$rustd_services_helper" \
     || fail 'the RustD service helper is not executable'
 [[ -x "$kernel_install_test" ]] \
     || fail 'the Arach Kernel install handoff test is not executable'
+[[ -x "$rustd_policy_test" ]] \
+    || fail 'the ArachOS RustD policy test is not executable'
 for setting in \
     'enabled: true' \
     'catalog-root: /etc/arach/hwd/catalog' \

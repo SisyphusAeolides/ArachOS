@@ -5,7 +5,9 @@
 ArachOS is assembled with [archiso](https://wiki.archlinux.org/title/Archiso), but its boot and service contract is its own: RustD is PID 1, Arach-Kernel is the only kernel, and the measured Arach payloads are loaded directly by the boot contract. The release path never falls back to a generic Linux kernel. ArchISO supplies the image assembly primitives; it does not define the installed runtime package interface.
 
 The release pipeline is Arch-native: pacman packages are built in Podman and
-assembled by the ArchISO profile.
+assembled by the ArchISO profile. RustD's optional SELinux compatibility
+feature is disabled for this profile; ArachOS carries no SELinux policy,
+loader, or relabeling dependency from the former Fedora build.
 
 ## Core components
 
@@ -69,6 +71,7 @@ scripts/
   test-arach-kernel-install.sh  Test the persistent Arach-Kernel handoff gates
   test-display-manager.sh       Test native RustD display-manager activation
   test-rustd-services.sh        Test the RustD service graph and unit bridge
+  test-rustd-no-selinux.sh      Ensure ArachOS RustD artifacts omit SELinux
   test-podman-wrapper.sh        Check signed release-input forwarding
   clean-temp.sh                 Remove disposable ArachOS test and image work
   build-arach-kernel-pkg.sh     Build the pacman arach-kernel package

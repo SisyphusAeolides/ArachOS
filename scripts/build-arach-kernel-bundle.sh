@@ -110,7 +110,8 @@ rustd_image=${ARACH_RUSTD_IMAGE:-}
 if [[ -z $rustd_image ]]; then
     [[ -x $rustd_root/scripts/build-static-rustd.sh ]] || fail \
         "RustD static build script is missing: $rustd_root/scripts/build-static-rustd.sh"
-    RUSTD_STATIC_TARGET_DIR="$rustd_static_root" \
+    RUSTD_DISABLE_SELINUX=1 \
+        RUSTD_STATIC_TARGET_DIR="$rustd_static_root" \
         bash "$rustd_root/scripts/build-static-rustd.sh"
     rustd_image=$rustd_static_root/x86_64-static-linux/release/rustd
 fi

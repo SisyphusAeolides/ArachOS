@@ -16,7 +16,10 @@ sha256sums=('SKIP')
 
 build() {
   cd "$pkgbase"
-  make build pam-module libs compat
+  # ArachOS does not ship an SELinux policy. Keep the compatibility feature
+  # available upstream, but leave its loader and relabeling code out of the
+  # PID 1 and helper binaries shipped in this repository.
+  make RUSTD_DISABLE_SELINUX=1 build pam-module libs compat
 }
 
 package_rustd() {
@@ -26,7 +29,7 @@ package_rustd() {
   conflicts=('systemd' 'systemd-sysvcompat')
 
   cd "$pkgbase"
-  make DESTDIR="$pkgdir" \
+  make RUSTD_DISABLE_SELINUX=1 DESTDIR="$pkgdir" \
        PREFIX=/usr \
        LIBDIR=/usr/lib \
        PKGCONFIGDIR=/usr/lib/pkgconfig \

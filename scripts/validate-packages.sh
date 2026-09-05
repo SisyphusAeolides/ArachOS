@@ -33,6 +33,13 @@ for pkg in "${required[@]}"; do
     || fail "required package is missing: $pkg"
 done
 
+# SELinux is a Fedora-only carry-over. The ArachOS package set deliberately
+# leaves the RustD compatibility feature disabled and must not ship policy,
+# loader, or relabeling artifacts.
+if grep -Eiq '^selinux([[:space:]]|$)|^selinux-policy' "$ROOT/archiso/packages.x86_64"; then
+  fail 'the ArchISO package list contains SELinux packages'
+fi
+
 rustd_pkg=$(find "$PKG_REPO" -maxdepth 1 -type f \
   -name 'rustd-[0-9]*.pkg.tar.zst' ! -name '*-debug-*' -print | sort -V | tail -n 1)
 [[ -n "$rustd_pkg" ]] || fail 'rustd package is missing'
