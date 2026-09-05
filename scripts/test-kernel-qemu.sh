@@ -20,7 +20,11 @@ cleanup() {
 trap cleanup EXIT
 
 command -v qemu-system-x86_64 >/dev/null || fail 'qemu-system-x86_64 is required'
+command -v qemu-img >/dev/null || fail 'qemu-img is required'
 [[ -s "$ISO" ]] || fail "kernel qualification ISO is missing: $ISO"
+
+NVME_DISK="$WORK/nvme-test.img"
+qemu-img create -q -f raw "$NVME_DISK" 64M || fail 'could not create the temporary NVMe test disk'
 
 run_boot() {
   local firmware=$1
@@ -40,6 +44,8 @@ run_boot() {
     qemu-system-x86_64 -machine q35,accel=kvm:tcg -cpu max \
     -m "$MEMORY_MB" -smp 2 -cdrom "$ISO" -boot d \
     -display none -serial "file:$log" -monitor none -no-reboot \
+    -drive "if=none,format=raw,id=arachos-nvme,file=$NVME_DISK" \
+    -device "nvme,drive=arachos-nvme,serial=ARACHOS-QEMU" \
     "${firmware_args[@]}"
   local status=$?
   set -e
