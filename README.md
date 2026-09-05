@@ -183,6 +183,25 @@ signature, digest, generation, expiry, and provider validation at boot. If
 the files are omitted, validation explicitly reports a qualification image;
 the four commands are not presented as a usable installed transaction path.
 
+The hardware planner uses a separate signed Arach-HWD catalog. Supply its
+complete catalog directory with the same build when the release has been
+qualified for the target hardware:
+
+```sh
+make build-iso \
+  ARACHOS_CORINTH_SERVICE_CONFIG=/secure/release/service.toml \
+  ARACHOS_CORINTH_SERVICE_SIGNATURE=/secure/release/service.toml.sig \
+  ARACHOS_CORINTH_KEYRING=/secure/release/keys.toml \
+  ARACHOS_HWD_CATALOG_ROOT=/secure/release/arach-hwd-catalog \
+  ARACHOS_CORINTH_DEPLOYMENT_REQUIRED=1
+```
+
+The directory must contain `catalog.lock`, `keys.toml`, and a complete
+`profiles/` tree with no symlinks. Calamares verifies that catalog through
+`arach-hwd plan --require-target-profiles`, writes the resulting plan under
+`/run/arach-installer`, and hands that plan to Corinth. A missing catalog keeps
+the image in qualification status; the installer never guesses a driver.
+
 The component checks can be run directly from their pinned worktrees:
 
 ```sh

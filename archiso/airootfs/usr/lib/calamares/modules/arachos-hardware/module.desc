@@ -1,0 +1,6 @@
+# ArachOS hardware planning job
+---
+type:       "job"
+name:       "arachos-hardware"
+interface:  "python"
+script:     "main.py"

@@ -15,10 +15,13 @@ bootloader="$OVERRIDES/etc/calamares/modules/bootloader.conf"
 desktop_groups="$OVERRIDES/etc/calamares/modules/netinstall.yaml"
 package_config="$OVERRIDES/etc/calamares/modules/arachos-packages.conf"
 package_module="$PROFILE/usr/lib/calamares/modules/arachos-packages"
+hardware_config="$OVERRIDES/etc/calamares/modules/arachos-hardware.conf"
+hardware_module="$PROFILE/usr/lib/calamares/modules/arachos-hardware"
 
 for path in "$settings" "$unpackfs" "$kernel_step" "$bootloader" \
     "$desktop_groups" "$package_config" \
-    "$package_module/module.desc" "$package_module/main.py"; do
+    "$hardware_config" "$package_module/module.desc" "$package_module/main.py" \
+    "$hardware_module/module.desc" "$hardware_module/main.py"; do
     [[ -s "$path" ]] || fail "required Calamares file is missing: $path"
 done
 
@@ -28,6 +31,8 @@ grep -Fq 'shellprocess@arachos-kernel' "$settings" \
     || fail 'Calamares settings do not run the Arach Kernel handoff'
 grep -Eq '^[[:space:]]*-[[:space:]]+arachos-packages[[:space:]]*$' "$settings" \
     || fail 'Calamares settings do not run the Corinth package job'
+grep -Eq '^[[:space:]]*-[[:space:]]+arachos-hardware[[:space:]]*$' "$settings" \
+    || fail 'Calamares settings do not run the Arach-HWD plan job'
 if grep -Eq '^[[:space:]]*-[[:space:]]+packages[[:space:]]*$' "$settings"; then
     fail 'Calamares settings still invoke the distribution package module'
 fi
@@ -57,6 +62,23 @@ done
 grep -Fq 'target_env_process_output(_command(configuration, verb, package))' \
     "$package_module/main.py" \
     || fail 'Calamares package transactions are not routed through target Corinth'
+grep -Fq 'target_env_process_output(_hardware_command(configuration))' \
+    "$package_module/main.py" \
+    || fail 'Corinth does not consume the signed Arach-HWD plan'
+grep -Fq 'target_env_process_output(_plan_command(configuration))' \
+    "$hardware_module/main.py" \
+    || fail 'Calamares does not invoke the signed Arach-HWD planner'
+for setting in \
+    'enabled: true' \
+    'catalog-root: /etc/arach/hwd/catalog' \
+    'profiles: /etc/arach/hwd/catalog/profiles' \
+    'catalog-lock: /etc/arach/hwd/catalog/catalog.lock' \
+    'keyring: /etc/arach/hwd/catalog/keys.toml' \
+    'driver-abi: "1.0"' \
+    'require-target-profiles: true'; do
+    grep -Fq "$setting" "$hardware_config" \
+        || fail "Arach-HWD Calamares configuration is missing: $setting"
+done
 if grep -Eiq '\b(pacman|dnf|dnf5|apt|apk|emerge|nix)\b' \
     "$package_module/main.py" "$package_config"; then
     fail 'the Corinth Calamares module contains a foreign package-manager fallback'

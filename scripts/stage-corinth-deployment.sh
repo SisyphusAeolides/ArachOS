@@ -11,6 +11,7 @@ config=${ARACHOS_CORINTH_SERVICE_CONFIG:-}
 signature=${ARACHOS_CORINTH_SERVICE_SIGNATURE:-}
 keyring=${ARACHOS_CORINTH_KEYRING:-}
 required=${ARACHOS_CORINTH_DEPLOYMENT_REQUIRED:-0}
+hwd_catalog=${ARACHOS_HWD_CATALOG_ROOT:-}
 
 case "$required" in
     0|1) ;;
@@ -18,6 +19,8 @@ case "$required" in
 esac
 
 if [[ -z "$config" && -z "$signature" && -z "$keyring" ]]; then
+    [[ -z "$hwd_catalog" ]] ||
+        fail 'Arach-HWD catalog requires the complete signed Corinth deployment'
     [[ "$required" == 0 ]] ||
         fail 'a signed service config, signature, and keyring are required'
     printf 'no signed Corinth deployment supplied; retaining qualification-only image\n'
@@ -58,5 +61,27 @@ install -d -m 0755 "$TARGET_ROOT/etc/corinth" "$TARGET_ROOT/etc/arach/hwd"
 install -m 0644 -- "$config" "$TARGET_ROOT/etc/corinth/service.toml"
 install -m 0644 -- "$signature" "$TARGET_ROOT/etc/corinth/service.toml.sig"
 install -m 0644 -- "$keyring" "$TARGET_ROOT/etc/arach/hwd/keys.toml"
+
+if [[ -n "$hwd_catalog" ]]; then
+    [[ "$hwd_catalog" == /* ]] ||
+        fail "Arach-HWD catalog must be an absolute path: $hwd_catalog"
+    [[ -d "$hwd_catalog" && ! -L "$hwd_catalog" ]] ||
+        fail "Arach-HWD catalog root is not a real directory: $hwd_catalog"
+    [[ -f "$hwd_catalog/catalog.lock" && ! -L "$hwd_catalog/catalog.lock" ]] ||
+        fail 'Arach-HWD catalog.lock is missing or not a regular file'
+    [[ -f "$hwd_catalog/keys.toml" && ! -L "$hwd_catalog/keys.toml" ]] ||
+        fail 'Arach-HWD catalog keys.toml is missing or not a regular file'
+    [[ -d "$hwd_catalog/profiles" && ! -L "$hwd_catalog/profiles" ]] ||
+        fail 'Arach-HWD catalog profiles directory is missing or not real'
+    symlink=$(find "$hwd_catalog" -type l -print -quit)
+    if [[ -n "$symlink" ]]; then
+        fail 'Arach-HWD catalog must not contain symlinks'
+    fi
+    install -d -m 0755 "$TARGET_ROOT/etc/arach/hwd/catalog"
+    cp -a --no-preserve=ownership "$hwd_catalog/." \
+        "$TARGET_ROOT/etc/arach/hwd/catalog/"
+    printf 'staged signed Arach-HWD catalog in %s\n' \
+        "$TARGET_ROOT/etc/arach/hwd/catalog"
+fi
 
 printf 'staged signed Corinth deployment in %s\n' "$TARGET_ROOT/etc/corinth"
