@@ -1,6 +1,6 @@
 schema=arachos-sources-v1
-rustd https://github.com/SisyphusAeolides/rustd.git 0369685affbfa7b240025289b7b9f7acdd93b2ed
-rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git f8d01c2e10567fa4a43fadc75a4c63145b1495f9
+rustd https://github.com/SisyphusAeolides/rustd.git 2f5b45ec0a74a39ff29ae45396fee246359c9e63
+rustd-resolved https://github.com/SisyphusAeolides/rustd-resolved.git c1d4102030d1e7c794905db843ebe680d8e429de
 arach-kernel https://github.com/SisyphusAeolides/Arach-Kernel.git 1c9f0dc47c54eb0312c7318a492cf120aea7f229
 iwchaos https://github.com/SisyphusAeolides/iwchaos.git 1a7e1fe6afead1be72e21688b062563f1e4cfa28
 iwchaos-linux https://github.com/gregkh/linux.git 8d3ae59288f1e7d58d76558a6ee96d533bc5019f
@@ -8,6 +8,6 @@ tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git d07da1570684e016415d56
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 03fa4fed83d1493b6dc72a7f2ea2a48d002b5268
 blerust https://github.com/SisyphusAeolides/blerust.git a536d8fe1e800d3134f61b03f0f6d14dc9a1e288
 ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 78b9e4c1c3405432ba7a1284df7ee1f9008af124
-hermes https://github.com/SisyphusAeolides/Hermes.git a6f305871b9ba4604e2fbe9768269d8d5f1c3c43
-hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git a6f305871b9ba4604e2fbe9768269d8d5f1c3c43
+hermes https://github.com/SisyphusAeolides/Hermes.git 3794cca8a82fa91c77b8f48471bb0fa19e66ba6f
+hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git 3794cca8a82fa91c77b8f48471bb0fa19e66ba6f
 arachos-release local none
