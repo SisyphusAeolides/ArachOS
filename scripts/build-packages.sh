@@ -73,6 +73,13 @@ build_pkg() {
   if lock_key=$(source_lock_key "$name"); then
     patch_commit "$builddir/PKGBUILD" "$lock_key"
   fi
+
+  install_container_packages() {
+    [[ "${IN_CONTAINER:-0}" == "1" ]] || return 0
+    ((${#@} > 0)) || fail "no package archives available for $name"
+    sudo pacman -Udd --noconfirm --overwrite '*' "$@"
+  }
+
   pushd "$builddir" >/dev/null
   mapfile -t package_list < <(makepkg --packagelist)
   ((${#package_list[@]} > 0)) || fail "makepkg did not report output packages for $name"
@@ -105,6 +112,11 @@ build_pkg() {
     cp -a "$package" "$OUTPUT/"
     [[ -s "$package.sig" ]] && cp -a "$package.sig" "$OUTPUT/"
   done
+  # Make split packages available to later PKGBUILDs in this same isolated
+  # build.  The output repository is assembled only after all packages finish,
+  # so pacman cannot otherwise resolve a dependency on a package built one
+  # step earlier (for example tuned-rs -> rustd).
+  install_container_packages "${package_list[@]}"
   popd >/dev/null
 }
 
@@ -158,7 +170,7 @@ declare -A pkgs=(
 
 for name in "${pkgs_order[@]}"; do
   if ls "$OUTPUT/${name}-"*.pkg.tar.zst >/dev/null 2>&1; then
-    if [[ "${IN_CONTAINER:-0}" == "1" && "$name" == "grub" ]]; then
+    if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
       mapfile -t existing_packages < <(find "$OUTPUT" -maxdepth 1 -type f \
         -name "${name}-*.pkg.tar.zst" -print | sort -V)
       if ((${#existing_packages[@]} > 0)); then
