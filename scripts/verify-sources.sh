@@ -14,6 +14,8 @@ declare -A source_roots=(
   [blerust]="${BLERUST_SOURCE_ROOT:-$ROOT/../blerust}"
   [ccze-rs]="${CCZE_SOURCE_ROOT:-$ROOT/../ccze-rs}"
   [hermes]="${HERMES_SOURCE_ROOT:-$ROOT/../Hermes}"
+  [arach-hwd]="${ARACH_HWD_SOURCE_ROOT:-$ROOT/../Arach-HWD}"
+  [corinth]="${CORINTH_SOURCE_ROOT:-$ROOT/../Corinth}"
 )
 
 fail() { printf 'source verification: %s\n' "$*" >&2; exit 1; }

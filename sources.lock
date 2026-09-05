@@ -9,4 +9,6 @@ blerust https://github.com/SisyphusAeolides/blerust.git a536d8fe1e800d3134f61b03
 ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 78b9e4c1c3405432ba7a1284df7ee1f9008af124
 hermes https://github.com/SisyphusAeolides/Hermes.git 3794cca8a82fa91c77b8f48471bb0fa19e66ba6f
 hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git 3794cca8a82fa91c77b8f48471bb0fa19e66ba6f
+arach-hwd https://github.com/SisyphusAeolides/Arach-HWD.git 13c950e1be8af7eea928f5ea49b7d560d5fa6fae
+corinth https://github.com/SisyphusAeolides/Corinth.git c94dee673e5ca84fa3d17196635d1c1fdb26c4ae
 arachos-release local none

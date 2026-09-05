@@ -1,0 +1,36 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=arach-hwd
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Signed Arach-Kernel hardware profile resolver and transaction planner"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/Arach-HWD"
+license=('MIT')
+depends=('curl')
+makedepends=('cargo' 'gcc-fortran' 'git')
+options=('!lto')
+
+_commit=13c950e1be8af7eea928f5ea49b7d560d5fa6fae
+source=("git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+build() {
+  cd "Arach-HWD"
+  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --release --locked --features fortran-ranking --bins
+}
+
+check() {
+  cd "Arach-HWD"
+  cargo test --locked --all-targets --features fortran-ranking
+}
+
+package() {
+  cd "Arach-HWD"
+  for bin in arach-hwd arach-hwd-catalog-sync arach-hwd-qualify arach-hwd-record; do
+    install -Dm0755 "target/release/$bin" "$pkgdir/usr/bin/$bin"
+  done
+  install -Dm0644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  if [ -f LICENSE ]; then
+    install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  fi
+}

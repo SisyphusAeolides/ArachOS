@@ -1,0 +1,46 @@
+# Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
+pkgname=corinth
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Transactional native package manager for ArachOS"
+arch=('x86_64')
+url="https://github.com/SisyphusAeolides/Corinth"
+license=('MIT')
+provides=('arach-package-manager')
+depends=('arach-hwd' 'bubblewrap' 'cargo' 'curl' 'git' 'rust' 'tar' 'zstd')
+makedepends=('cargo' 'git')
+options=('!lto')
+
+_commit=c94dee673e5ca84fa3d17196635d1c1fdb26c4ae
+source=("git+${url}.git#commit=${_commit}")
+sha256sums=('SKIP')
+
+build() {
+  cd "Corinth"
+  CARGO_PROFILE_RELEASE_DEBUG=2 cargo build --release --locked \
+    --features fortran-policy,host-store --bins
+}
+
+check() {
+  cd "Corinth"
+  cargo test --locked --all-targets --features fortran-policy,host-store
+}
+
+package() {
+  cd "Corinth"
+  for bin in \
+    corinth \
+    corinth-import-crux \
+    corinth-import-nix \
+    corinth-import-foreign \
+    corinth-ingest \
+    corinth-discover \
+    corinth-corpus \
+    corinth-indexer; do
+    install -Dm0755 "target/release/$bin" "$pkgdir/usr/bin/$bin"
+  done
+  install -Dm0644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  if [ -f LICENSE ]; then
+    install -Dm0644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  fi
+}

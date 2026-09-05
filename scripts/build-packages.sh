@@ -39,6 +39,26 @@ LIBINPUT_SOURCE_ROOT="${LIBINPUT_SOURCE_ROOT:-$ROOT/../libinput-rs}"
 BLERUST_SOURCE_ROOT="${BLERUST_SOURCE_ROOT:-$ROOT/../blerust}"
 CCZE_SOURCE_ROOT="${CCZE_SOURCE_ROOT:-$ROOT/../ccze-rs}"
 HERMES_SOURCE_ROOT="${HERMES_SOURCE_ROOT:-$ROOT/../Hermes}"
+ARACH_HWD_SOURCE_ROOT="${ARACH_HWD_SOURCE_ROOT:-$ROOT/../Arach-HWD}"
+CORINTH_SOURCE_ROOT="${CORINTH_SOURCE_ROOT:-$ROOT/../Corinth}"
+
+normalize_source_root() {
+  local path=$1
+  [[ "$path" == /* ]] || path="$ROOT/$path"
+  realpath -m "$path"
+}
+
+RUSTD_SOURCE_ROOT=$(normalize_source_root "$RUSTD_SOURCE_ROOT")
+RESOLVED_SOURCE_ROOT=$(normalize_source_root "$RESOLVED_SOURCE_ROOT")
+ARACH_KERNEL_SOURCE_ROOT=$(normalize_source_root "$ARACH_KERNEL_SOURCE_ROOT")
+IWCHAOS_SOURCE_ROOT=$(normalize_source_root "$IWCHAOS_SOURCE_ROOT")
+TUNED_SOURCE_ROOT=$(normalize_source_root "$TUNED_SOURCE_ROOT")
+LIBINPUT_SOURCE_ROOT=$(normalize_source_root "$LIBINPUT_SOURCE_ROOT")
+BLERUST_SOURCE_ROOT=$(normalize_source_root "$BLERUST_SOURCE_ROOT")
+CCZE_SOURCE_ROOT=$(normalize_source_root "$CCZE_SOURCE_ROOT")
+HERMES_SOURCE_ROOT=$(normalize_source_root "$HERMES_SOURCE_ROOT")
+ARACH_HWD_SOURCE_ROOT=$(normalize_source_root "$ARACH_HWD_SOURCE_ROOT")
+CORINTH_SOURCE_ROOT=$(normalize_source_root "$CORINTH_SOURCE_ROOT")
 
 lock_sha() {
   awk -v key="$1" '$1 == key {print $3}' "$ROOT/sources.lock"
@@ -109,8 +129,19 @@ build_pkg() {
   mapfile -t package_list < <(makepkg --packagelist)
   ((${#package_list[@]} > 0)) || fail "makepkg did not report output packages for $name"
   if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
-    sed -i "s|https://github.com/SisyphusAeolides|file:///home/builder/workspace|g" PKGBUILD
-    sed -i "s|\.git#|#|g" PKGBUILD
+    if local_source_is_complete "$name"; then
+      # A complete checkout is mounted into the builder so makepkg can build
+      # without another network fetch. Keep the source URL pinned to the
+      # exact commit while changing only its transport to that checkout.
+      sed -i "s|https://github.com/SisyphusAeolides|file:///home/builder/workspace|g" PKGBUILD
+      sed -i "s|\.git#|#|g" PKGBUILD
+    else
+      # Partial or shallow checkouts cannot provide makepkg's mirror clone:
+      # Git would ask the promisor for missing history and may fail after the
+      # commit itself has already been verified. Use the pinned HTTPS source
+      # in that case; the source lock still controls the revision.
+      printf 'Package %s: local checkout is incomplete; using pinned HTTPS source.\n' "$name" >&2
+    fi
   fi
   if [[ -n "$SIGNING_KEY" ]]; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
@@ -167,6 +198,33 @@ source_lock_key() {
     arachos-release|grub) return 1 ;;
     *) printf '%s\n' "$1" ;;
   esac
+}
+
+source_root_for_package() {
+  case "$1" in
+    rustd) printf '%s\n' "$RUSTD_SOURCE_ROOT" ;;
+    rustd-resolved) printf '%s\n' "$RESOLVED_SOURCE_ROOT" ;;
+    tuned-rs) printf '%s\n' "$TUNED_SOURCE_ROOT" ;;
+    hermes-gpu-stack) printf '%s\n' "$HERMES_SOURCE_ROOT" ;;
+    iwchaos) printf '%s\n' "$IWCHAOS_SOURCE_ROOT" ;;
+    blerust) printf '%s\n' "$BLERUST_SOURCE_ROOT" ;;
+    ccze-rs) printf '%s\n' "$CCZE_SOURCE_ROOT" ;;
+    libinput-rs) printf '%s\n' "$LIBINPUT_SOURCE_ROOT" ;;
+    arach-hwd) printf '%s\n' "$ARACH_HWD_SOURCE_ROOT" ;;
+    corinth) printf '%s\n' "$CORINTH_SOURCE_ROOT" ;;
+    *) return 1 ;;
+  esac
+}
+
+local_source_is_complete() {
+  local name=$1 root
+  root=$(source_root_for_package "$name") || return 1
+  [[ -d "$root/.git" ]] || return 1
+  [[ "$(git -C "$root" rev-parse --is-shallow-repository 2>/dev/null || true)" != true ]] \
+    || return 1
+  [[ "$(git -C "$root" config --get remote.origin.promisor 2>/dev/null || true)" != true ]] \
+    || return 1
+  [[ -z "$(git -C "$root" config --get remote.origin.partialclonefilter 2>/dev/null || true)" ]]
 }
 
 package_outputs_ready() {
@@ -259,6 +317,8 @@ pkgs_order=(
   "blerust"
   "ccze-rs"
   "libinput-rs"
+  "arach-hwd"
+  "corinth"
   "arachos-release"
 )
 
@@ -272,6 +332,8 @@ declare -A pkgs=(
   [tuned-rs]="$ROOT/packaging/pkgbuild/tuned-rs"
   [hermes-gpu-stack]="$ROOT/packaging/pkgbuild/hermes-gpu-stack"
   [iwchaos]="$ROOT/packaging/pkgbuild/iwchaos"
+  [arach-hwd]="$ROOT/packaging/pkgbuild/arach-hwd"
+  [corinth]="$ROOT/packaging/pkgbuild/corinth"
   [arachos-release]="$ROOT/packaging/pkgbuild/arachos-release"
 )
 

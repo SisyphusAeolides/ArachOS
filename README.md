@@ -19,6 +19,8 @@ assembled by the ArchISO profile.
 | `ccze-rs` | `ccze` | Rust log colorizer |
 | `iwchaos` | — | Kept outside the release image until an Arach-Kernel-native Wi-Fi driver is qualified |
 | `hermes-gpu-stack` | NVIDIA/AMD drivers | Hardware-qualified multi-vendor GPU stack |
+| `arach-hwd` | — | Signed Arach-Kernel hardware and firmware planner |
+| `corinth` | pacman transaction path | Signed native package resolver with atomic generations and rollback |
 | `arach-kernel` | `linux` | Measured Arach Kernel Multiboot2 image + RustD payloads |
 | `arachos-release` | `archlinux-release` | ArachOS identity, branding, and OS metadata |
 
@@ -34,8 +36,9 @@ the complete Calamares handoff has passed its installed-disk tests.
 
 The release image is gated on the complete live-media and installed-system
 campaign. It will not be published while the Arach Kernel, RustD, RustD-
-resolved, Hermes, Calamares installation, first boot, networking, and reboot
-manifests are pending or incomplete.
+resolved, Hermes, Calamares installation, first boot, networking,
+Corinth/Arach-HWD package transactions, reboot, and shutdown manifests are
+pending or incomplete.
 
 ## Repository layout
 
@@ -108,6 +111,36 @@ make build-packages \
 ```
 
 The packages are written to `build/packages/` with a signed `arachos.db.tar.gz` pacman repository database.
+
+When a complete adjacent checkout is available, the builder uses it as the
+offline Git source. Shallow or partial checkouts are never mirrored as if they
+were complete; the builder falls back to the same pinned HTTPS commit so a
+missing promisor object cannot turn into a misleading package result.
+
+## Native package-management path
+
+`arach-hwd` and `corinth` are built into the image from the exact revisions in
+`sources.lock`. Arach-HWD supplies signed hardware evidence and plans;
+Corinth supplies dependency resolution, native artifact verification, atomic
+generation publication, and rollback. KDE Plasma remains the default desktop;
+Cosmic is not selected by the ArachOS profile.
+
+The Arch package tools are still used by ArchISO while this path is qualified.
+That keeps image assembly reproducible without claiming an installed-root
+transaction that has not run. The pacman hand-off is allowed only after native
+install, update, remove, rollback, first-boot, and Calamares tests pass in
+disposable QEMU runs. Until then, Corinth is available for qualification and
+the release gate reports the remaining work instead of silently falling back.
+
+The component checks can be run directly from their pinned worktrees:
+
+```sh
+RUSTUP_TOOLCHAIN=nightly-x86_64-unknown-linux-gnu \
+  cargo test --manifest-path ../Arach-HWD/Cargo.toml --locked --all-targets --features fortran-ranking
+RUSTUP_TOOLCHAIN=nightly-x86_64-unknown-linux-gnu \
+  cargo test --manifest-path ../Corinth/Cargo.toml --locked --all-targets \
+    --features fortran-policy,host-store
+```
 
 ## Building the ISO
 

@@ -77,6 +77,8 @@ libinput-rs
 blerust
 ccze-rs
 hermes-gpu-stack
+arach-hwd
+corinth
 arachos-release
 
 # Arach Kernel (provides /boot/arach, /boot/rustd, /boot/rustd-resolved)
