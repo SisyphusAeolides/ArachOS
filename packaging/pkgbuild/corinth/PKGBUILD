@@ -1,7 +1,7 @@
 # Maintainer: Kenny Glauner <SisyphusAeolides@pm.me>
 pkgname=corinth
 pkgver=0.1.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Transactional native package manager for ArachOS"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/Corinth"
