@@ -8,8 +8,8 @@ tuned-rs https://github.com/SisyphusAeolides/tuned-rs.git d07da1570684e016415d56
 libinput-rs https://github.com/SisyphusAeolides/libinput-rs.git 03fa4fed83d1493b6dc72a7f2ea2a48d002b5268
 blerust https://github.com/SisyphusAeolides/blerust.git a536d8fe1e800d3134f61b03f0f6d14dc9a1e288
 ccze-rs https://github.com/SisyphusAeolides/ccze-rs.git 78b9e4c1c3405432ba7a1284df7ee1f9008af124
-hermes https://github.com/SisyphusAeolides/Hermes.git 8d5cd6254b9d55f459ed1ab62dc102666623604b
-hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git 8d5cd6254b9d55f459ed1ab62dc102666623604b
+hermes https://github.com/SisyphusAeolides/Hermes.git be1b17cc6f6c187f4b39e21b0aea52499864ac5d
+hermes-gpu-stack https://github.com/SisyphusAeolides/Hermes.git be1b17cc6f6c187f4b39e21b0aea52499864ac5d
 arach-hwd https://github.com/SisyphusAeolides/Arach-HWD.git 13c950e1be8af7eea928f5ea49b7d560d5fa6fae
 corinth https://github.com/SisyphusAeolides/Corinth.git 5478b2d7693a3c5b50d25e0150ce5672048e3cfb
 arachos-release local none
