@@ -26,7 +26,13 @@ manifest_value() { sed -n "s/^$1=//p" "$2" | head -n 1; }
 cleanup_work() {
   local status=$?
   if [[ "$LIVE_MEDIA_KEEP_WORK" != "1" && -d "$WORK" ]]; then
-    find "$WORK" -depth -delete
+    if ! find "$WORK" -depth -delete 2>/dev/null; then
+      # mkarchiso may create root-owned files inside the disposable work
+      # tree.  Clean only this explicit path so teardown cannot mask the
+      # actual image-build result.
+      sudo -n find "$WORK" -depth -delete 2>/dev/null ||
+        printf 'warning: unable to clean ISO work tree: %s\n' "$WORK" >&2
+    fi
   fi
   trap - EXIT
   exit "$status"

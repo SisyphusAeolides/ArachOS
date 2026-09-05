@@ -16,7 +16,14 @@ need() { command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"; }
 cleanup_work() {
   local status=$?
   if [[ "$KEEP_WORK" != "1" && -d "$WORK" ]]; then
-    find "$WORK" -depth -delete
+    if ! find "$WORK" -depth -delete 2>/dev/null; then
+      # A privileged package install can leave fakeroot-owned entries in the
+      # disposable tree.  Let the build user remove only this known work
+      # root instead of turning a completed package build into a teardown
+      # failure.
+      sudo -n find "$WORK" -depth -delete 2>/dev/null ||
+        printf 'warning: unable to clean package work tree: %s\n' "$WORK" >&2
+    fi
   fi
   trap - EXIT
   exit "$status"
