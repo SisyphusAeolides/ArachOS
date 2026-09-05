@@ -126,8 +126,17 @@ build_pkg() {
       makepkg -sf --noconfirm
     fi
   fi
+  local -a built_packages=()
   for package in "${package_list[@]}"; do
-    [[ -s "$package" ]] || fail "makepkg did not create expected package: $package"
+    if [[ ! -s "$package" ]]; then
+      # makepkg can list a debug split package even when the package contains
+      # no ELF files (iwchaos is source-only DKMS content), in which case no
+      # debug archive is produced.  Every real package remains mandatory.
+      [[ "$package" == *-debug-*.pkg.tar.zst ]] \
+        || fail "makepkg did not create expected package: $package"
+      continue
+    fi
+    built_packages+=("$package")
     cp -a "$package" "$OUTPUT/"
     [[ -s "$package.sig" ]] && cp -a "$package.sig" "$OUTPUT/"
   done
@@ -135,7 +144,7 @@ build_pkg() {
   # build.  The output repository is assembled only after all packages finish,
   # so pacman cannot otherwise resolve a dependency on a package built one
   # step earlier (for example tuned-rs -> rustd).
-  stage_container_packages "${package_list[@]}"
+  stage_container_packages "${built_packages[@]}"
   popd >/dev/null
 }
 
