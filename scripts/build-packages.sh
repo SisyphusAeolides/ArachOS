@@ -171,26 +171,82 @@ source_lock_key() {
 }
 
 package_outputs_ready() {
-  local name=$1 pkgdir=$2 path archive metadata_dir
-  local -a expected=()
+  local name=$1 pkgdir=$2 path archive
+  local -a package_names=()
 
-  metadata_dir=$(mktemp -d "$WORK/.metadata-${name}.XXXXXX")
-  cp "$pkgdir/PKGBUILD" "$metadata_dir/PKGBUILD"
-  pushd "$metadata_dir" >/dev/null
-  mapfile -t expected < <(makepkg --packagelist)
-  popd >/dev/null
-  find "$metadata_dir" -depth -delete
-  ((${#expected[@]} > 0)) || return 1
+  package_metadata "$name" "$pkgdir"
+  ((${#PACKAGE_OUTPUT_PATHS[@]} > 0)) || return 1
+
+  # A release bump must not leave an older archive for one of this PKGBUILD's
+  # package names in the shared output directory.  Such archives are easy to
+  # pick up accidentally when staging dependencies and make pacman reject the
+  # transaction as a duplicate target.
+  mapfile -t package_names < <(makepkg_package_names "$name" "$pkgdir")
+  prune_stale_outputs "${package_names[@]}"
 
   # Compare the exact filenames makepkg would produce for this PKGBUILD. A
   # prefix-only glob would mistake rustd-resolved for rustd and can leave a
   # dependency unstaged after a package release is bumped.
-  for path in "${expected[@]}"; do
+  for path in "${PACKAGE_OUTPUT_PATHS[@]}"; do
     archive="$OUTPUT/$(basename "$path")"
     if [[ "$archive" == *-debug-*.pkg.tar.zst && ! -s "$archive" ]]; then
       continue
     fi
     [[ -s "$archive" ]] || return 1
+  done
+}
+
+PACKAGE_OUTPUT_PATHS=()
+
+package_metadata() {
+  local name=$1 pkgdir=$2 metadata_dir
+  PACKAGE_OUTPUT_PATHS=()
+  metadata_dir=$(mktemp -d "$WORK/.metadata-${name}.XXXXXX")
+  cp "$pkgdir/PKGBUILD" "$metadata_dir/PKGBUILD"
+  pushd "$metadata_dir" >/dev/null
+  mapfile -t PACKAGE_OUTPUT_PATHS < <(makepkg --packagelist)
+  popd >/dev/null
+  find "$metadata_dir" -depth -delete
+}
+
+makepkg_package_names() {
+  local name=$1 pkgdir=$2 metadata_dir
+  metadata_dir=$(mktemp -d "$WORK/.srcinfo-${name}.XXXXXX")
+  cp "$pkgdir/PKGBUILD" "$metadata_dir/PKGBUILD"
+  pushd "$metadata_dir" >/dev/null
+  # makepkg creates split debug archives without listing them in
+  # --printsrcinfo, so include both conventional debug suffixes when
+  # identifying stale output files.
+  makepkg --printsrcinfo | awk '$1 == "pkgname" {
+    print $3
+    print $3 "-debug"
+    print $3 "-debuginfo"
+  }'
+  popd >/dev/null
+  find "$metadata_dir" -depth -delete
+}
+
+prune_stale_outputs() {
+  local archive package_name expected path
+  local -a package_names=("$@")
+  for archive in "$OUTPUT"/*.pkg.tar.zst; do
+    [[ -f "$archive" ]] || continue
+    package_name=$(tar --zstd -xOf "$archive" .PKGINFO 2>/dev/null \
+      | awk -F' = ' '$1 == "pkgname" {print $2; exit}')
+    [[ -n "$package_name" ]] || continue
+    if ! printf '%s\n' "${package_names[@]}" | grep -Fqx "$package_name"; then
+      continue
+    fi
+    expected=0
+    for path in "${PACKAGE_OUTPUT_PATHS[@]}"; do
+      if [[ "$(basename "$path")" == "$(basename "$archive")" ]]; then
+        expected=1
+        break
+      fi
+    done
+    if [[ $expected == 0 ]]; then
+      rm -f -- "$archive" "$archive.sig"
+    fi
   done
 }
 
@@ -223,8 +279,11 @@ declare -A pkgs=(
 for name in "${pkgs_order[@]}"; do
   if package_outputs_ready "$name" "${pkgs[$name]}"; then
     if [[ "${IN_CONTAINER:-0}" == "1" ]]; then
-      mapfile -t existing_packages < <(find "$OUTPUT" -maxdepth 1 -type f \
-        -name "${name}-*.pkg.tar.zst" -print | sort -V)
+      existing_packages=()
+      for path in "${PACKAGE_OUTPUT_PATHS[@]}"; do
+        archive="$OUTPUT/$(basename "$path")"
+        [[ -s "$archive" ]] && existing_packages+=("$archive")
+      done
       if ((${#existing_packages[@]} > 0)); then
         stage_container_packages "${existing_packages[@]}"
       fi

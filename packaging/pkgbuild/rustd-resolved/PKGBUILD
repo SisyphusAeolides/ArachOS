@@ -2,7 +2,7 @@
 pkgbase=rustd-resolved
 pkgname=('rustd-resolved' 'rustd-resolved-nss')
 pkgver=0.2.3
-pkgrel=6
+pkgrel=7
 pkgdesc="RustD native DNS resolver"
 arch=('x86_64')
 url="https://github.com/SisyphusAeolides/rustd-resolved"
@@ -10,7 +10,7 @@ license=('LGPL-2.1-or-later')
 makedepends=('cargo' 'git' 'gcc' 'gcc-fortran' 'make' 'openssl' 'liburing' 'python')
 options=('!lto')
 
-_commit=1077ea4f0d3db4e789a1aa6abd9b1ab50c20447e
+_commit=eff62afb81abf6529cfa05c42b5952db6bd312e3
 source=("git+${url}.git#commit=${_commit}")
 sha256sums=('SKIP')
 
