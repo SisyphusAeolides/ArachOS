@@ -27,6 +27,18 @@ chown -R builder:builder build
 echo "==> Building Packages"
 su builder -c "make build-packages"
 
+# The kernel bundle is assembled with grub-mkrescue.  Install the exact
+# ArachOS GRUB archive that was just built so the bundle uses its writable EFI
+# relocator, rather than the stock GRUB inherited from the builder image.
+grub_package=$(find build/packages -maxdepth 1 -type f \
+    -name 'grub-*.pkg.tar.zst' ! -name '*-debug-*' \
+    -print | sort -V | tail -n 1)
+[[ -s $grub_package ]] || {
+    printf '%s\n' 'ArachOS container: the built GRUB package is missing.' >&2
+    exit 1
+}
+pacman -Udd --noconfirm --overwrite '*' "$grub_package"
+
 echo "==> Building Arach-Kernel Bundle"
 su builder -c "make build-arach-kernel-bundle"
 
