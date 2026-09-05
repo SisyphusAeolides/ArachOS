@@ -39,7 +39,7 @@ installer profile currently uses GRUB's Multiboot2 path. The installer remains
 qualification-only until Arach Kernel provides the persistent live root and
 the complete Calamares handoff has passed its installed-disk tests. After the
 package step, Calamares configures the selected desktop and enables its native
-RustD display-manager unit with `rustctl`; no package hook or systemd manager
+RustD display-manager unit with `rustctl`; no package script or systemd manager
 is required for the installed target.
 
 The release image is gated on the complete live-media and installed-system
